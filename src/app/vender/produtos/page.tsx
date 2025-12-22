@@ -51,7 +51,7 @@ export default function MyProductsPage() {
             <Card key={product.id} className="overflow-hidden">
               <CardContent className="flex items-center gap-4 p-4">
                 <Image
-                  src={product.image.imageUrl}
+                  src={product.images[0].imageUrl}
                   alt={product.name}
                   width={64}
                   height={64}

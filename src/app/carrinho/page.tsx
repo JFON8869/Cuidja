@@ -37,7 +37,7 @@ export default function CartPage() {
             {cart.map((item) => (
               <div key={item.id} className="flex items-center gap-4">
                 <Image
-                  src={item.image.imageUrl}
+                  src={item.images[0].imageUrl}
                   alt={item.name}
                   width={64}
                   height={64}

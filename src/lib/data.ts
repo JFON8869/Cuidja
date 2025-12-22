@@ -18,8 +18,7 @@ export interface Product {
   description?: string;
   price: number;
   seller: string;
-  imageId: string;
-  image: ImagePlaceholder;
+  images: ImagePlaceholder[];
   category: string;
 }
 
@@ -61,8 +60,7 @@ export const mockProducts: Product[] = [
     description: 'Uma seleção fresquinha de vegetais e legumes orgânicos, colhidos direto da horta para a sua mesa.',
     price: 85.5,
     seller: 'Sítio Verde',
-    imageId: 'vegetables',
-    image: findImage('vegetables'),
+    images: [findImage('vegetables')],
     category: 'Faça-Feira',
   },
   {
@@ -71,8 +69,7 @@ export const mockProducts: Product[] = [
     description: 'Pão de fermentação natural, com casca crocante e miolo macio. Feito com muito carinho.',
     price: 15.0,
     seller: 'Pão da Terra',
-    imageId: 'bread',
-    image: findImage('bread'),
+    images: [findImage('bread')],
     category: 'Faça-Feira',
   },
   {
@@ -81,8 +78,7 @@ export const mockProducts: Product[] = [
     description: 'Mel puro e delicioso, produzido por abelhas que se alimentam de flores silvestres da nossa região.',
     price: 30.0,
     seller: 'Apiário do Sol',
-    imageId: 'honey',
-    image: findImage('honey'),
+    images: [findImage('honey')],
     category: 'Faça-Feira',
   },
   {
@@ -91,8 +87,7 @@ export const mockProducts: Product[] = [
     description: 'Tomates maduros e suculentos, cultivados sem agrotóxicos. Ideais para saladas e molhos.',
     price: 12.0,
     seller: 'Sítio Verde',
-    imageId: 'tomatoes',
-    image: findImage('tomatoes'),
+    images: [findImage('tomatoes')],
     category: 'Faça-Feira',
   },
   {
@@ -101,8 +96,7 @@ export const mockProducts: Product[] = [
     description: 'Queijo fresco, leve e saboroso, produzido com leite puro da fazenda. Ótimo para o café da manhã.',
     price: 45.0,
     seller: 'Laticínios da Serra',
-    imageId: 'cheese',
-    image: findImage('cheese'),
+    images: [findImage('cheese')],
     category: 'Faça-Feira',
   },
   // Artesanatos
@@ -112,8 +106,7 @@ export const mockProducts: Product[] = [
     description: 'Vaso de cerâmica feito à mão por artesãos locais. Cada peça é única e perfeita para suas plantas.',
     price: 50.0,
     seller: 'Arte em Barro',
-    imageId: 'pottery',
-    image: findImage('pottery'),
+    images: [findImage('pottery')],
     category: 'Artesanatos',
   },
   {
@@ -122,8 +115,7 @@ export const mockProducts: Product[] = [
     description: 'Pano de prato de alta qualidade, com lindos bordados feitos à mão. Uma peça que une utilidade e beleza.',
     price: 25.0,
     seller: 'Bordados Finos',
-    imageId: 'textiles',
-    image: findImage('textiles'),
+    images: [findImage('textiles')],
     category: 'Artesanatos',
   },
   // Serviços
@@ -133,8 +125,7 @@ export const mockProducts: Product[] = [
     description: 'Deixe seu jardim mais bonito com nosso serviço de jardinagem. Cuidamos de tudo para você.',
     price: 120.0,
     seller: 'João Jardineiro',
-    imageId: 'woodworking', // using as placeholder
-    image: findImage('woodworking'),
+    images: [findImage('woodworking')], // using as placeholder
     category: 'Serviços',
   },
   // Restaurantes
@@ -144,8 +135,7 @@ export const mockProducts: Product[] = [
     description: 'A clássica pizza Margherita com molho de tomate fresco, mussarela de búfala e manjericão.',
     price: 55.0,
     seller: 'Pizza Bella',
-    imageId: 'vegetables', // placeholder
-    image: findImage('vegetables'),
+    images: [findImage('vegetables')], // placeholder
     category: 'Restaurantes',
   },
   {
@@ -154,8 +144,7 @@ export const mockProducts: Product[] = [
     description: 'Delicioso hambúrguer de 180g, queijo cheddar, bacon crocante e pão brioche.',
     price: 35.0,
     seller: 'Burger House',
-    imageId: 'bread', // placeholder
-    image: findImage('bread'),
+    images: [findImage('bread')], // placeholder
     category: 'Restaurantes',
   },
   // Bebidas
@@ -165,8 +154,7 @@ export const mockProducts: Product[] = [
     description: 'Suco de laranja feito na hora, sem adição de açúcar ou conservantes. Pura vitamina C.',
     price: 18.0,
     seller: 'Sucos & Cia',
-    imageId: 'fruits',
-    image: findImage('fruits'),
+    images: [findImage('fruits')],
     category: 'Bebidas',
   },
   // Gás e Água
@@ -176,8 +164,7 @@ export const mockProducts: Product[] = [
     description: 'Botijão de gás de cozinha de 13kg. Entrega rápida e segura em sua casa.',
     price: 110.0,
     seller: 'Gás Rápido',
-    imageId: 'category-gas-water',
-    image: findImage('category-gas-water'),
+    images: [findImage('category-gas-water')],
     category: 'Gás e Água',
   },
   // Pets
@@ -187,8 +174,7 @@ export const mockProducts: Product[] = [
     description: 'Alimento completo e balanceado para cães adultos de todas as raças.',
     price: 150.0,
     seller: 'Pet Amigo',
-    imageId: 'category-pets',
-    image: findImage('category-pets'),
+    images: [findImage('category-pets')],
     category: 'Pets',
   },
   // Farmácias
@@ -198,8 +184,7 @@ export const mockProducts: Product[] = [
     description: 'Medicamento analgésico e antitérmico para alívio de dores e febre.',
     price: 15.0,
     seller: 'Farmácia Bem-Estar',
-    imageId: 'category-pharmacy',
-    image: findImage('category-pharmacy'),
+    images: [findImage('category-pharmacy')],
     category: 'Farmácias',
   },
 ];

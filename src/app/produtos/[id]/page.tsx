@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { useProductContext } from '@/context/ProductContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -41,27 +48,48 @@ export default function ProductDetailPage() {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="absolute left-0 top-0 z-10 p-2">
-        <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/30 text-white hover:bg-black/50 hover:text-white" asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-12 w-12 rounded-full bg-black/30 text-white hover:bg-black/50 hover:text-white"
+          asChild
+        >
           <Link href="/home">
             <ArrowLeft />
           </Link>
         </Button>
       </header>
       <main className="flex-1 overflow-y-auto">
-        <div className="aspect-w-1 aspect-h-1">
-          <Image
-            src={product.image.imageUrl}
-            alt={product.name}
-            layout="fill"
-            className="object-cover"
-            data-ai-hint={product.image.imageHint}
-          />
-        </div>
+        <Carousel className="w-full">
+          <CarouselContent>
+            {product.images.map((image, index) => (
+              <CarouselItem key={index}>
+                <div className="aspect-square relative">
+                  <Image
+                    src={image.imageUrl}
+                    alt={`${product.name} - imagem ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    data-ai-hint={image.imageHint}
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          {product.images.length > 1 && (
+            <>
+              <CarouselPrevious className="absolute left-4" />
+              <CarouselNext className="absolute right-4" />
+            </>
+          )}
+        </Carousel>
+
         <div className="space-y-4 p-4">
           <div>
             <h1 className="text-3xl font-headline">{product.name}</h1>
             <p className="mt-2 text-lg text-muted-foreground">
-              {product.description || `Descrição detalhada do ${product.name}.`}
+              {product.description ||
+                `Descrição detalhada do ${product.name}.`}
             </p>
           </div>
 

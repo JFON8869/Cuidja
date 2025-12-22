@@ -7,7 +7,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Upload, Calendar as CalendarIcon } from 'lucide-react';
+import {
+  ArrowLeft,
+  Upload,
+  Calendar as CalendarIcon,
+  X,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -23,10 +28,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@/components/ui/radio-group';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -44,41 +46,58 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { mockCategories } from '@/lib/data';
 import { useProductContext } from '@/context/ProductContext';
+import { type ImagePlaceholder } from '@/lib/placeholder-images';
 
-const productSchema = z.object({
-  name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
-  description: z
-    .string()
-    .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
-  price: z.coerce.number().positive('O preço deve ser um número positivo.'),
-  category: z.string({ required_error: "Selecione uma categoria."}).min(1, 'Selecione uma categoria.'),
-  availability: z.enum(['immediate', 'on_demand', 'scheduled']),
-  preparationTime: z.string().optional(),
-  availableFrom: z.date().optional(),
-  image: z.any().refine(file => file, 'A imagem do produto é obrigatória.'),
-}).refine(data => {
-    if (data.availability === 'on_demand' && !data.preparationTime) {
+const MAX_IMAGES = 3;
+
+const productSchema = z
+  .object({
+    name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
+    description: z
+      .string()
+      .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
+    price: z.coerce.number().positive('O preço deve ser um número positivo.'),
+    category: z
+      .string({ required_error: 'Selecione uma categoria.' })
+      .min(1, 'Selecione uma categoria.'),
+    availability: z.enum(['immediate', 'on_demand', 'scheduled']),
+    preparationTime: z.string().optional(),
+    availableFrom: z.date().optional(),
+    images: z
+      .array(z.any())
+      .min(1, 'Pelo menos uma imagem é obrigatória.')
+      .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
+  })
+  .refine(
+    (data) => {
+      if (data.availability === 'on_demand' && !data.preparationTime) {
         return false;
+      }
+      return true;
+    },
+    {
+      message: 'O tempo de preparo é obrigatório para encomendas.',
+      path: ['preparationTime'],
     }
-    return true;
-}, {
-    message: 'O tempo de preparo é obrigatório para encomendas.',
-    path: ['preparationTime'],
-}).refine(data => {
-    if (data.availability === 'scheduled' && !data.availableFrom) {
+  )
+  .refine(
+    (data) => {
+      if (data.availability === 'scheduled' && !data.availableFrom) {
         return false;
+      }
+      return true;
+    },
+    {
+      message: 'A data de disponibilidade é obrigatória.',
+      path: ['availableFrom'],
     }
-    return true;
-}, {
-    message: 'A data de disponibilidade é obrigatória.',
-    path: ['availableFrom'],
-});
+  );
 
 export default function NewProductPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { addProduct } = useProductContext();
-  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -89,41 +108,67 @@ export default function NewProductPage() {
       price: 0,
       availability: 'immediate',
       preparationTime: '',
+      images: [],
     },
   });
 
   const availability = form.watch('availability');
-  
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      form.setValue('image', file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = Array.from(event.target.files || []);
+    const currentImages = form.getValues('images');
+    const totalImages = currentImages.length + files.length;
+
+    if (totalImages > MAX_IMAGES) {
+      toast({
+        variant: 'destructive',
+        title: 'Limite de imagens excedido',
+        description: `Você só pode adicionar mais ${
+          MAX_IMAGES - currentImages.length
+        } imagens.`,
+      });
+      return;
     }
+
+    const newImageFiles = [...currentImages, ...files];
+    form.setValue('images', newImageFiles);
+
+    const newImagePreviews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newImagePreviews]);
+  };
+
+  const removeImage = (index: number) => {
+    const currentImages = form.getValues('images');
+    const currentPreviews = [...imagePreviews];
+
+    currentImages.splice(index, 1);
+    currentPreviews.splice(index, 1);
+
+    form.setValue('images', currentImages);
+    setImagePreviews(currentPreviews);
   };
 
   function onSubmit(values: z.infer<typeof productSchema>) {
+    const newImages: ImagePlaceholder[] = imagePreviews.map((preview, i) => ({
+      id: `custom-${new Date().getTime()}-${i}`,
+      description: values.name,
+      imageUrl: preview,
+      imageHint: values.category.toLowerCase(),
+    }));
+
     const newProduct = {
-        id: new Date().getTime().toString(),
-        name: values.name,
-        price: values.price,
-        seller: 'Meu Negócio', // Mock seller
-        imageId: 'custom',
-        description: values.description,
-        category: values.category,
-        image: {
-            id: 'custom',
-            description: values.name,
-            imageUrl: imagePreview!, // We know this exists if form is valid
-            imageHint: values.category.toLowerCase(),
-        }
+      id: new Date().getTime().toString(),
+      name: values.name,
+      price: values.price,
+      seller: 'Meu Negócio', // Mock seller
+      description: values.description,
+      category: values.category,
+      images: newImages,
     };
+
+    // @ts-ignore
     addProduct(newProduct);
-    
+
     toast({
       title: 'Produto anunciado!',
       description: `O produto "${values.name}" foi cadastrado com sucesso.`,
@@ -148,32 +193,54 @@ export default function NewProductPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="image"
+              name="images"
               render={() => (
                 <FormItem>
-                  <FormLabel>Fotos do Produto</FormLabel>
-                   <FormControl>
-                    <div 
-                      className="flex h-32 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input 
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={handleImageChange}
-                      />
-                      {imagePreview ? (
-                        <Image src={imagePreview} alt="Prévia do produto" width={128} height={128} className="h-full w-auto object-contain" />
-                      ) : (
-                        <div className="text-center">
-                          <Upload className="mx-auto h-8 w-8" />
-                          <p className="mt-2 text-sm">Arraste ou clique para enviar</p>
+                  <FormLabel>Fotos do Produto ({imagePreviews.length}/{MAX_IMAGES})</FormLabel>
+                  <FormControl>
+                    <div className="grid grid-cols-3 gap-2">
+                      {imagePreviews.map((src, index) => (
+                        <div key={index} className="relative aspect-square">
+                          <Image
+                            src={src}
+                            alt={`Preview ${index}`}
+                            fill
+                            className="rounded-md object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -right-2 -top-2 h-6 w-6 rounded-full"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      {imagePreviews.length < MAX_IMAGES && (
+                        <div
+                          className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                           <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleImageChange}
+                          />
+                          <div className="text-center">
+                            <Upload className="mx-auto h-8 w-8" />
+                          </div>
                         </div>
                       )}
                     </div>
                   </FormControl>
+                  <FormDescription>
+                    Envie até {MAX_IMAGES} fotos do seu produto.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -236,7 +303,10 @@ export default function NewProductPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma categoria" />
@@ -308,7 +378,7 @@ export default function NewProductPage() {
                     <FormControl>
                       <Input placeholder="Ex: 3 dias úteis" {...field} />
                     </FormControl>
-                     <FormDescription>
+                    <FormDescription>
                       Informe o tempo necessário para produzir o item.
                     </FormDescription>
                     <FormMessage />
@@ -349,15 +419,16 @@ export default function NewProductPage() {
                           selected={field.value}
                           onSelect={field.onChange}
                           disabled={(date) =>
-                            date < new Date(new Date().setHours(0,0,0,0))
+                            date < new Date(new Date().setHours(0, 0, 0, 0))
                           }
                           initialFocus
                           locale={ptBR}
                         />
                       </PopoverContent>
                     </Popover>
-                     <FormDescription>
-                      O produto só aparecerá para os clientes a partir desta data.
+                    <FormDescription>
+                      O produto só aparecerá para os clientes a partir desta
+                      data.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -365,8 +436,7 @@ export default function NewProductPage() {
               />
             )}
 
-
-            <Button type="submit" className="w-full" size="lg">
+            <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
               Anunciar Produto
             </Button>
           </form>

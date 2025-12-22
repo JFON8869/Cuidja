@@ -22,12 +22,12 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardHeader className="p-0">
           <div className="aspect-w-1 aspect-h-1">
             <Image
-              src={product.image.imageUrl}
+              src={product.images[0].imageUrl}
               alt={product.name}
               width={400}
               height={400}
               className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-              data-ai-hint={product.image.imageHint}
+              data-ai-hint={product.images[0].imageHint}
             />
           </div>
         </CardHeader>
