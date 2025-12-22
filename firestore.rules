@@ -60,8 +60,8 @@ service cloud.firestore {
       return isSignedIn() && resource != null && request.auth.uid == doc.customerId;
     }
 
-    // Checks if the requesting user is the seller of a product via a denormalized field.
-    function isProductSeller(doc) {
+    // Checks if the requesting user is the seller of a product/service via a denormalized field.
+    function isResourceSeller(doc) {
       return isSignedIn() && resource != null && request.auth.uid == doc.sellerId;
     }
     
@@ -70,8 +70,8 @@ service cloud.firestore {
         return isSignedIn() && request.resource.data.customerId == request.auth.uid;
     }
 
-    // Validates that the sellerId on a new product matches the creator's UID.
-    function isCreatingOwnProduct() {
+    // Validates that the sellerId on a new resource (product/service) matches the creator's UID.
+    function isCreatingOwnResource() {
         return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
     }
     
@@ -95,8 +95,8 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if false; // Prevent listing all users
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
@@ -153,11 +153,25 @@ service cloud.firestore {
      * @principle Implements a Public Read with Owner-Only Writes pattern.
      */
     match /products/{productId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isCreatingOwnProduct();
-      allow update: if isProductSeller(resource.data);
-      allow delete: if isProductSeller(resource.data);
+      allow get, list: if true;
+      allow create: if isCreatingOwnResource();
+      allow update: if isResourceSeller(resource.data);
+      allow delete: if isResourceSeller(resource.data);
+    }
+
+    /**
+     * @description Rules for the public services collection, visible to everyone.
+     * @path /services/{serviceId}
+     * @allow (get, list) Any user can browse available services.
+     * @allow (create) A signed-in user creating a service where they set themselves as the seller.
+     * @allow (update, delete) The seller of the service modifying or deleting their own listing.
+     * @principle Implements a Public Read with Owner-Only Writes pattern for services.
+     */
+    match /services/{serviceId} {
+      allow get, list: if true;
+      allow create: if isCreatingOwnResource();
+      allow update: if isResourceSeller(resource.data);
+      allow delete: if isResourceSeller(resource.data);
     }
 
     /**
@@ -176,8 +190,7 @@ service cloud.firestore {
       // The client MUST use a where('customerId', '==', auth.uid) clause to get results.
       allow list: if isSignedIn();
       allow create: if isCreatingOwnOrder();
-      allow update: if false; // Placed orders should not be updatable by the customer.
-      allow delete: if false; // Placed orders should not be deletable by the customer.
+      allow update, delete: if isDocumentOwner(resource.data) || isResourceSeller(get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data);
     }
 
     /**
@@ -213,5 +226,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

@@ -24,9 +24,9 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
-import { useProductContext } from '@/context/ProductContext';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCollection } from '@/firebase/firestore/use-collection';
 
 const salesData = [
   { name: 'Jan', sales: 65 },
@@ -38,7 +38,6 @@ const salesData = [
 ];
 
 export default function SellPage() {
-  const { products } = useProductContext();
   const { user, firestore, isUserLoading } = useFirebase();
   const [store, setStore] = useState<{id: string, category: string} | null>(null);
   const [isStoreLoading, setStoreLoading] = useState(true);
@@ -65,12 +64,31 @@ export default function SellPage() {
     }
     fetchStore();
   }, [user, firestore, isUserLoading]);
-
-  const myProductsCount = store
-    ? products.filter((p) => p.storeId === store.id).length
-    : 0;
-
+  
   const isServiceProvider = store?.category === 'Serviços';
+
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore || !user || isServiceProvider) return null;
+    return query(
+        collection(firestore, 'products'),
+        where('sellerId', '==', user.uid)
+    );
+  }, [firestore, user, isServiceProvider]);
+
+  const servicesQuery = useMemoFirebase(() => {
+      if (!firestore || !user || !isServiceProvider) return null;
+      return query(
+          collection(firestore, 'services'),
+          where('sellerId', '==', user.uid)
+      );
+  }, [firestore, user, isServiceProvider]);
+
+  const { data: myProducts } = useCollection(productsQuery);
+  const { data: myServices } = useCollection(servicesQuery);
+
+  const myProductsCount = myProducts?.length || 0;
+  const myServicesCount = myServices?.length || 0;
+
 
   if (isStoreLoading || isUserLoading) {
     return (
@@ -148,8 +166,7 @@ export default function SellPage() {
                     <Wrench className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    {/* TODO: Fetch services count */}
-                    <div className="text-2xl font-bold">...</div>
+                    <div className="text-2xl font-bold">{myServicesCount}</div>
                     <p className="text-xs text-muted-foreground">Serviços ativos</p>
                   </CardContent>
                 </Card>
