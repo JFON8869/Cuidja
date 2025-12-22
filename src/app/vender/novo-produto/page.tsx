@@ -155,12 +155,16 @@ export default function NewProductPage() {
       imageUrl: preview,
       imageHint: values.category.toLowerCase(),
     }));
+    
+    // This is a placeholder for the current seller's store ID.
+    // In a real app, this would come from the authenticated user's data.
+    const myStoreId = 'paodaterra';
 
     const newProduct = {
       id: new Date().getTime().toString(),
       name: values.name,
       price: values.price,
-      seller: 'Meu Negócio', // Mock seller
+      storeId: myStoreId,
       description: values.description,
       category: values.category,
       images: newImages,

@@ -25,13 +25,19 @@ export interface AddonGroup {
   addons: Addon[];
 }
 
+export interface Store {
+  id: string;
+  name: string;
+  category: string;
+  logo: ImagePlaceholder;
+}
 
 export interface Product {
   id: string;
   name: string;
   description?: string;
   price: number;
-  seller: string;
+  storeId: string;
   images: ImagePlaceholder[];
   category: string;
   addons?: AddonGroup[];
@@ -103,6 +109,30 @@ export const mockBanners: Banner[] = [
   },
 ];
 
+export const mockStores: Store[] = [
+  // Faça-Feira
+  { id: 'sitiov', name: 'Sítio Verde', category: 'Faça-Feira', logo: findImage('vegetables') },
+  { id: 'paodaterra', name: 'Pão da Terra', category: 'Faça-Feira', logo: findImage('bread') },
+  { id: 'apiariosol', name: 'Apiário do Sol', category: 'Faça-Feira', logo: findImage('honey') },
+  { id: 'laticiniosserra', name: 'Laticínios da Serra', category: 'Faça-Feira', logo: findImage('cheese') },
+  // Artesanatos
+  { id: 'artebarro', name: 'Arte em Barro', category: 'Artesanatos', logo: findImage('pottery') },
+  { id: 'bordadosfinos', name: 'Bordados Finos', category: 'Artesanatos', logo: findImage('textiles') },
+  // Serviços
+  { id: 'joaojardineiro', name: 'João Jardineiro', category: 'Serviços', logo: findImage('woodworking') },
+  // Restaurantes
+  { id: 'pizzabella', name: 'Pizza Bella', category: 'Restaurantes', logo: findImage('pizza') },
+  { id: 'burgerhouse', name: 'Burger House', category: 'Restaurantes', logo: findImage('bread') },
+  // Bebidas
+  { id: 'sucoscia', name: 'Sucos & Cia', category: 'Bebidas', logo: findImage('fruits') },
+  // Gás e Água
+  { id: 'gasrapido', name: 'Gás Rápido', category: 'Gás e Água', logo: findImage('category-gas-water') },
+  // Pets
+  { id: 'petamigo', name: 'Pet Amigo', category: 'Pets', logo: findImage('category-pets') },
+  // Farmácias
+  { id: 'farmabemestar', name: 'Farmácia Bem-Estar', category: 'Farmácias', logo: findImage('category-pharmacy') },
+];
+
 export const mockProducts: Product[] = [
   // Faça-Feira
   {
@@ -110,7 +140,7 @@ export const mockProducts: Product[] = [
     name: 'Cesta de Orgânicos',
     description: 'Uma seleção fresquinha de vegetais e legumes orgânicos, colhidos direto da horta para a sua mesa.',
     price: 85.5,
-    seller: 'Sítio Verde',
+    storeId: 'sitiov',
     images: [findImage('vegetables'), findImage('carrots'), findImage('lettuce')],
     category: 'Faça-Feira',
   },
@@ -119,7 +149,7 @@ export const mockProducts: Product[] = [
     name: 'Pão Artesanal',
     description: 'Pão de fermentação natural, com casca crocante e miolo macio. Feito com muito carinho.',
     price: 15.0,
-    seller: 'Pão da Terra',
+    storeId: 'paodaterra',
     images: [findImage('bread')],
     category: 'Faça-Feira',
   },
@@ -128,7 +158,7 @@ export const mockProducts: Product[] = [
     name: 'Mel Silvestre',
     description: 'Mel puro e delicioso, produzido por abelhas que se alimentam de flores silvestres da nossa região.',
     price: 30.0,
-    seller: 'Apiário do Sol',
+    storeId: 'apiariosol',
     images: [findImage('honey')],
     category: 'Faça-Feira',
   },
@@ -137,7 +167,7 @@ export const mockProducts: Product[] = [
     name: 'Tomates Frescos (kg)',
     description: 'Tomates maduros e suculentos, cultivados sem agrotóxicos. Ideais para saladas e molhos.',
     price: 12.0,
-    seller: 'Sítio Verde',
+    storeId: 'sitiov',
     images: [findImage('tomatoes')],
     category: 'Faça-Feira',
   },
@@ -146,7 +176,7 @@ export const mockProducts: Product[] = [
     name: 'Queijo Minas Frescal',
     description: 'Queijo fresco, leve e saboroso, produzido com leite puro da fazenda. Ótimo para o café da manhã.',
     price: 45.0,
-    seller: 'Laticínios da Serra',
+    storeId: 'laticiniosserra',
     images: [findImage('cheese')],
     category: 'Faça-Feira',
   },
@@ -156,7 +186,7 @@ export const mockProducts: Product[] = [
     name: 'Vaso de Cerâmica',
     description: 'Vaso de cerâmica feito à mão por artesãos locais. Cada peça é única e perfeita para suas plantas.',
     price: 50.0,
-    seller: 'Arte em Barro',
+    storeId: 'artebarro',
     images: [findImage('pottery'), findImage('pottery-craft')],
     category: 'Artesanatos',
   },
@@ -165,7 +195,7 @@ export const mockProducts: Product[] = [
     name: 'Pano de Prato Bordado',
     description: 'Pano de prato de alta qualidade, com lindos bordados feitos à mão. Uma peça que une utilidade e beleza.',
     price: 25.0,
-    seller: 'Bordados Finos',
+    storeId: 'bordadosfinos',
     images: [findImage('textiles')],
     category: 'Artesanatos',
   },
@@ -175,7 +205,7 @@ export const mockProducts: Product[] = [
     name: 'Serviço de Jardinagem',
     description: 'Deixe seu jardim mais bonito com nosso serviço de jardinagem. Cuidamos de tudo para você.',
     price: 120.0,
-    seller: 'João Jardineiro',
+    storeId: 'joaojardineiro',
     images: [findImage('woodworking')], // using as placeholder
     category: 'Serviços',
   },
@@ -185,7 +215,7 @@ export const mockProducts: Product[] = [
     name: 'Pizza Margherita Grande',
     description: 'A clássica pizza Margherita com molho de tomate fresco, mussarela de búfala e manjericão.',
     price: 55.0,
-    seller: 'Pizza Bella',
+    storeId: 'pizzabella',
     images: [findImage('pizza')],
     category: 'Restaurantes',
     addons: [
@@ -217,7 +247,7 @@ export const mockProducts: Product[] = [
     name: 'Hambúrguer Artesanal',
     description: 'Delicioso hambúrguer de 180g, queijo cheddar, bacon crocante e pão brioche.',
     price: 35.0,
-    seller: 'Burger House',
+    storeId: 'burgerhouse',
     images: [findImage('bread')], // placeholder
     category: 'Restaurantes',
   },
@@ -227,7 +257,7 @@ export const mockProducts: Product[] = [
     name: 'Suco Natural de Laranja (1L)',
     description: 'Suco de laranja feito na hora, sem adição de açúcar ou conservantes. Pura vitamina C.',
     price: 18.0,
-    seller: 'Sucos & Cia',
+    storeId: 'sucoscia',
     images: [findImage('fruits')],
     category: 'Bebidas',
   },
@@ -237,7 +267,7 @@ export const mockProducts: Product[] = [
     name: 'Botijão de Gás P13',
     description: 'Botijão de gás de cozinha de 13kg. Entrega rápida e segura em sua casa.',
     price: 110.0,
-    seller: 'Gás Rápido',
+    storeId: 'gasrapido',
     images: [findImage('category-gas-water')],
     category: 'Gás e Água',
   },
@@ -247,7 +277,7 @@ export const mockProducts: Product[] = [
     name: 'Ração para Cães Adultos (15kg)',
     description: 'Alimento completo e balanceado para cães adultos de todas as raças.',
     price: 150.0,
-    seller: 'Pet Amigo',
+    storeId: 'petamigo',
     images: [findImage('category-pets')],
     category: 'Pets',
   },
@@ -257,7 +287,7 @@ export const mockProducts: Product[] = [
     name: 'Analgésico 10 Comprimidos',
     description: 'Medicamento analgésico e antitérmico para alívio de dores e febre.',
     price: 15.0,
-    seller: 'Farmácia Bem-Estar',
+    storeId: 'farmabemestar',
     images: [findImage('category-pharmacy')],
     category: 'Farmácias',
   },

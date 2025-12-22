@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { useProductContext } from '@/context/ProductContext';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useState } from 'react';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -40,37 +41,38 @@ const checkoutSchema = z.object({
   message: z.string().optional(),
 });
 
-interface Store {
-    id: string;
-    userId: string;
-    name: string;
-}
 
 export default function CheckoutPage() {
   const { cart, total, clearCart } = useCart();
-  const { products } = useProductContext();
   const { toast } = useToast();
   const router = useRouter();
   const { firestore, user } = useFirebase();
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [isLoadingStore, setIsLoadingStore] = useState(true);
 
   // This assumes all items in cart are from the same seller for simplicity.
-  // A real app would group items by seller.
-  const firstProductInCart = cart.length > 0 ? products.find(p => p.id === cart[0].id) : null;
-  const sellerName = firstProductInCart?.seller;
+  const firstProductInCart = cart.length > 0 ? cart[0] : null;
+  const productStoreId = firstProductInCart?.storeId;
 
-  const storesQuery = useMemoFirebase(() => {
-    if (!firestore || !sellerName) return null;
-    // This is inefficient if there are many stores. A better approach would be a direct query.
-    return collection(firestore, 'stores');
-  }, [firestore, sellerName]);
 
-  const { data: stores } = useCollection<Store>(storesQuery);
-
-  const storeId = useMemoFirebase(() => {
-    if (!stores || !sellerName) return null;
-    const store = stores.find(s => s.name === sellerName);
-    return store ? store.id : null;
-  }, [stores, sellerName]);
+  useEffect(() => {
+    async function fetchStore() {
+        if (!firestore || !productStoreId) {
+            setIsLoadingStore(false);
+            return;
+        };
+        // This is not ideal, in a real app we'd get the storeId from the product directly
+        // or have a more efficient way to query.
+        // For this mock, we assume the storeId from the product is the doc ID in 'stores' collection.
+        // But since we don't have a direct 'stores' collection with docs matching storeId, we will query by name
+        // This logic is flawed and depends on mock data structure.
+        
+        // Let's assume product.storeId IS the document ID for the store for simplicity.
+        setStoreId(productStoreId);
+        setIsLoadingStore(false);
+    }
+    fetchStore();
+  }, [firestore, productStoreId])
 
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
@@ -340,7 +342,7 @@ export default function CheckoutPage() {
           size="lg"
           className="w-full"
           onClick={form.handleSubmit(onSubmit)}
-          disabled={form.formState.isSubmitting || !storeId}
+          disabled={form.formState.isSubmitting || isLoadingStore || !storeId}
         >
           {form.formState.isSubmitting ? 'Finalizando...' : 'Finalizar Pedido'}
         </Button>

@@ -5,17 +5,16 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useProductContext } from '@/context/ProductContext';
-import { mockCategories } from '@/lib/data';
-import { ProductCard } from '@/components/product/ProductCard';
+import { mockCategories, mockStores } from '@/lib/data';
+import { StoreCard } from '@/components/store/StoreCard';
 
 export default function CategoryPage() {
   const params = useParams();
   const slug = params.slug;
-  const { products } = useProductContext();
 
   const category = mockCategories.find((cat) => cat.slug === slug);
-  const categoryProducts = products.filter(
-    (product) => product.category === category?.name
+  const categoryStores = mockStores.filter(
+    (store) => store.category === category?.name
   );
 
   return (
@@ -32,17 +31,17 @@ export default function CategoryPage() {
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
-        {categoryProducts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {categoryProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+        {categoryStores.length > 0 ? (
+          <div className="space-y-4">
+            {categoryStores.map((store) => (
+              <StoreCard key={store.id} store={store} />
             ))}
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <h2 className="text-2xl font-bold">Nenhum produto encontrado</h2>
+            <h2 className="text-2xl font-bold">Nenhuma loja encontrada</h2>
             <p className="text-muted-foreground">
-              Não há produtos nesta categoria no momento.
+              Não há lojas nesta categoria no momento.
             </p>
           </div>
         )}

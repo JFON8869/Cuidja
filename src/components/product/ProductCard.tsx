@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type Product } from "@/lib/data";
+import { type Product, mockStores } from "@/lib/data";
 import { Store } from "lucide-react";
 import Link from "next/link";
 
@@ -16,6 +16,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const store = mockStores.find(s => s.id === product.storeId);
+
   return (
     <Link href={`/produtos/${product.id}`} className="group">
       <Card className="overflow-hidden h-full flex flex-col">
@@ -43,10 +45,12 @@ export function ProductCard({ product }: ProductCardProps) {
               currency: "BRL",
             }).format(product.price)}
           </p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Store className="w-3 h-3"/>
-            <span>{product.seller}</span>
-          </div>
+          {store && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Store className="w-3 h-3"/>
+              <span>{store.name}</span>
+            </div>
+          )}
         </CardFooter>
       </Card>
     </Link>

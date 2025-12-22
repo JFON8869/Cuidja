@@ -31,7 +31,10 @@ const salesData = [
 
 export default function SellPage() {
   const { products } = useProductContext();
-  const myProductsCount = products.filter(p => p.seller === 'Meu Negócio').length;
+  // This is a placeholder for the current seller's store ID.
+  // In a real app, this would come from the authenticated user's data.
+  const myStoreId = 'paodaterra';
+  const myProductsCount = products.filter(p => p.storeId === myStoreId).length;
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">

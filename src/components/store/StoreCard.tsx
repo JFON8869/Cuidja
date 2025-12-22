@@ -1,0 +1,33 @@
+import Image from "next/image";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { type Store } from "@/lib/data";
+
+interface StoreCardProps {
+  store: Store;
+}
+
+export function StoreCard({ store }: StoreCardProps) {
+  return (
+    <Link href={`/lojas/${store.id}`} className="group">
+      <Card className="overflow-hidden transition-all hover:shadow-lg">
+        <CardContent className="flex items-center gap-4 p-4">
+          <Image
+            src={store.logo.imageUrl}
+            alt={`Logo da ${store.name}`}
+            width={80}
+            height={80}
+            className="h-20 w-20 rounded-md border-2 border-card object-cover"
+            data-ai-hint={store.logo.imageHint}
+          />
+          <div className="flex-1">
+            <CardTitle className="text-lg font-headline">
+              {store.name}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">{store.category}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}

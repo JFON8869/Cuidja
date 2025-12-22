@@ -13,13 +13,16 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { useProductContext } from '@/context/ProductContext';
 import { useToast } from '@/hooks/use-toast';
+import { mockStores } from '@/lib/data';
 
 export default function MyProductsPage() {
   const { products, removeProduct } = useProductContext();
   const { toast } = useToast();
   
-  // Assuming 'Meu Negócio' is the current seller
-  const myProducts = products.filter(p => p.seller === 'Meu Negócio');
+  // This is a placeholder for the current seller's store ID. 
+  // In a real app, this would come from the authenticated user's data.
+  const myStoreId = 'paodaterra';
+  const myProducts = products.filter(p => p.storeId === myStoreId);
 
   const handleDelete = (productId: string, productName: string) => {
     removeProduct(productId);

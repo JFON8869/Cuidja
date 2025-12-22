@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Store, ShoppingCart } from 'lucide-react';
@@ -27,16 +27,18 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { ProductOptionsSheet } from '@/components/product/ProductOptionsSheet';
-import { Product } from '@/lib/data';
+import { Product, mockStores } from '@/lib/data';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { id } = params;
   const { products } = useProductContext();
   const { cart, addToCart, total } = useCart();
   const [isCartSheetOpen, setIsCartSheetOpen] = useState(false);
 
   const product = products.find((p) => p.id === id);
+  const store = product ? mockStores.find(s => s.id === product.storeId) : undefined;
 
   if (!product) {
     return (
@@ -69,11 +71,9 @@ export default function ProductDetailPage() {
             variant="ghost"
             size="icon"
             className="h-12 w-12 rounded-full bg-black/30 text-white hover:bg-black/50 hover:text-white"
-            asChild
+            onClick={() => router.back()}
           >
-            <Link href="/home">
-              <ArrowLeft />
-            </Link>
+            <ArrowLeft />
           </Button>
         </header>
         <main className="flex-1 overflow-y-auto pb-4">
@@ -110,10 +110,15 @@ export default function ProductDetailPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Store className="h-4 w-4" />
-              <span>Vendido por {product.seller}</span>
-            </div>
+            {store && (
+              <Link href={`/lojas/${store.id}`} className="block">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Store className="h-4 w-4" />
+                  <span>Vendido por {store.name}</span>
+                </div>
+              </Link>
+            )}
+
 
             <Separator />
 
