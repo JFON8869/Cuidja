@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,8 +23,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Label } from '@/components/ui/label';
+import { useProductContext } from '@/context/ProductContext';
+import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -36,11 +38,37 @@ const checkoutSchema = z.object({
   }),
 });
 
+interface Store {
+    id: string;
+    userId: string;
+    name: string;
+}
+
 export default function CheckoutPage() {
   const { cart, total, clearCart } = useCart();
+  const { products } = useProductContext();
   const { toast } = useToast();
   const router = useRouter();
   const { firestore, user } = useFirebase();
+
+  // This assumes all items in cart are from the same seller for simplicity.
+  // A real app would group items by seller.
+  const firstProductInCart = cart.length > 0 ? products.find(p => p.id === cart[0].id) : null;
+  const sellerName = firstProductInCart?.seller;
+
+  const storesQuery = useMemoFirebase(() => {
+    if (!firestore || !sellerName) return null;
+    return collection(firestore, 'stores');
+  }, [firestore, sellerName]);
+
+  const { data: stores } = useCollection<Store>(storesQuery);
+
+  const storeId = useMemoFirebase(() => {
+    if (!stores || !sellerName) return null;
+    const store = stores.find(s => s.name === sellerName);
+    return store ? store.id : null;
+  }, [stores, sellerName]);
+
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -62,11 +90,20 @@ export default function CheckoutPage() {
         router.push('/login');
         return;
     }
+     if (!storeId) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no pedido',
+        description: 'Não foi possível encontrar a loja para este pedido. Tente novamente.',
+      });
+      return;
+    }
     
     try {
         const ordersCollection = collection(firestore, 'orders');
         await addDoc(ordersCollection, {
             userId: user.uid,
+            storeId: storeId,
             productIds: cart.map(item => item.id),
             totalAmount: total,
             status: 'Pending',
@@ -263,9 +300,9 @@ export default function CheckoutPage() {
           size="lg"
           className="w-full"
           onClick={form.handleSubmit(onSubmit)}
-          disabled={form.formState.isSubmitting}
+          disabled={form.formState.isSubmitting || !storeId}
         >
-          Finalizar Pedido
+          {form.formState.isSubmitting ? 'Finalizando...' : 'Finalizar Pedido'}
         </Button>
       </footer>
     </div>
