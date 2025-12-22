@@ -67,8 +67,7 @@ export default function NotificationsPage() {
         const buyerOrdersQuery = query(
           collection(firestore, 'orders'),
           where('customerId', '==', user.uid),
-          where('buyerHasUnread', '==', true),
-          orderBy('orderDate', 'desc')
+          where('buyerHasUnread', '==', true)
         );
         const buyerOrdersSnapshot = await getDocs(buyerOrdersQuery);
         buyerOrdersSnapshot.forEach(doc => {
@@ -80,8 +79,7 @@ export default function NotificationsPage() {
             const sellerOrdersQuery = query(
               collection(firestore, 'orders'),
               where('storeId', 'in', storeIds),
-              where('sellerHasUnread', '==', true),
-              orderBy('orderDate', 'desc')
+              where('sellerHasUnread', '==', true)
             );
             const sellerOrdersSnapshot = await getDocs(sellerOrdersQuery);
             sellerOrdersSnapshot.forEach(doc => {
@@ -92,8 +90,7 @@ export default function NotificationsPage() {
             const serviceRequestsQuery = query(
               collection(firestore, 'serviceRequests'),
               where('providerId', '==', user.uid),
-              where('providerHasUnread', '==', true),
-              orderBy('requestDate', 'desc')
+              where('providerHasUnread', '==', true)
             );
             const serviceRequestsSnapshot = await getDocs(serviceRequestsQuery);
             serviceRequestsSnapshot.forEach(doc => {
@@ -101,7 +98,7 @@ export default function NotificationsPage() {
             });
         }
         
-        // Sort all combined notifications by date
+        // Sort all combined notifications by date on the client-side
         fetchedNotifications.sort((a, b) => {
             const dateA = new Date((a as any).orderDate || (a as any).requestDate);
             const dateB = new Date((b as any).orderDate || (b as any).requestDate);
