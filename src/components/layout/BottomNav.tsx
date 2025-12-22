@@ -18,7 +18,7 @@ const navItems = [
 const NavItemSkeleton = ({ label }: { label: string }) => (
   <div
     key={label}
-    className="flex h-full w-full animate-pulse flex-col items-center justify-center gap-1 rounded-md bg-muted/50 p-2"
+    className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-md p-2"
   >
     <div className="h-5 w-5 rounded bg-muted"></div>
     <div className="h-3 w-8 rounded bg-muted"></div>
@@ -48,12 +48,8 @@ export default function BottomNav() {
             (pathname.startsWith(href) && href !== '/home') ||
             pathname === href;
           
-          if (!isClient && requiresAuth) {
+          if (requiresAuth && (!isClient || isUserLoading)) {
             return <NavItemSkeleton key={label} label={label} />;
-          }
-
-          if (requiresAuth && isUserLoading) {
-             return <NavItemSkeleton key={label} label={label} />;
           }
           
           const finalHref = requiresAuth && !user ? '/login' : href;
