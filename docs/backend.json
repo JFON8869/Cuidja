@@ -224,6 +224,12 @@
             "$ref": "#/backend/entities/Message"
           }
         },
+        "shippingAddress": {
+            "$ref": "#/backend/entities/Address"
+        },
+        "phone": {
+            "type": "string"
+        },
         "sellerHasUnreadMessages": { "type": "boolean" },
         "buyerHasUnreadMessages": { "type": "boolean" }
       },
@@ -487,3 +493,5 @@
     "reasoning": "Considerando os requisitos do aplicativo Mercado Local Cuidja, a seguinte estrutura do Firestore foi projetada para garantir segurança, escalabilidade e facilidade de manutenção, priorizando a independência da autorização e o uso de padrões consistentes.\n\n*   **users/{userId}**: Armazena informações do usuário. A segurança é baseada no ID do usuário (path-based ownership), garantindo que apenas o usuário autenticado possa acessar seus próprios dados. Isso garante que as operações sejam atômicas.\n*   **users/{userId}/products/{productId}**: Para cada usuário (vendedor), armazena os produtos que eles listaram. Isso facilita a criação de regras de segurança onde um usuário só pode criar, ler, atualizar ou excluir seus próprios produtos.\n*   **products/{productId}**: Armazena todos os produtos disponíveis na plataforma. Isso permite consultas eficientes em todos os produtos, sem a necessidade de percorrer coleções de subdocumentos do usuário. Inclui o campo `sellerId` para referência ao vendedor.\n*   **users/{userId}/orders/{orderId}**: Armazena os pedidos feitos por um usuário. A segurança é baseada no ID do usuário, garantindo que apenas o usuário autenticado possa acessar seus próprios pedidos.\n*   **orders/{orderId}**: Armazena todos os pedidos feitos na plataforma, facilitando a administração e análise. Inclui o campo `customerId` para referência ao cliente.\n*   **orders/{orderId}/orderItems/{orderItemId}**: Armazena os itens dentro de um pedido específico. Isso permite consultas eficientes para itens de pedido específicos.\n*   **orders/{orderId}/payment**: Armazena informações de pagamento para um pedido específico. Isso mantém as informações de pagamento segregadas e fáceis de gerenciar.\n\n**Independência de Autorização (Denormalização):**\nPara manter a independência da autorização, o campo `sellerId` é denormalizado na coleção `products`. Isso permite que as regras de segurança na coleção `products` verifiquem se o usuário autenticado é o proprietário do produto sem a necessidade de chamadas `get()` para o documento do usuário. Para cada produto a `sellerId` é o `userId`.\n\n**QAPs (Consultas Seguras):**\nA estrutura suporta consultas seguras (`list` operations) através de:\n\n*   **Segregação Estrutural**: Dados com diferentes necessidades de acesso são armazenados em coleções separadas. Por exemplo, informações de usuários privados são armazenadas em `users/{userId}`, enquanto produtos visíveis publicamente são armazenados em `products/{productId}`.\n*   **Modelagem de Acesso Consistente**: O uso de path-based ownership para dados privados e uma coleção separada para dados visíveis publicamente garante que as regras de segurança possam ser escritas de forma clara e concisa.\n\nEssa estrutura garante que as regras de segurança sejam simples, robustas e fáceis de depurar, priorizando a independência da autorização e o uso de padrões consistentes para modelagem de acesso."
   }
 }
+
+    

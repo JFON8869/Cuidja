@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, CreditCard, Landmark, MessageSquare, Briefcase } from 'lucide-react';
+import { ArrowLeft, CreditCard, Landmark, MessageSquare, Briefcase, Phone, MapPin } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,6 +33,10 @@ import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 
 const serviceCheckoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
+  phone: z.string().min(10, 'Telefone é obrigatório.'),
+  address: z.string().min(5, 'Endereço é obrigatório.'),
+  city: z.string().min(3, 'Cidade é obrigatória.'),
+  zip: z.string().min(8, 'CEP é obrigatório.'),
   paymentMethod: z.enum(['card', 'pix'], {
     required_error: 'Selecione um método de pagamento.',
   }),
@@ -59,6 +63,10 @@ export default function ServiceCheckoutPage() {
     resolver: zodResolver(serviceCheckoutSchema),
     defaultValues: {
       name: user?.displayName || '',
+      phone: user?.phoneNumber || '',
+      address: '',
+      city: '',
+      zip: '',
       message: '',
     },
   });
@@ -66,6 +74,9 @@ export default function ServiceCheckoutPage() {
   React.useEffect(() => {
     if (user?.displayName) {
         form.setValue('name', user.displayName);
+    }
+     if (user?.phoneNumber) {
+        form.setValue('phone', user.phoneNumber);
     }
   }, [user, form]);
   
@@ -97,6 +108,13 @@ export default function ServiceCheckoutPage() {
             totalAmount: service.visitFee || 0,
             status: 'Pendente',
             orderDate: new Date().toISOString(),
+            shippingAddress: {
+                name: values.name,
+                address: values.address,
+                city: values.city,
+                zip: values.zip,
+            },
+            phone: values.phone,
             paymentMethod: values.paymentMethod,
             category: 'Serviços',
             isUrgent: false, // Services don't use the urgent flag for now
@@ -189,11 +207,11 @@ export default function ServiceCheckoutPage() {
             </section>
             
             <Separator />
-            
+
              <section>
               <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
-                <MessageSquare className="h-5 w-5" />
-                Seus Dados e Mensagem
+                <MapPin className="h-5 w-5" />
+                Informações de Contato e Endereço
               </h2>
               <div className="space-y-4">
                 <FormField
@@ -203,18 +221,82 @@ export default function ServiceCheckoutPage() {
                     <FormItem>
                       <FormLabel>Seu Nome</FormLabel>
                       <FormControl>
-                        <Input placeholder="Seu nome" {...field} />
+                        <Input placeholder="Seu nome completo" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                 <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(00) 90000-0000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Rua, número e bairro" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Cidade</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Sua cidade" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                     <FormField
+                    control={form.control}
+                    name="zip"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>CEP</FormLabel>
+                        <FormControl>
+                            <Input placeholder="00000-000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+              </div>
+            </section>
+            
+            <Separator />
+            
+             <section>
+              <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
+                <MessageSquare className="h-5 w-5" />
+                Mensagem Inicial (Opcional)
+              </h2>
+              <div className="space-y-4">
                 <FormField
                     control={form.control}
                     name="message"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Mensagem Inicial (Opcional)</FormLabel>
                         <FormControl>
                         <Textarea
                             placeholder="Descreva brevemente o que você precisa. Ex: 'Gostaria de um orçamento para um armário de cozinha'."
@@ -292,3 +374,5 @@ export default function ServiceCheckoutPage() {
     </div>
   );
 }
+
+    
