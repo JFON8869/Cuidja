@@ -57,7 +57,7 @@ export default function CheckoutPage() {
     });
     // Here you would typically clear the cart and redirect
     // For now, let's just redirect to a confirmation page (to be created)
-    router.push('/'); // Redirecting home for now
+    router.push('/home'); // Redirecting home for now
   }
   
   if (cart.length === 0) {
@@ -65,7 +65,7 @@ export default function CheckoutPage() {
         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
             <h1 className="text-2xl font-bold mb-4">Seu carrinho está vazio</h1>
              <Button asChild>
-              <Link href="/">Começar a comprar</Link>
+              <Link href="/home">Começar a comprar</Link>
             </Button>
         </div>
     )

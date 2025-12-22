@@ -7,7 +7,7 @@ export default function NotificationsPage() {
     <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] shadow-2xl">
       <header className="flex items-center p-4 border-b">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/">
+          <Link href="/home">
             <ArrowLeft />
           </Link>
         </Button>

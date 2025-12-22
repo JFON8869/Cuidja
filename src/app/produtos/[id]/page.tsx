@@ -24,7 +24,7 @@ export default function ProductDetailPage() {
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
         <p>Produto não encontrado.</p>
         <Button variant="link" asChild>
-          <Link href="/">Voltar para o início</Link>
+          <Link href="/home">Voltar para o início</Link>
         </Button>
       </div>
     );
@@ -42,7 +42,7 @@ export default function ProductDetailPage() {
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="absolute left-0 top-0 z-10 p-2">
         <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/30 text-white hover:bg-black/50 hover:text-white" asChild>
-          <Link href="/">
+          <Link href="/home">
             <ArrowLeft />
           </Link>
         </Button>

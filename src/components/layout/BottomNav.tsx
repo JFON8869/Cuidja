@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
 
 const navItems = [
-  { href: '/', label: 'Início', icon: Home },
+  { href: '/home', label: 'Início', icon: Home },
   { href: '/vender', label: 'Vender', icon: PlusCircle },
   { href: '/carrinho', label: 'Carrinho', icon: ShoppingCart },
   { href: '/chat', label: 'Chat', icon: MessageSquare },
@@ -25,6 +25,12 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { user, isUserLoading } = useFirebase();
 
+  const isWelcomePage = pathname === '/';
+
+  if (isWelcomePage) {
+    return null; // Don't show nav on the welcome page
+  }
+  
   return (
     <nav className="fixed bottom-0 left-1/2 z-10 h-16 w-full max-w-sm -translate-x-1/2 border-t bg-card">
       <div className="flex h-full items-center justify-around">

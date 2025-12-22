@@ -8,7 +8,7 @@ export default function OrdersPage() {
     <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] shadow-2xl">
       <header className="flex items-center p-4 border-b">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/">
+          <Link href="/home">
             <ArrowLeft />
           </Link>
         </Button>
@@ -21,7 +21,7 @@ export default function OrdersPage() {
           Seus pedidos aparecerão aqui.
         </p>
         <Button asChild>
-          <Link href="/">Começar a comprar</Link>
+          <Link href="/home">Começar a comprar</Link>
         </Button>
       </main>
     </div>

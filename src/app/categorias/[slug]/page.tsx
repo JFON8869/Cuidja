@@ -22,7 +22,7 @@ export default function CategoryPage() {
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/">
+          <Link href="/home">
             <ArrowLeft />
           </Link>
         </Button>
@@ -50,5 +50,3 @@ export default function CategoryPage() {
     </div>
   );
 }
-
-    
