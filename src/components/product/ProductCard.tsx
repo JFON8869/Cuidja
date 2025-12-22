@@ -37,6 +37,8 @@ export function ProductCard({ product }: ProductCardProps) {
     }
     fetchStoreName();
   }, [firestore, product.storeId]);
+  
+  const isService = product.category === 'Serviços';
 
 
   return (
@@ -61,6 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardContent>
         <CardFooter className="p-3 pt-0 flex flex-col items-start gap-2">
            <p className="text-lg font-bold text-primary">
+            {isService ? 'Taxa: ' : ''}
             {new Intl.NumberFormat("pt-BR", {
               style: "currency",
               currency: "BRL",
