@@ -37,12 +37,14 @@ const serviceSchema = z.object({
     .array(z.any())
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
-  visitFee: z.coerce.number()
+  visitFee: z.coerce
+    .number()
     .min(0, 'A taxa não pode ser negativa.')
     .optional()
-    .refine(val => !val || val === 0 || val >= 10, {
-      message: "A taxa de visita deve ser de no mínimo R$ 10,00 ou R$ 0,00 para contato gratuito."
-    })
+    .refine((val) => !val || val === 0 || val >= 10, {
+      message:
+        'O valor deve ser R$ 0,00 (gratuito) ou no mínimo R$ 10,00.',
+    }),
 });
 
 export default function NewServicePage() {
@@ -300,12 +302,12 @@ export default function NewServicePage() {
                     <Input
                       type="number"
                       step="0.01"
-                      placeholder="Ex: 50.00"
+                      placeholder="10.00"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Opcional. Deixe 0 ou em branco se o contato for gratuito.
+                    Deixe R$ 0,00 para contato gratuito. Se houver taxa, o mínimo é R$ 10,00.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
