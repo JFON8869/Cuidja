@@ -22,32 +22,22 @@ import { Minus, Plus } from 'lucide-react';
 interface ProductOptionsSheetProps {
   product: Product;
   onAddToCart: (product: Product) => void;
+  children: React.ReactNode;
 }
 
 type SelectedOptionsState = Record<string, SelectedAddon[]>;
 
-export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsSheetProps) {
+export function ProductOptionsSheet({ product, onAddToCart, children }: ProductOptionsSheetProps) {
   const { addToCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsState>({});
 
-  // Pre-select default single-choice options (usually free ones)
+  // Reset state when the sheet is opened or closed
   useEffect(() => {
-    if (product.addons && isOpen) {
-      const defaultSelections: SelectedOptionsState = {};
-      product.addons.forEach(group => {
-        if (group.type === 'single') {
-          const defaultAddon = group.addons.find(a => a.price === 0) || group.addons[0];
-          if (defaultAddon) {
-            defaultSelections[group.id] = [{ ...defaultAddon, quantity: 1 }];
-          }
-        }
-      });
-      setSelectedOptions(defaultSelections);
-    } else {
-      setSelectedOptions({}); // Reset on close
+    if (!isOpen) {
+      setSelectedOptions({});
     }
-  }, [product.addons, isOpen]);
+  }, [isOpen]);
 
 
   const handleSelectionChange = (group: AddonGroup, addon: Addon, change: 'set' | 'increment' | 'decrement') => {
@@ -93,7 +83,6 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
     addToCart(product, allSelectedAddons);
     onAddToCart(product); // This just triggers the confirmation sheet
     setIsOpen(false);     // Close the options sheet
-    // State is reset by the useEffect on [isOpen]
   }
   
   const getAddonQuantity = (groupId: string, addonName: string): number => {
@@ -114,9 +103,7 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button size="lg" className="w-full">
-          Escolher Opções
-        </Button>
+        {children}
       </SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>

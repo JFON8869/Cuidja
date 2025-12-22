@@ -159,7 +159,11 @@ export default function ProductDetailPage() {
                   </p>
                 </div>
                 {hasOptions ? (
-                   <ProductOptionsSheet product={product} onAddToCart={handleWithOptionsAddToCart} />
+                   <ProductOptionsSheet product={product} onAddToCart={handleWithOptionsAddToCart}>
+                      <Button size="lg" className="w-full">
+                        Comprar
+                      </Button>
+                   </ProductOptionsSheet>
                 ) : (
                   <Button
                     size="lg"
