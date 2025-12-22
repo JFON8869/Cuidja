@@ -28,6 +28,7 @@ export interface Category {
   name: string;
   slug: string;
   Icon: LucideIcon;
+  color: string;
 }
 
 const findImage = (id: string): ImagePlaceholder => {
@@ -42,14 +43,14 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const mockCategories: Category[] = [
-  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils },
-  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater },
-  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', Icon: ShoppingBasket },
-  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush },
-  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets },
-  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog },
-  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill },
-  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench },
+  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils, color: 'text-orange-500' },
+  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater, color: 'text-blue-500' },
+  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', Icon: ShoppingBasket, color: 'text-green-600' },
+  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush, color: 'text-purple-500' },
+  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets, color: 'text-sky-500' },
+  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog, color: 'text-yellow-700' },
+  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill, color: 'text-red-500' },
+  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench, color: 'text-gray-600' },
 ];
 
 export const mockProducts: Product[] = [

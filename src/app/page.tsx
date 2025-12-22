@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product/ProductCard';
 import { mockCategories } from '@/lib/data';
 import { useProductContext } from '@/context/ProductContext';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { products } = useProductContext();
@@ -55,8 +56,8 @@ export default function Home() {
                   key={category.id}
                   className="flex flex-col items-center gap-2 text-center"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-card text-primary shadow-sm">
-                    <category.Icon className="h-8 w-8" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-card shadow-sm">
+                    <category.Icon className={cn("h-8 w-8", category.color)} />
                   </div>
                   <span className="text-xs font-medium leading-tight text-muted-foreground">
                     {category.name}
