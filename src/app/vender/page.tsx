@@ -77,8 +77,8 @@ export default function SellPage() {
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
-        collection(firestore, 'services'),
-        where('sellerId', '==', user.uid)
+      collection(firestore, 'services'),
+      where('sellerId', '==', user.uid)
     );
   }, [firestore, user]);
 
@@ -206,26 +206,6 @@ export default function SellPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <Link href="/vender/pedidos">
-             <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Minhas Vendas
-                </CardTitle>
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {ordersLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    myOrdersCount
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">Pedidos recebidos</p>
-              </CardContent>
-            </Card>
-          </Link>
           <Link href="/vender/produtos">
             <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -246,9 +226,7 @@ export default function SellPage() {
               </CardContent>
             </Card>
           </Link>
-        </div>
-        <div className="grid grid-cols-1">
-           <Link href="/vender/servicos">
+          <Link href="/vender/servicos">
             <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -265,6 +243,30 @@ export default function SellPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">Serviços ativos</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+        <div className="grid grid-cols-1">
+          <Link href="/vender/pedidos">
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Minhas Vendas
+                </CardTitle>
+                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {ordersLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    myOrdersCount
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pedidos de produtos e serviços
+                </p>
               </CardContent>
             </Card>
           </Link>
