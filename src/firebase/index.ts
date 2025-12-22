@@ -20,6 +20,11 @@ export function initializeFirebase(firebaseConfig: FirebaseOptions): FirebaseSer
   if (firebaseServices) {
     return firebaseServices;
   }
+  
+  // Basic validation inside the initialization function itself.
+  if (!firebaseConfig || !firebaseConfig.apiKey) {
+    throw new Error('Firebase config is invalid or missing apiKey. Initialization aborted.');
+  }
 
   // To prevent re-initialization on hot reloads, check if an app has been initialized.
   const apps = getApps();

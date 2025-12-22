@@ -26,19 +26,20 @@ export function FirebaseClientProvider({
 
   useEffect(() => {
     // This effect runs only once on the client side after the component mounts.
-    // It ensures that Firebase is initialized in the browser environment
-    // where window and process.env.NEXT_PUBLIC_* variables are available.
     if (typeof window !== 'undefined' && !firebaseServices) {
       // getFirebaseConfig is called here, inside the client-only effect.
       const firebaseConfig = getFirebaseConfig();
-      if (firebaseConfig.apiKey) {
+      
+      // CRITICAL VALIDATION: Ensure apiKey is present before initializing.
+      if (firebaseConfig && firebaseConfig.apiKey) {
         const services = initializeFirebase(firebaseConfig);
         setFirebaseServices(services);
       } else {
+        // This log is critical for debugging if env vars are not loaded correctly.
         console.error("Firebase API Key is missing. Firebase could not be initialized.");
       }
     }
-  }, [firebaseServices]); // Dependency array ensures this logic re-evaluates if firebaseServices changes, but the !firebaseServices check prevents re-initialization.
+  }, [firebaseServices]);
 
   // CRITICAL: By returning null until firebaseServices is initialized,
   // we prevent any child components from rendering and attempting to use
