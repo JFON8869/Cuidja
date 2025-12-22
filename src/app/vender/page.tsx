@@ -40,7 +40,7 @@ const salesData = [
 
 export default function SellPage() {
   const { user, firestore, isUserLoading } = useFirebase();
-  const [store, setStore] = useState<{id: string, category: string} | null>(null);
+  const [store, setStore] = useState<{id: string} | null>(null);
   const [isStoreLoading, setStoreLoading] = useState(true);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function SellPage() {
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         const storeDoc = querySnapshot.docs[0];
-        setStore({ id: storeDoc.id, category: storeDoc.data().category });
+        setStore({ id: storeDoc.id });
       } else {
         setStore(null);
       }
@@ -74,19 +74,9 @@ export default function SellPage() {
     );
   }, [firestore, user]);
 
-  const servicesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-        collection(firestore, 'services'),
-        where('sellerId', '==', user.uid)
-    );
-  }, [firestore, user]);
-
   const { data: myProducts, isLoading: productsLoading } = useCollection(productsQuery);
-  const { data: myServices, isLoading: servicesLoading } = useCollection(servicesQuery);
 
   const myProductsCount = myProducts?.length ?? 0;
-  const myServicesCount = myServices?.length ?? 0;
   
   if (isStoreLoading || isUserLoading) {
     return (
@@ -173,18 +163,18 @@ export default function SellPage() {
       </header>
       <main className="flex-1 space-y-6 p-4">
         
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-4">
            <Button size="lg" className="w-full" asChild>
                 <Link href={"/vender/novo-produto"}>
                     <PlusCircle className="mr-2" />
-                    Anunciar Novo Produto
+                    Anunciar Produto
                 </Link>
             </Button>
             
             <Button size="lg" variant="outline" className="w-full" asChild>
                 <Link href={"/vender/novo-servico"}>
                     <Wrench className="mr-2" />
-                    Anunciar Novo Serviço
+                    Anunciar Serviço
                 </Link>
             </Button>
         </div>
@@ -204,17 +194,17 @@ export default function SellPage() {
               </CardContent>
               </Card>
           </Link>
-           <Link href="/vender/produtos">
+           <Link href="/vender/pedidos">
               <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Meus Serviços
+                    Minhas Vendas
                   </CardTitle>
-                  <Wrench className="h-4 w-4 text-muted-foreground" />
+                  <ShoppingBag className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{servicesLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : myServicesCount}</div>
-                  <p className="text-xs text-muted-foreground">Serviços ativos</p>
+                  <div className="text-2xl font-bold">0</div>
+                  <p className="text-xs text-muted-foreground">Vendas este mês</p>
               </CardContent>
               </Card>
           </Link>
