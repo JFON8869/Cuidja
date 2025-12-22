@@ -63,13 +63,11 @@ export default function CheckoutPage() {
         return;
     }
     
-    console.log(values);
-
     try {
         const ordersCollection = collection(firestore, 'orders');
         await addDoc(ordersCollection, {
             userId: user.uid,
-            products: cart.map(item => ({ id: item.id, name: item.name, price: item.price })),
+            productIds: cart.map(item => item.id),
             totalAmount: total,
             status: 'Pending',
             orderDate: new Date().toISOString(),

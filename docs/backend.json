@@ -172,6 +172,16 @@
         "totalAmount": {
           "type": "number",
           "description": "Total amount of the order."
+        },
+        "shippingAddress": {
+          "type": "object",
+          "description": "The shipping address for the order.",
+          "properties": {
+            "name": {"type": "string"},
+            "address": {"type": "string"},
+            "city": {"type": "string"},
+            "zip": {"type": "string"}
+          }
         }
       },
       "required": [
@@ -181,7 +191,8 @@
         "productIds",
         "orderDate",
         "status",
-        "totalAmount"
+        "totalAmount",
+        "shippingAddress"
       ]
     },
     "Chat": {

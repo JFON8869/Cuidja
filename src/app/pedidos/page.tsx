@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,7 +18,7 @@ interface OrderProduct {
 interface Order extends WithId<any> {
     id: string;
     orderDate: string;
-    products: OrderProduct[];
+    productIds: string[];
     status: string;
     totalAmount: number;
 }
@@ -28,14 +28,19 @@ export default function OrdersPage() {
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'orders'), where('userId', '==', user.uid));
+    return query(
+      collection(firestore, 'orders'), 
+      where('userId', '==', user.uid),
+      orderBy('orderDate', 'desc')
+    );
   }, [firestore, user]);
 
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
   
   const renderSkeleton = () => (
     <div className="space-y-4 p-4">
-        <Card>
+      {[...Array(3)].map((_, i) => (
+        <Card key={i}>
             <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
@@ -48,6 +53,7 @@ export default function OrdersPage() {
                  <Skeleton className="h-6 w-1/4" />
             </CardFooter>
         </Card>
+      ))}
     </div>
   );
 
@@ -87,14 +93,8 @@ export default function OrdersPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  {order.products.map((product) => (
-                    <div key={product.id} className="flex justify-between">
-                      <span>{product.name}</span>
-                      <span className="text-muted-foreground">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                      </span>
-                    </div>
-                  ))}
+                  <p>Itens: {order.productIds.length}</p>
+                   <p className="text-muted-foreground">Status: <span className="font-semibold text-accent">{order.status}</span></p>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center font-bold">
                   <span>Total</span>
