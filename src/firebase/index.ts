@@ -1,7 +1,6 @@
 'use client';
 
-import { getFirebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
@@ -15,24 +14,14 @@ interface FirebaseServices {
 // Singleton instance holder
 let firebaseServices: FirebaseServices | null = null;
 
-// IMPORTANT: This function now implements a singleton pattern.
+// IMPORTANT: This function now implements a singleton pattern and RECEIVES the config.
 export function initializeFirebase(firebaseConfig: FirebaseOptions): FirebaseServices {
   // If the services are already initialized, return the existing instance.
   if (firebaseServices) {
     return firebaseServices;
   }
 
-  // Validate that the config was actually loaded with an API key.
-  // This is the most critical check to prevent the "api-key-not-valid" error.
-  if (!firebaseConfig.apiKey) {
-    // This check is crucial on the client side.
-    throw new Error(
-      'Firebase API Key is missing. Check your .env file and ensure it is prefixed with NEXT_PUBLIC_'
-    );
-  }
-
-  // To prevent re-initialization on hot reloads in some edge cases,
-  // we still check if an app has been initialized by Firebase's internal SDK.
+  // To prevent re-initialization on hot reloads, check if an app has been initialized.
   const apps = getApps();
   const app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
 
