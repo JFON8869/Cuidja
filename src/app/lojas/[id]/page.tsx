@@ -96,8 +96,8 @@ export default function StorePage() {
     
   const isLoading = isLoadingStore || areProductsLoading || areServicesLoading;
   
-  const hasProducts = !isServiceFilterActive && storeProducts && storeProducts.length > 0;
-  const hasServices = isServiceFilterActive && storeServices && storeServices.length > 0;
+  const hasProducts = storeProducts && storeProducts.length > 0;
+  const hasServices = storeServices && storeServices.length > 0;
   const pageTitle = store?.name || 'Loja';
 
   if (!store && !isLoadingStore) {
