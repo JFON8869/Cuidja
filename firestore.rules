@@ -46,16 +46,13 @@ service cloud.firestore {
     /**
      * @description Rules for the user profile collection.
      * @path /users/{userId}
-     * @allow A signed-in user (auth.uid: 'user_abc') can (create) their own profile document at /users/user_abc.
+     * @allow A signed-in user (auth.uid: 'user_abc') can (create, get, update) their own profile document at /users/user_abc.
      * @deny A signed-in user (auth.uid: 'user_abc') cannot (get) another user's profile at /users/user_xyz.
      * @principle Restricts access to a user's own data tree, preventing users from accessing or modifying each other's private information.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow read, write: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if false;
     }
 
     /**

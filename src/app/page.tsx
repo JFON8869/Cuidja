@@ -1,9 +1,42 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+
 import { Button } from '@/components/ui/button';
+import { useFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function WelcomePage() {
+  const { auth } = useFirebase();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isGoogleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    setGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast({
+        title: 'Login com Google realizado com sucesso!',
+      });
+      router.push('/perfil');
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Falha no login com Google',
+        description: 'Não foi possível fazer login com o Google. Tente novamente.',
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent p-6 text-center shadow-2xl">
       <div className="flex flex-col items-center justify-center">
@@ -15,9 +48,17 @@ export default function WelcomePage() {
         </p>
       </div>
 
-      <Button asChild size="lg" className="absolute bottom-24 w-full max-w-xs">
-        <Link href="/home">Entrar na Loja</Link>
-      </Button>
+      <div className="absolute bottom-16 w-full max-w-xs space-y-4">
+        <Button onClick={handleGoogleSignIn} size="lg" className="w-full" disabled={isGoogleLoading}>
+          {isGoogleLoading ? 'Entrando...' : 'Entrar com Google'}
+        </Button>
+        <Button asChild size="lg" variant="outline" className="w-full">
+          <Link href="/home">Entrar como Visitante</Link>
+        </Button>
+        <p className="text-xs text-muted-foreground">
+            Já tem uma conta? <Link href="/login" className="text-primary underline">Faça login</Link>
+        </p>
+      </div>
     </div>
   );
 }
