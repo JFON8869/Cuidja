@@ -28,7 +28,7 @@ import { Label } from '@/components/ui/label';
 import { useProductContext } from '@/context/ProductContext';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { Textarea } from '@/components/ui/textarea';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -53,6 +53,11 @@ export default function CheckoutPage() {
   // This assumes all items in cart are from the same seller for simplicity.
   const firstProductInCart = cart.length > 0 ? cart[0] : null;
   const productStoreId = firstProductInCart?.storeId;
+
+  const urgentCategories = useMemo(() => ['Gás e Água', 'Serviços', 'Farmácias'], []);
+  const isUrgentOrder = useMemo(() => {
+    return cart.some(item => urgentCategories.includes(item.category));
+  }, [cart, urgentCategories]);
 
 
   useEffect(() => {
@@ -108,14 +113,14 @@ export default function CheckoutPage() {
     try {
         const ordersCollection = collection(firestore, 'orders');
         
-        const initialMessage = values.message ? [{
+        const initialMessage = (isUrgentOrder && values.message) ? [{
             senderId: user.uid,
             text: values.message,
             timestamp: new Date().toISOString(),
             isRead: false,
         }] : [];
-        
-        await addDoc(ordersCollection, {
+
+        const orderData: any = {
             userId: user.uid,
             storeId: storeId,
             productIds: cart.map(item => item.id),
@@ -129,11 +134,17 @@ export default function CheckoutPage() {
                 zip: values.zip,
             },
             paymentMethod: values.paymentMethod,
-            messages: initialMessage,
-            lastMessageTimestamp: initialMessage.length > 0 ? new Date().toISOString() : null,
-            buyerHasUnreadMessages: false, // Vendedor acabou de enviar
-            sellerHasUnreadMessages: initialMessage.length > 0, // Comprador enviou, então o vendedor tem mensagens não lidas
-        });
+            category: firstProductInCart?.category // Store category for later checks
+        }
+
+        if (isUrgentOrder) {
+            orderData.messages = initialMessage;
+            orderData.lastMessageTimestamp = initialMessage.length > 0 ? new Date().toISOString() : null;
+            orderData.buyerHasUnreadMessages = false;
+            orderData.sellerHasUnreadMessages = initialMessage.length > 0;
+        }
+        
+        await addDoc(ordersCollection, orderData);
 
         toast({
             title: 'Pedido Recebido!',
@@ -240,29 +251,32 @@ export default function CheckoutPage() {
               </div>
             </section>
             
-            <Separator />
-            
-            <section>
-              <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
-                <MessageSquare className="h-5 w-5" />
-                Mensagem para o Vendedor (Opcional)
-              </h2>
-              <FormField
-                control={form.control}
-                name="message"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Deixe uma observação sobre seu pedido, como ponto de referência ou detalhes do produto."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </section>
+            {isUrgentOrder && (
+                <>
+                <Separator />
+                <section>
+                <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
+                    <MessageSquare className="h-5 w-5" />
+                    Mensagem para o Vendedor (Opcional)
+                </h2>
+                <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormControl>
+                        <Textarea
+                            placeholder="Deixe uma observação sobre seu pedido, como ponto de referência ou detalhes do produto."
+                            {...field}
+                        />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                </section>
+                </>
+            )}
 
             <Separator />
 

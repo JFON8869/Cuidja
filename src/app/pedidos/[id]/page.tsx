@@ -33,7 +33,7 @@ interface Order {
   totalAmount: number;
   userId: string; // buyer ID
   storeId: string;
-  messages: Message[];
+  messages?: Message[]; // Messages are now optional
   sellerHasUnreadMessages?: boolean;
   buyerHasUnreadMessages?: boolean;
 }
@@ -54,18 +54,23 @@ export default function OrderDetailPage() {
   }, [firestore, id]);
 
   const { data: order, isLoading, error } = useDoc<Order>(orderRef);
+  
+  // The chat is only available for orders that have the `messages` field.
+  const isChatEnabled = order?.messages !== undefined;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [order?.messages]);
+    if (isChatEnabled) {
+        scrollToBottom();
+    }
+  }, [order?.messages, isChatEnabled]);
 
   // Mark messages as read
   useEffect(() => {
-    if (!order || !user || !orderRef) return;
+    if (!order || !user || !orderRef || !isChatEnabled) return;
 
     const isBuyer = user.uid === order.userId;
     const hasUnread = isBuyer
@@ -76,11 +81,11 @@ export default function OrderDetailPage() {
         const payload = isBuyer ? { buyerHasUnreadMessages: false } : { sellerHasUnreadMessages: false }
         updateDoc(orderRef, payload);
     }
-  }, [order, user, orderRef]);
+  }, [order, user, orderRef, isChatEnabled]);
   
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
-    if (!firestore || !user || !orderRef || !newMessage.trim()) return;
+    if (!firestore || !user || !orderRef || !newMessage.trim() || !isChatEnabled) return;
     
     setIsSubmitting(true);
 
@@ -175,15 +180,16 @@ export default function OrderDetailPage() {
           </CardContent>
         </Card>
 
+        {isChatEnabled && (
         <Card>
             <CardHeader>
                 <CardTitle>Mensagens</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 h-64 overflow-y-auto pr-2">
-                {order.messages.length === 0 ? (
+                {order.messages && order.messages.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">Nenhuma mensagem ainda. Envie a primeira!</p>
                 ) : (
-                    order.messages.map((msg, index) => (
+                    order.messages && order.messages.map((msg, index) => (
                         <div key={index} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? "justify-end" : "justify-start")}>
                            {msg.senderId !== user?.uid && (
                              <Avatar className="h-8 w-8">
@@ -205,8 +211,10 @@ export default function OrderDetailPage() {
                 <div ref={messagesEndRef} />
             </CardContent>
         </Card>
+        )}
       </main>
-
+      
+      {isChatEnabled && (
       <footer className="border-t bg-card p-2">
         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
             <Input 
@@ -221,6 +229,7 @@ export default function OrderDetailPage() {
             </Button>
         </form>
       </footer>
+      )}
     </div>
   );
 }
