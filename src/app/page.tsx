@@ -31,7 +31,7 @@ export default function Home() {
         </Link>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="#">
+            <Link href="/favoritos">
               <Heart className="w-5 h-5" />
               <span className="sr-only">Favoritos</span>
             </Link>
@@ -59,14 +59,14 @@ export default function Home() {
           {/* Categories Section */}
           <section>
             <h2 className="text-xl font-headline mb-3">Categorias</h2>
-            <div className="flex overflow-x-auto gap-4 pb-2 -mx-4 px-4">
+            <div className="grid grid-cols-4 gap-4">
               {mockCategories.map((category) => (
                 <Link
                   href="/categorias"
                   key={category.id}
-                  className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center"
+                  className="flex flex-col items-center gap-2 flex-shrink-0 text-center"
                 >
-                  <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center border shadow-sm">
+                  <div className="w-16 h-16 bg-card rounded-xl flex items-center justify-center border shadow-sm">
                     <Image
                       src={category.iconUrl}
                       alt={category.name}
@@ -75,7 +75,7 @@ export default function Home() {
                       data-ai-hint={category.hint}
                     />
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground leading-tight">
                     {category.name}
                   </span>
                 </Link>

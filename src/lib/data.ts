@@ -26,11 +26,14 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const mockCategories: Category[] = [
-  { id: '1', name: 'Hortaliças', iconUrl: findImage('category-vegetables').imageUrl, hint: findImage('category-vegetables').imageHint },
-  { id: '2', name: 'Frutas', iconUrl: findImage('category-fruits').imageUrl, hint: findImage('category-fruits').imageHint },
-  { id: '3', name: 'Padaria', iconUrl: findImage('category-bakery').imageUrl, hint: findImage('category-bakery').imageHint },
-  { id: '4', name: 'Artesanato', iconUrl: findImage('category-crafts').imageUrl, hint: findImage('category-crafts').imageHint },
-  { id: '5', name: 'Serviços', iconUrl: findImage('category-services').imageUrl, hint: findImage('category-services').imageHint },
+  { id: '1', name: 'Restaurantes', iconUrl: findImage('category-restaurants').imageUrl, hint: findImage('category-restaurants').imageHint },
+  { id: '2', name: 'Bebidas', iconUrl: findImage('category-drinks').imageUrl, hint: findImage('category-drinks').imageHint },
+  { id: '3', name: 'Faça-Feira', iconUrl: findImage('category-market').imageUrl, hint: findImage('category-market').imageHint },
+  { id: '4', name: 'Artesanatos', iconUrl: findImage('category-crafts').imageUrl, hint: findImage('category-crafts').imageHint },
+  { id: '5', name: 'Gás e Água', iconUrl: findImage('category-gas-water').imageUrl, hint: findImage('category-gas-water').imageHint },
+  { id: '6', name: 'Pets', iconUrl: findImage('category-pets').imageUrl, hint: findImage('category-pets').imageHint },
+  { id: '7', name: 'Farmácias', iconUrl: findImage('category-pharmacy').imageUrl, hint: findImage('category-pharmacy').imageHint },
+  { id: '8', name: 'Serviços', iconUrl: findImage('category-services').imageUrl, hint: findImage('category-services').imageHint },
 ];
 
 export const mockProducts: Product[] = [

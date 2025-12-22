@@ -79,33 +79,51 @@
       "imageHint": "woodworking craft"
     },
     {
-      "id": "category-vegetables",
-      "description": "vegetable icon",
-      "imageUrl": "https://images.unsplash.com/photo-1622886421899-f6d9dfc878bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx2ZWdldGFibGUlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "vegetable icon"
+      "id": "category-restaurants",
+      "description": "restaurant icon",
+      "imageUrl": "https://images.unsplash.com/photo-1707400727930-e42810a740ac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxyZXN0YXVyYW50JTIwaWNvbnxlbnwwfHx8fDE3NjY0MTE0Mzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "restaurant icon"
     },
     {
-      "id": "category-fruits",
-      "description": "fruit icon",
-      "imageUrl": "https://images.unsplash.com/photo-1573066778058-03dbee2c5a0c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmcnVpdCUyMGljb258ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "fruit icon"
+      "id": "category-drinks",
+      "description": "drinks icon",
+      "imageUrl": "https://images.unsplash.com/photo-1766080971268-69097a30c51c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkcmlua3MlMjBpY29ufGVufDB8fHx8MTc2NjQxMTQzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "drinks icon"
     },
     {
-      "id": "category-bakery",
-      "description": "bakery icon",
-      "imageUrl": "https://images.unsplash.com/photo-1756137949439-40b2d3cf71ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiYWtlcnklMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "bakery icon"
+      "id": "category-market",
+      "description": "market icon",
+      "imageUrl": "https://images.unsplash.com/photo-1760773767252-26e604903e70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYXJrZXQlMjBpY29ufGVufDB8fHx8MTc2NjQxMTQzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "market icon"
     },
     {
       "id": "category-crafts",
       "description": "crafts icon",
-      "imageUrl": "https://images.unsplash.com/photo-1694878981866-b1cb8303d53e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjcmFmdHMlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1694878981816-8d3c35611d7c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjcmFmdHMlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "crafts icon"
+    },
+    {
+      "id": "category-gas-water",
+      "description": "gas and water icon",
+      "imageUrl": "https://images.unsplash.com/photo-1744113627248-8c9ba859be91?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxnYXMlMjB3YXRlcnxlbnwwfHx8fDE3NjY0MTE0Mzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gas water"
+    },
+    {
+      "id": "category-pets",
+      "description": "pets icon",
+      "imageUrl": "https://images.unsplash.com/photo-1702907151143-fc7d6e0a8637?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwZXRzJTIwaWNvbnxlbnwwfHx8fDE3NjY0MTE0Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pets icon"
+    },
+    {
+      "id": "category-pharmacy",
+      "description": "pharmacy icon",
+      "imageUrl": "https://images.unsplash.com/photo-1750323844540-5bb7c8f1a11a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwaGFybWFjeSUyMGljb258ZW58MHx8fHwxNzY2NDExNDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pharmacy icon"
     },
     {
       "id": "category-services",
       "description": "services icon",
-      "imageUrl": "https://images.unsplash.com/photo-1740174459699-487aec1f7bc5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dG9vbHMlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1764557222706-a8b967702853?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx0b29scyUyMGljb258ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "tools icon"
     }
   ]

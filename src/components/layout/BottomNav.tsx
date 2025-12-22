@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutGrid, PlusCircle, MessageCircle, User } from "lucide-react";
+import { Home, Heart, ShoppingCart, Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Início", icon: Home },
-  { href: "/categorias", label: "Categorias", icon: LayoutGrid },
-  { href: "/vender", label: "Vender", icon: PlusCircle },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/favoritos", label: "Favoritos", icon: Heart },
+  { href: "/pedidos", label: "Pedidos", icon: ShoppingCart },
+  { href: "/buscar", label: "Buscar", icon: Search },
   { href: "/perfil", label: "Perfil", icon: User },
 ];
 
