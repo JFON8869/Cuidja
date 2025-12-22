@@ -27,18 +27,51 @@
           "type": "boolean",
           "description": "Indicates whether the user is a seller."
         },
-        "address": {
-          "type": "string",
-          "description": "The user's address."
+        "addresses": {
+          "type": "array",
+          "description": "A list of the user's saved addresses.",
+          "items": {
+            "$ref": "#/backend/entities/Address"
+          }
         }
       },
       "required": [
         "id",
         "name",
-        "email",
-        "phone",
-        "isSeller",
-        "address"
+        "email"
+      ]
+    },
+    "Address": {
+      "title": "Address",
+      "type": "object",
+      "description": "Represents a user's saved address.",
+      "properties": {
+        "nickname": {
+          "type": "string"
+        },
+        "zip": {
+          "type": "string"
+        },
+        "street": {
+          "type": "string"
+        },
+        "number": {
+          "type": "string"
+        },
+        "neighborhood": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "nickname",
+        "zip",
+        "street",
+        "number",
+        "neighborhood",
+        "city"
       ]
     },
     "Store": {
@@ -164,7 +197,16 @@
         "isUrgent": {
           "type": "boolean",
           "description": "Indicates if the order is marked as urgent by the customer."
-        }
+        },
+        "messages": {
+          "type": "array",
+          "description": "Chat messages between customer and seller.",
+          "items": {
+            "$ref": "#/backend/entities/Message"
+          }
+        },
+        "sellerHasUnreadMessages": { "type": "boolean" },
+        "buyerHasUnreadMessages": { "type": "boolean" }
       },
       "required": [
         "id",
@@ -173,6 +215,18 @@
         "totalAmount",
         "status"
       ]
+    },
+    "Message": {
+      "title": "Message",
+      "type": "object",
+      "description": "A chat message within an order.",
+      "properties": {
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["senderId", "text", "timestamp", "isRead"]
     },
     "OrderItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",

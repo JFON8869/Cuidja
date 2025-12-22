@@ -66,6 +66,7 @@ export default function SignupPage() {
       await setDoc(doc(firestore, "users", user.uid), {
         name: values.name,
         email: values.email,
+        addresses: [], // Initialize with an empty addresses array
       });
 
       toast({

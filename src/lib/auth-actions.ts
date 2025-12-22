@@ -8,7 +8,7 @@ import {
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { useToast } from '@/hooks/use-toast';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 
 export const handleGoogleSignIn = async (
@@ -24,12 +24,21 @@ export const handleGoogleSignIn = async (
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    // Save user to firestore
+    // Check if user document already exists
     if (firestore) {
-        await setDoc(doc(firestore, "users", user.uid), {
-            name: user.displayName,
-            email: user.email,
-        }, { merge: true });
+        const userDocRef = doc(firestore, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            // Document doesn't exist, create it with initial structure
+            await setDoc(userDocRef, {
+                name: user.displayName,
+                email: user.email,
+                addresses: [], // Initialize with an empty addresses array
+            });
+        }
+        // If doc exists, we assume it's already structured correctly.
+        // For a more robust solution, you could merge to ensure new fields are added.
     }
 
 
