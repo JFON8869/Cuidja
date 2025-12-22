@@ -7,22 +7,21 @@ import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (getApps().length) {
-    // If already initialized, return the SDKs with the already initialized App
-    return getSdks(getApp());
-  }
-
   // Always initialize with the config from environment variables.
   // This ensures consistency across client and server environments in Next.js.
   const firebaseConfig = getFirebaseConfig();
 
   // Validate that the config was actually loaded.
   if (!firebaseConfig.apiKey) {
-    throw new Error('Firebase API Key is missing. Check your .env file.');
+    // This check is critical on the client side.
+    throw new Error('Firebase API Key is missing. Check your .env file and ensure it is prefixed with NEXT_PUBLIC_');
   }
 
-  const firebaseApp = initializeApp(firebaseConfig);
-  return getSdks(firebaseApp);
+  // To prevent re-initialization on hot reloads, check if an app is already initialized.
+  const apps = getApps();
+  const app = apps.length ? apps[0] : initializeApp(firebaseConfig);
+
+  return getSdks(app);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
