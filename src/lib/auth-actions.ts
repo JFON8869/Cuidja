@@ -8,9 +8,12 @@ import {
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { useToast } from '@/hooks/use-toast';
+import { doc, setDoc } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 
 export const handleGoogleSignIn = async (
   auth: Auth,
+  firestore: ReturnType<typeof useFirebase>['firestore'],
   router: AppRouterInstance,
   toast: ReturnType<typeof useToast>['toast'],
   setGoogleLoading: Dispatch<SetStateAction<boolean>>
@@ -18,7 +21,18 @@ export const handleGoogleSignIn = async (
   setGoogleLoading(true);
   try {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Save user to firestore
+    if (firestore) {
+        await setDoc(doc(firestore, "users", user.uid), {
+            name: user.displayName,
+            email: user.email,
+        }, { merge: true });
+    }
+
+
     toast({
       title: 'Login com Google realizado com sucesso!',
     });

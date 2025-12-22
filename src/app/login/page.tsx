@@ -38,7 +38,7 @@ const loginSchema = z.object({
 
 
 export default function LoginPage() {
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -89,8 +89,8 @@ export default function LoginPage() {
   }
 
   const onGoogleSignIn = async () => {
-    if (!auth) return;
-    await handleGoogleSignIn(auth, router, toast, setGoogleLoading);
+    if (!auth || !firestore) return;
+    await handleGoogleSignIn(auth, firestore, router, toast, setGoogleLoading);
   };
 
 

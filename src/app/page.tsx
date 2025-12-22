@@ -10,14 +10,14 @@ import { handleGoogleSignIn } from '@/lib/auth-actions';
 import { useFirebase } from '@/firebase';
 
 export default function WelcomePage() {
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
   const [isGoogleLoading, setGoogleLoading] = useState(false);
 
   const onGoogleSignIn = async () => {
-    if (!auth) return;
-    await handleGoogleSignIn(auth, router, toast, setGoogleLoading);
+    if (!auth || !firestore) return;
+    await handleGoogleSignIn(auth, firestore, router, toast, setGoogleLoading);
   };
 
   return (
