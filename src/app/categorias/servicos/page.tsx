@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Frown } from 'lucide-react';
-import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, getDoc, where } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
@@ -29,8 +29,11 @@ export default function ServicesCategoryPage() {
       setIsLoading(true);
 
       try {
-        // 1. Find all services
-        const servicesQuery = query(collection(firestore, 'services'));
+        // 1. Find all products that are in the "Serviços" category
+        const servicesQuery = query(
+          collection(firestore, 'products'), 
+          where('category', '==', 'Serviços')
+        );
         const servicesSnapshot = await getDocs(servicesQuery);
 
         if (servicesSnapshot.empty) {
@@ -39,9 +42,9 @@ export default function ServicesCategoryPage() {
           return;
         }
 
-        // 2. Get unique store IDs from these services (providerId in this case is the storeId)
+        // 2. Get unique store IDs from these services
         const storeIds = [
-          ...new Set(servicesSnapshot.docs.map((doc) => doc.data().providerId)),
+          ...new Set(servicesSnapshot.docs.map((doc) => doc.data().storeId)),
         ];
 
         if (storeIds.length === 0) {
