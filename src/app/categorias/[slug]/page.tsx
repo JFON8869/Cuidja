@@ -1,13 +1,12 @@
 
 'use client';
 
-import { useParams, redirect } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { mockCategories } from '@/lib/data';
 import { StoreCard } from '@/components/store/StoreCard';
-import { useEffect } from 'react';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { collection, query, where } from 'firebase/firestore';
@@ -25,13 +24,6 @@ export default function CategoryPage() {
   const slug = params.slug as string;
   const { firestore } = useFirebase();
 
-  // Redirect 'servicos' slug to its dedicated page
-  useEffect(() => {
-    if (slug === 'servicos') {
-      redirect('/categorias/servicos');
-    }
-  }, [slug]);
-
   const category = mockCategories.find((cat) => cat.slug === slug);
   
   const storesQuery = useMemoFirebase(() => {
@@ -43,10 +35,6 @@ export default function CategoryPage() {
   }, [firestore, category]);
 
   const { data: stores, isLoading } = useCollection<WithId<StoreDocument>>(storesQuery);
-
-  if (slug === 'servicos') {
-    return null; 
-  }
   
   const renderSkeleton = () => (
     <div className="space-y-4">

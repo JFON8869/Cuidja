@@ -9,16 +9,24 @@ import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useProductContext } from '@/context/ProductContext';
-import { mockStores, Service } from '@/lib/data';
+import { Service } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, DocumentData } from 'firebase/firestore';
+import { collection, query, where, doc, DocumentData } from 'firebase/firestore';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
+import { useDoc } from '@/firebase/firestore/use-doc';
 
-// Add WithId to the Service type for Firestore documents
 type ServiceWithId = WithId<Service>;
+
+interface StoreDocument {
+  id: string;
+  name: string;
+  category: string;
+  logoUrl?: string;
+  userId: string;
+}
 
 export default function StorePage() {
   const params = useParams();
@@ -27,44 +35,14 @@ export default function StorePage() {
 
   const { products } = useProductContext();
   const { firestore } = useFirebase();
-
-  const [store, setStore] = React.useState<WithId<DocumentData> | null>(null);
-  const [isLoadingStore, setIsLoadingStore] = React.useState(true);
   
-  // Find static store info first to get category, name etc.
-  const staticStoreInfo = mockStores.find((s) => s.id === id);
+  const storeRef = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'stores', id);
+  }, [firestore, id]);
 
-  React.useEffect(() => {
-    async function fetchStoreDoc() {
-      if (!firestore || !id) {
-        setIsLoadingStore(false);
-        return;
-      }
-      // This is a workaround. In a real app, you might fetch this doc by its known ID.
-      // Here, we query based on a field we know from mock data. This assumes store names are unique.
-      const storeQuery = query(collection(firestore, 'stores'), where('name', '==', staticStoreInfo?.name));
-      const querySnapshot = await getDocs(storeQuery);
+  const { data: store, isLoading: isLoadingStore } = useDoc<StoreDocument>(storeRef);
 
-      if (!querySnapshot.empty) {
-        const storeDoc = querySnapshot.docs[0];
-        setStore({ id: storeDoc.id, ...storeDoc.data() });
-      } else {
-        // Fallback for stores that might not be in Firestore yet in this mock setup
-        // This part is tricky because the page needs an ID to fetch services.
-        // We'll use the mock ID as a fallback, but this highlights a data structure dependency.
-      }
-      setIsLoadingStore(false);
-    }
-
-    if (staticStoreInfo) {
-      fetchStoreDoc();
-    } else {
-      setIsLoadingStore(false);
-    }
-  }, [firestore, id, staticStoreInfo]);
-
-
-  // Fetch services from Firestore using the actual Firestore document ID of the store
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !store?.id) return null;
     return query(
@@ -77,7 +55,7 @@ export default function StorePage() {
 
   const storeProducts = products.filter((product) => product.storeId === id);
 
-  if (!staticStoreInfo && !isLoadingStore) {
+  if (!store && !isLoadingStore) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent p-4 text-center shadow-2xl">
         <h2 className="text-2xl font-bold">Loja não encontrada</h2>
@@ -101,7 +79,7 @@ export default function StorePage() {
       )
   }
 
-  const isServiceStore = staticStoreInfo?.category === 'Serviços';
+  const isServiceStore = store?.category === 'Serviços';
 
   const getServiceButton = (service: ServiceWithId) => {
     const hasFee = service.visitFee && service.visitFee > 0;
@@ -109,7 +87,6 @@ export default function StorePage() {
     const buttonText = hasFee ? `Contratar Visita${feeString}` : 'Entrar em Contato';
     const buttonIcon = hasFee ? <Briefcase className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />;
     
-    // Pass the firestore doc ID of the service and the store
     const href = `/checkout-servico?serviceId=${service.id}&storeId=${store?.id}`;
 
     return (
@@ -130,17 +107,17 @@ export default function StorePage() {
         </Button>
         <div className="mx-auto flex items-center gap-3">
           <Avatar>
-            <AvatarImage src={staticStoreInfo?.logo.imageUrl} alt={staticStoreInfo?.name} />
-            <AvatarFallback>{staticStoreInfo?.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={store?.logoUrl} alt={store?.name} />
+            <AvatarFallback>{store?.name.charAt(0)}</AvatarFallback>
           </Avatar>
-          <h1 className="font-headline text-xl">{staticStoreInfo?.name}</h1>
+          <h1 className="font-headline text-xl">{store?.name}</h1>
         </div>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
         {isServiceStore ? (
              <div className="space-y-4">
-                <p className="text-center text-muted-foreground">Serviços oferecidos por {staticStoreInfo?.name}.</p>
+                <p className="text-center text-muted-foreground">Serviços oferecidos por {store?.name}.</p>
                 {areServicesLoading ? (
                     <div className="flex justify-center items-center h-48">
                         <Loader2 className="h-8 w-8 animate-spin" />
