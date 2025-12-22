@@ -16,6 +16,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -59,7 +61,7 @@ export default function ProductDetailPage() {
           </Link>
         </Button>
       </header>
-      <main className="flex-1 overflow-y-auto pb-32">
+      <main className="flex-1 overflow-y-auto pb-4">
         <Carousel className="w-full">
           <CarouselContent>
             {product.images.map((image, index) => (
@@ -97,22 +99,28 @@ export default function ProductDetailPage() {
             <Store className="h-4 w-4" />
             <span>Vendido por {product.seller}</span>
           </div>
+
+          <Separator />
+          
+          <Card className="bg-card/80">
+            <CardContent className="p-4 space-y-4">
+               <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Preço</span>
+                <p className="text-2xl font-bold text-primary">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  }).format(product.price)}
+                </p>
+              </div>
+              <Button size="lg" className="w-full" onClick={handleAddToCart}>
+                Adicionar ao Carrinho
+              </Button>
+            </CardContent>
+          </Card>
+
         </div>
       </main>
-      <footer className="fixed bottom-0 left-1/2 z-10 w-full max-w-sm -translate-x-1/2 space-y-3 border-t bg-card p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Preço</span>
-          <p className="text-2xl font-bold text-primary">
-            {new Intl.NumberFormat('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            }).format(product.price)}
-          </p>
-        </div>
-        <Button size="lg" className="w-full" onClick={handleAddToCart}>
-          Adicionar ao Carrinho
-        </Button>
-      </footer>
     </div>
   );
 }
