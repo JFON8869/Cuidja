@@ -34,16 +34,14 @@ export default function CategoryPage() {
   const [stores, setStores] = useState<StoreDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Decode URI component and capitalize for display
-  const categoryName = useMemo(
-    () =>
-      slug
-        ? decodeURIComponent(slug)
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase())
-        : 'Categoria',
-    [slug]
-  );
+  // Decode URI component and format for display
+  const categoryName = useMemo(() => {
+    if (!slug) return 'Categoria';
+    const decodedSlug = decodeURIComponent(slug).replace(/-/g, ' ');
+    // Capitalize first letter of each word for multi-word categories like "Faça Feira" -> "Faça Feira"
+    // And for single words "restaurantes" -> "Restaurantes"
+    return decodedSlug.replace(/\b\w/g, (l) => l.toUpperCase());
+  }, [slug]);
 
   useEffect(() => {
     if (slug === 'servicos') {
@@ -153,5 +151,3 @@ export default function CategoryPage() {
     </div>
   );
 }
-
-    
