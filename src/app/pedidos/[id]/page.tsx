@@ -8,6 +8,7 @@ import { ArrowLeft, Send, User as UserIcon, Phone, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
@@ -17,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import StatusUpdater from '@/components/vender/StatusUpdater';
@@ -56,7 +56,6 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const { id } = params;
   const { firestore, user, isUserLoading } = useFirebase();
-  const { toast } = useToast();
   const [newMessage, setNewMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -152,11 +151,7 @@ export default function OrderDetailPage() {
 
       errorEmitter.emit('permission-error', permissionError);
 
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao enviar mensagem',
-        description: 'Verifique suas permissões e tente novamente.',
-      });
+      toast.error('Erro ao enviar mensagem. Verifique suas permissões e tente novamente.');
     } finally {
         setIsSubmitting(false);
     }

@@ -6,6 +6,7 @@ import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2, Wrench } fro
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,8 +36,6 @@ import { Product } from '@/lib/data';
 interface Service extends WithId<Product> {}
 
 export default function MyServicesPage() {
-  const { toast } = useToast();
-  const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -58,19 +56,11 @@ export default function MyServicesPage() {
     setIsDeleting(true);
     try {
         await deleteDoc(doc(firestore, "products", serviceId));
-        toast({
-            variant: "default",
-            title: 'Serviço excluído!',
-            description: `O serviço "${serviceName}" foi removido.`,
-        })
+        toast.success(`O serviço "${serviceName}" foi removido.`);
         // NOTE: No need to router.push, the page will re-render via useCollection
     } catch(error) {
         console.error("Error deleting service: ", error);
-        toast({
-            variant: "destructive",
-            title: 'Erro ao excluir',
-            description: `Não foi possível remover o serviço. Tente novamente.`,
-        })
+        toast.error(`Não foi possível remover o serviço. Tente novamente.`);
     } finally {
         setIsDeleting(false);
     }

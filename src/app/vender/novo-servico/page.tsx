@@ -9,6 +9,7 @@ import { ArrowLeft, Upload, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -46,7 +46,6 @@ const serviceSchema = z.object({
 });
 
 export default function NewServicePage() {
-  const { toast } = useToast();
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [storeId, setStoreId] = React.useState<string | null>(null);
@@ -67,12 +66,7 @@ export default function NewServicePage() {
       if (!querySnapshot.empty) {
         setStoreId(querySnapshot.docs[0].id);
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Nenhuma loja encontrada',
-          description:
-            'Você precisa criar uma loja antes de anunciar serviços.',
-        });
+        toast.error('Você precisa criar uma loja antes de anunciar serviços.');
         router.push('/vender/loja');
       }
       setStoreLoading(false);
@@ -97,11 +91,7 @@ export default function NewServicePage() {
     const totalImages = currentImages.length + files.length;
 
     if (totalImages > MAX_IMAGES) {
-      toast({
-        variant: 'destructive',
-        title: 'Limite de imagens excedido',
-        description: `Você só pode adicionar mais ${MAX_IMAGES - currentImages.length} imagens.`,
-      });
+      toast.error(`Você só pode adicionar mais ${MAX_IMAGES - currentImages.length} imagens.`);
       return;
     }
 
@@ -125,11 +115,7 @@ export default function NewServicePage() {
 
   async function onSubmit(values: z.infer<typeof serviceSchema>) {
     if (!firestore || !user || !storeId) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Não foi possível identificar a loja ou o usuário.',
-      });
+      toast.error('Não foi possível identificar a loja ou o usuário.');
       return;
     }
 
@@ -152,19 +138,12 @@ export default function NewServicePage() {
         createdAt: new Date().toISOString(),
       });
 
-      toast({
-        title: 'Serviço anunciado!',
-        description: `O serviço "${values.name}" foi cadastrado com sucesso.`,
-      });
+      toast.success(`O serviço "${values.name}" foi cadastrado com sucesso.`);
 
       router.push('/vender');
     } catch (error) {
       console.error('Error creating service:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao anunciar serviço',
-        description: 'Não foi possível salvar o serviço. Tente novamente.',
-      });
+      toast.error('Não foi possível salvar o serviço. Tente novamente.');
     }
   }
 

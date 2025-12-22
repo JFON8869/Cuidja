@@ -8,12 +8,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -38,7 +38,6 @@ const signupSchema = z.object({
 export default function SignupPage() {
   const { auth, firestore } = useFirebase();
   const router = useRouter();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof signupSchema>>({
@@ -72,10 +71,7 @@ export default function SignupPage() {
         addresses: [], // Initialize with an empty addresses array
       });
 
-      toast({
-        title: 'Conta criada com sucesso!',
-        description: 'Você já pode fazer login.',
-      });
+      toast.success('Conta criada com sucesso! Você já pode fazer login.');
       router.push('/login');
 
     } catch (error) {
@@ -86,11 +82,7 @@ export default function SignupPage() {
             description = 'Este e-mail já está em uso.';
          }
       }
-      toast({
-        variant: 'destructive',
-        title: 'Falha no cadastro',
-        description,
-      });
+      toast.error(description);
     } finally {
         setIsLoading(false);
     }

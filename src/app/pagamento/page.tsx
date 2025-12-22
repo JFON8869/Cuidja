@@ -12,6 +12,7 @@ import {
   Copy,
 } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
@@ -21,7 +22,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 function PaymentPage() {
@@ -29,7 +29,6 @@ function PaymentPage() {
   const orderId = searchParams.get('orderId');
   const router = useRouter();
   const { firestore } = useFirebase();
-  const { toast } = useToast();
   
   const qrCodeImage = PlaceHolderImages.find(img => img.id === 'qr-code-pix');
 
@@ -46,24 +45,18 @@ function PaymentPage() {
       await updateDoc(orderRef, {
         status: 'Confirmado',
       });
-      toast({
-        title: 'Pagamento Confirmado!',
-        description: 'Seu pedido foi confirmado e o vendedor notificado.',
-      });
+      toast.success('Pagamento Confirmado! Seu pedido foi confirmado e o vendedor notificado.');
       router.push('/pedidos');
     } catch (err) {
       console.error('Failed to confirm payment:', err);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao confirmar pagamento.',
-      });
+      toast.error('Erro ao confirmar pagamento.');
     }
   };
 
   const copyPixCode = () => {
     const pixCode = "00020126360014br.gov.bcb.pix0114+5511999999999520400005303986540510.005802BR5913NOME DO VENDEDOR6009SAO PAULO62070503***6304E4D3";
     navigator.clipboard.writeText(pixCode);
-    toast({ title: 'Código PIX copiado!' });
+    toast.success('Código PIX copiado!');
   };
 
   if (isLoading) {
@@ -224,4 +217,3 @@ export default function PaymentPageWrapper() {
     </Suspense>
   );
 }
-

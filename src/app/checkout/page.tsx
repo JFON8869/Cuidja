@@ -8,13 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, doc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/context/CartContext';
-import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -46,7 +46,6 @@ const checkoutSchema = z.object({
 
 export default function CheckoutPage() {
   const { cart, total, clearCart } = useCart();
-  const { toast } = useToast();
   const router = useRouter();
   const { firestore, user } = useFirebase();
 
@@ -110,20 +109,12 @@ export default function CheckoutPage() {
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     if (!firestore || !user) {
-        toast({
-            variant: 'destructive',
-            title: 'Erro de autenticação',
-            description: 'Você precisa estar logado para finalizar a compra.',
-        });
+        toast.error('Você precisa estar logado para finalizar a compra.');
         router.push('/login');
         return;
     }
      if (!storeId) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro no pedido',
-        description: 'Não foi possível encontrar a loja para este pedido. Tente novamente.',
-      });
+      toast.error('Não foi possível encontrar a loja para este pedido. Tente novamente.');
       return;
     }
     
@@ -159,21 +150,14 @@ export default function CheckoutPage() {
         
         const docRef = await addDoc(ordersCollection, orderData);
 
-        toast({
-            title: 'Redirecionando para o pagamento...',
-            description: 'Seu pedido foi criado. Agora vamos para a etapa de pagamento.',
-        });
+        toast.success('Seu pedido foi criado. Redirecionando para o pagamento.');
         
         clearCart();
         router.push(`/pagamento?orderId=${docRef.id}`);
 
     } catch(error) {
         console.error("Error placing order: ", error);
-        toast({
-            variant: 'destructive',
-            title: 'Uh oh! Algo deu errado.',
-            description: 'Não foi possível finalizar seu pedido. Tente novamente.',
-        });
+        toast.error('Não foi possível finalizar seu pedido. Tente novamente.');
     }
   }
   

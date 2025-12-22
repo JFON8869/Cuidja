@@ -7,7 +7,7 @@ import {
 } from 'firebase/auth';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, SetStateAction } from 'react';
-import type { useToast } from '@/hooks/use-toast';
+import type { toast as ToastType } from 'react-hot-toast';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 
@@ -15,7 +15,7 @@ export const handleGoogleSignIn = async (
   auth: Auth,
   firestore: ReturnType<typeof useFirebase>['firestore'],
   router: AppRouterInstance,
-  toast: ReturnType<typeof useToast>['toast'],
+  toast: typeof ToastType,
   setGoogleLoading: Dispatch<SetStateAction<boolean>>
 ) => {
   setGoogleLoading(true);
@@ -42,18 +42,11 @@ export const handleGoogleSignIn = async (
     }
 
 
-    toast({
-      title: 'Login com Google realizado com sucesso!',
-    });
+    toast.success('Login com Google realizado com sucesso!');
     router.push('/home');
   } catch (error) {
     console.error('Google Sign-In Error:', error);
-    toast({
-      variant: 'destructive',
-      title: 'Falha no login com Google',
-      description:
-        'Não foi possível fazer login com o Google. Tente novamente.',
-    });
+    toast.error('Não foi possível fazer login com o Google. Tente novamente.');
   } finally {
     setGoogleLoading(false);
   }

@@ -9,11 +9,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, addDoc, doc } from 'firebase/firestore';
 import React, { useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -43,7 +43,6 @@ export default function ServiceCheckoutPage() {
   const searchParams = useSearchParams();
   const serviceId = searchParams.get('serviceId');
   const storeId = searchParams.get('storeId');
-  const { toast } = useToast();
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
 
@@ -100,11 +99,7 @@ export default function ServiceCheckoutPage() {
   
   async function onSubmit(values: z.infer<typeof serviceCheckoutSchema>) {
     if (!firestore || !user || !service || !storeId) {
-        toast({
-            variant: 'destructive',
-            title: 'Erro de autenticação ou serviço',
-            description: 'Você precisa estar logado e o serviço deve ser válido.',
-        });
+        toast.error('Você precisa estar logado e o serviço deve ser válido.');
         if (!user) router.push('/login');
         return;
     }
@@ -134,19 +129,12 @@ export default function ServiceCheckoutPage() {
         
         const docRef = await addDoc(serviceRequestsCollection, requestData);
 
-        toast({
-            title: 'Solicitação Enviada!',
-            description: 'Seu pedido de serviço foi enviado. O prestador entrará em contato.',
-        });
+        toast.success('Sua solicitação de serviço foi enviada. O prestador entrará em contato.');
         
         router.push(`/home`);
     } catch(error) {
         console.error("Error creating service request: ", error);
-        toast({
-            variant: 'destructive',
-            title: 'Uh oh! Algo deu errado.',
-            description: 'Não foi possível solicitar o serviço. Tente novamente.',
-        });
+        toast.error('Não foi possível solicitar o serviço. Tente novamente.');
     }
   }
   

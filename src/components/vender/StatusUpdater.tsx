@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { doc, updateDoc, DocumentReference } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'react-hot-toast';
 import { WithId } from '@/firebase/firestore/use-doc';
 
 const orderStatusOptions = [
@@ -33,7 +33,6 @@ interface StatusUpdaterProps {
 }
 
 export default function StatusUpdater({ order, orderRef }: StatusUpdaterProps) {
-  const { toast } = useToast();
   const [currentStatus, setCurrentStatus] = React.useState(order.status);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -46,17 +45,10 @@ export default function StatusUpdater({ order, orderRef }: StatusUpdaterProps) {
         buyerHasUnread: true, // Notify the buyer
       });
       setCurrentStatus(newStatus);
-      toast({
-        title: 'Status do Pedido Atualizado!',
-        description: `O pedido foi marcado como "${newStatus}".`,
-      });
+      toast.success(`O pedido foi marcado como "${newStatus}".`);
     } catch (error) {
       console.error('Failed to update order status:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao atualizar status',
-        description: 'Não foi possível alterar o status do pedido.',
-      });
+      toast.error('Não foi possível alterar o status do pedido.');
     } finally {
       setIsUpdating(false);
     }

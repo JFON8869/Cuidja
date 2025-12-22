@@ -9,10 +9,10 @@ import { z } from 'zod';
 import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -40,7 +40,6 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const { auth, firestore } = useFirebase();
   const router = useRouter();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setGoogleLoading] = useState(false);
 
@@ -60,9 +59,7 @@ export default function LoginPage() {
 
     signInWithEmailAndPassword(auth, values.email, values.password)
       .then(() => {
-        toast({
-          title: 'Login realizado com sucesso!',
-        });
+        toast.success('Login realizado com sucesso!');
         router.push('/home');
       })
       .catch((error) => {
@@ -77,11 +74,7 @@ export default function LoginPage() {
             description = 'E-mail ou senha incorretos.';
           }
         }
-        toast({
-          variant: 'destructive',
-          title: 'Falha no login',
-          description,
-        });
+        toast.error(description);
       })
       .finally(() => {
         setIsLoading(false);

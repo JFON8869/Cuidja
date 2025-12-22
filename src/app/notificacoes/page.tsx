@@ -18,7 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'react-hot-toast';
 
 
 interface Order extends WithId<any> {
@@ -37,7 +37,6 @@ export default function NotificationsPage() {
   const [storeId, setStoreId] = useState<string | null>(null);
   const [isStoreLoading, setStoreLoading] = useState(true);
   const [showPermissionCard, setShowPermissionCard] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchStoreId() {
@@ -93,15 +92,9 @@ export default function NotificationsPage() {
   const handlePermissionRequest = (allow: boolean) => {
     setShowPermissionCard(false);
     if (allow) {
-        toast({
-            title: "Notificações Ativadas!",
-            description: "Você será avisado sobre novos pedidos e atualizações."
-        })
+        toast.success("Você será avisado sobre novos pedidos e atualizações.");
     } else {
-         toast({
-            title: "Notificações não ativadas.",
-            description: "Você pode ativá-las depois nas configurações do seu perfil."
-        })
+         toast("Você pode ativá-las depois nas configurações do seu perfil.", { icon: 'ℹ️' });
     }
   }
 

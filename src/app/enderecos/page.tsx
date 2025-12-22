@@ -19,6 +19,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
@@ -38,7 +39,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const addressSchema = z.object({
@@ -54,7 +54,6 @@ type Address = z.infer<typeof addressSchema>;
 
 export default function AddressesPage() {
   const { user, firestore, isUserLoading } = useFirebase();
-  const { toast } = useToast();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,15 +98,12 @@ export default function AddressesPage() {
         addresses: arrayUnion(values),
       });
       setAddresses((prev) => [...prev, values]);
-      toast({ title: 'Endereço adicionado com sucesso!' });
+      toast.success('Endereço adicionado com sucesso!');
       form.reset();
       setIsDialogOpen(false);
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao adicionar endereço.',
-      });
+      toast.error('Erro ao adicionar endereço.');
     } finally {
       setIsSubmitting(false);
     }
@@ -125,13 +121,10 @@ export default function AddressesPage() {
           (addr) => JSON.stringify(addr) !== JSON.stringify(addressToDelete)
         )
       );
-      toast({ title: 'Endereço removido.' });
+      toast.success('Endereço removido.');
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao remover endereço.',
-      });
+      toast.error('Erro ao remover endereço.');
     }
   };
 

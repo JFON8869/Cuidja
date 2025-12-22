@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +28,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -37,7 +37,6 @@ const storeSchema = z.object({
 });
 
 export default function StoreManagementPage() {
-  const { toast } = useToast();
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [store, setStore] = React.useState<{id: string, name: string, logoUrl?: string} | null>(null);
@@ -100,7 +99,7 @@ export default function StoreManagementPage() {
 
   async function onSubmit(values: z.infer<typeof storeSchema>) {
     if (!firestore || !user) {
-        toast({ variant: "destructive", title: "Erro de autenticação."});
+        toast.error("Erro de autenticação.");
         return;
     }
     
@@ -126,7 +125,7 @@ export default function StoreManagementPage() {
                 name: values.name,
                 logoUrl: logoUrl,
             });
-            toast({ title: 'Loja atualizada com sucesso!' });
+            toast.success('Loja atualizada com sucesso!');
         } else {
             // Create new store
             const storesCollection = collection(firestore, 'stores');
@@ -136,17 +135,13 @@ export default function StoreManagementPage() {
                 userId: user.uid,
                 createdAt: new Date().toISOString(),
             });
-            toast({ title: 'Loja criada com sucesso!' });
+            toast.success('Loja criada com sucesso!');
         }
         router.push('/vender');
         router.refresh(); // Refresh page to get new store data
     } catch(error) {
         console.error("Error saving store:", error);
-        toast({
-            variant: "destructive",
-            title: "Erro ao salvar loja",
-            description: "Não foi possível salvar os dados da loja. Tente novamente."
-        });
+        toast.error("Não foi possível salvar os dados da loja. Tente novamente.");
     }
   }
   
@@ -258,5 +253,3 @@ export default function StoreManagementPage() {
     </div>
   );
 }
-
-    

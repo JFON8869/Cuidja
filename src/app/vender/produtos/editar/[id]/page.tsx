@@ -9,6 +9,7 @@ import { ArrowLeft, Upload, X, PlusCircle, Trash2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import { mockCategories } from '@/lib/data';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -68,7 +68,6 @@ const productSchema = z.object({
 });
 
 export default function EditProductPage() {
-  const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
   const { id } = params;
@@ -104,11 +103,7 @@ export default function EditProductPage() {
         if (docSnap.exists()) {
           const product = docSnap.data();
           if (product.sellerId !== user.uid) {
-            toast({
-              variant: 'destructive',
-              title: 'Acesso Negado',
-              description: 'Você não tem permissão para editar este produto.',
-            });
+            toast.error('Você não tem permissão para editar este produto.');
             router.push('/vender');
             return;
           }
@@ -126,7 +121,7 @@ export default function EditProductPage() {
             product.images.map((img: { imageUrl: string }) => img.imageUrl)
           );
         } else {
-          toast({ variant: 'destructive', title: 'Produto não encontrado' });
+          toast.error('Produto não encontrado');
           router.push('/vender/produtos');
         }
       })
@@ -140,11 +135,7 @@ export default function EditProductPage() {
     const totalImages = currentPreviews.length + files.length;
 
     if (totalImages > MAX_IMAGES) {
-      toast({
-        variant: 'destructive',
-        title: 'Limite de imagens excedido',
-        description: `Você só pode adicionar mais ${MAX_IMAGES - currentPreviews.length} imagens.`,
-      });
+      toast.error(`Você só pode adicionar mais ${MAX_IMAGES - currentPreviews.length} imagens.`);
       return;
     }
 
@@ -193,19 +184,12 @@ export default function EditProductPage() {
         // images: newImageUrls // This would be the new array of image URLs after upload
       });
 
-      toast({
-        title: 'Produto atualizado!',
-        description: `O produto "${values.name}" foi atualizado com sucesso.`,
-      });
+      toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
 
       router.push('/vender/produtos');
     } catch (error) {
       console.error('Error updating product: ', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao atualizar',
-        description: 'Não foi possível salvar as alterações. Tente novamente.',
-      });
+      toast.error('Não foi possível salvar as alterações. Tente novamente.');
     }
   }
 

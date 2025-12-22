@@ -10,6 +10,7 @@ import { ArrowLeft, Upload, X, PlusCircle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import { mockCategories } from '@/lib/data';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -69,7 +69,6 @@ const productSchema = z.object({
 });
 
 export default function NewProductPage() {
-  const { toast } = useToast();
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [storeId, setStoreId] = React.useState<string | null>(null);
@@ -90,12 +89,7 @@ export default function NewProductPage() {
       if (!querySnapshot.empty) {
         setStoreId(querySnapshot.docs[0].id);
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Nenhuma loja encontrada',
-          description:
-            'Você precisa criar uma loja antes de adicionar produtos.',
-        });
+        toast.error('Você precisa criar uma loja antes de adicionar produtos.');
         router.push('/vender/loja');
       }
       setStoreLoading(false);
@@ -130,11 +124,7 @@ export default function NewProductPage() {
     const totalImages = currentImages.length + files.length;
 
     if (totalImages > MAX_IMAGES) {
-      toast({
-        variant: 'destructive',
-        title: 'Limite de imagens excedido',
-        description: `Você só pode adicionar mais ${MAX_IMAGES - currentImages.length} imagens.`,
-      });
+      toast.error(`Você só pode adicionar mais ${MAX_IMAGES - currentImages.length} imagens.`);
       return;
     }
 
@@ -158,11 +148,7 @@ export default function NewProductPage() {
 
   async function onSubmit(values: z.infer<typeof productSchema>) {
     if (!firestore || !user || !storeId) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Não foi possível identificar a loja ou o usuário.',
-      });
+      toast.error('Não foi possível identificar a loja ou o usuário.');
       return;
     }
 
@@ -194,19 +180,12 @@ export default function NewProductPage() {
         createdAt: new Date().toISOString(),
       });
 
-      toast({
-        title: 'Item anunciado!',
-        description: `O item "${values.name}" foi cadastrado com sucesso.`,
-      });
+      toast.success(`O item "${values.name}" foi cadastrado com sucesso.`);
 
       router.push('/vender/produtos');
     } catch (error) {
       console.error('Error creating product:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao criar item',
-        description: 'Não foi possível salvar o item. Tente novamente.',
-      });
+      toast.error('Não foi possível salvar o item. Tente novamente.');
     }
   }
 

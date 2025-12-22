@@ -6,6 +6,7 @@ import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2 } from 'lucid
 import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,7 +39,6 @@ interface Product extends WithId<any> {
 }
 
 export default function MyProductsPage() {
-  const { toast } = useToast();
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -60,19 +59,11 @@ export default function MyProductsPage() {
     setIsDeleting(true);
     try {
         await deleteDoc(doc(firestore, "products", productId));
-        toast({
-            variant: "default",
-            title: 'Produto excluído!',
-            description: `O produto "${productName}" foi removido.`,
-        })
+        toast.success(`O produto "${productName}" foi removido.`);
         router.push('/vender');
     } catch(error) {
         console.error("Error deleting product: ", error);
-        toast({
-            variant: "destructive",
-            title: 'Erro ao excluir',
-            description: `Não foi possível remover o produto. Tente novamente.`,
-        })
+        toast.error(`Não foi possível remover o produto. Tente novamente.`);
     } finally {
         setIsDeleting(false);
     }

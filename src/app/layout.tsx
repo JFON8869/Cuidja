@@ -1,6 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "react-hot-toast"
 import BottomNav from '@/components/layout/BottomNav';
 import { AppProviders } from '@/context/AppProviders';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
