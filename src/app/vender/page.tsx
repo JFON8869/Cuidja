@@ -88,9 +88,6 @@ export default function SellPage() {
   const myProductsCount = myProducts?.length ?? 0;
   const myServicesCount = myServices?.length ?? 0;
   
-  const isServiceProvider = store?.category === 'Serviços';
-
-
   if (isStoreLoading || isUserLoading) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -207,24 +204,26 @@ export default function SellPage() {
               </CardContent>
               </Card>
           </Link>
-          <Link href="/vender/pedidos">
-            <Card className="hover:bg-muted/50 transition-colors">
+           <Link href="/vender/produtos">
+              <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Vendas</CardTitle>
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">
+                    Meus Serviços
+                  </CardTitle>
+                  <Wrench className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">+R$1.234</div>
-                <p className="text-xs text-muted-foreground">No último mês</p>
+                  <div className="text-2xl font-bold">{servicesLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : myServicesCount}</div>
+                  <p className="text-xs text-muted-foreground">Serviços ativos</p>
               </CardContent>
-            </Card>
+              </Card>
           </Link>
         </div>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg font-headline">
               <BarChart className="h-5 w-5" />
-              Desempenho
+              Desempenho de Vendas
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[200px] pl-2">

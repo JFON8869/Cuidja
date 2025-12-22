@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -26,21 +27,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { mockCategories } from '@/lib/data';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja deve ter pelo menos 3 caracteres.'),
-  category: z.string({ required_error: 'Selecione uma categoria.' }).min(1, 'Selecione uma categoria.'),
   logo: z.any().optional(),
 });
 
@@ -57,7 +49,6 @@ export default function StoreManagementPage() {
     resolver: zodResolver(storeSchema),
     defaultValues: {
       name: '',
-      category: '',
     }
   });
   
@@ -80,7 +71,6 @@ export default function StoreManagementPage() {
         setStore(storeData);
         form.reset({
             name: storeData.name,
-            category: storeData.category,
         });
         if (storeData.logoUrl) {
             setLogoPreview(storeData.logoUrl);
@@ -134,7 +124,6 @@ export default function StoreManagementPage() {
             const storeRef = doc(firestore, 'stores', store.id);
             await updateDoc(storeRef, {
                 name: values.name,
-                category: values.category,
                 logoUrl: logoUrl,
             });
             toast({ title: 'Loja atualizada com sucesso!' });
@@ -143,7 +132,6 @@ export default function StoreManagementPage() {
             const storesCollection = collection(firestore, 'stores');
             await addDoc(storesCollection, {
                 name: values.name,
-                category: values.category,
                 logoUrl: logoUrl,
                 userId: user.uid,
                 createdAt: new Date().toISOString(),
@@ -260,33 +248,6 @@ export default function StoreManagementPage() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria Principal</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a categoria da sua loja" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {mockCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isEditing ? 'Salvar Alterações' : 'Criar Loja'}
