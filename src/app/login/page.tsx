@@ -57,32 +57,35 @@ export default function LoginPage() {
   async function onEmailSubmit(values: z.infer<typeof loginSchema>) {
     if (!auth) return;
     setIsLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Login realizado com sucesso!',
-      });
-      router.push('/perfil');
-    } catch (error) {
-      console.error(error);
-      let description = 'Ocorreu um erro ao tentar fazer login.';
-      if (error instanceof FirebaseError) {
-        if (
-          error.code === 'auth/user-not-found' ||
-          error.code === 'auth/wrong-password' ||
-          error.code === 'auth/invalid-credential'
-        ) {
-          description = 'E-mail ou senha incorretos.';
+
+    signInWithEmailAndPassword(auth, values.email, values.password)
+      .then(() => {
+        toast({
+          title: 'Login realizado com sucesso!',
+        });
+        router.push('/perfil');
+      })
+      .catch((error) => {
+        console.error(error);
+        let description = 'Ocorreu um erro ao tentar fazer login.';
+        if (error instanceof FirebaseError) {
+          if (
+            error.code === 'auth/user-not-found' ||
+            error.code === 'auth/wrong-password' ||
+            error.code === 'auth/invalid-credential'
+          ) {
+            description = 'E-mail ou senha incorretos.';
+          }
         }
-      }
-      toast({
-        variant: 'destructive',
-        title: 'Falha no login',
-        description,
+        toast({
+          variant: 'destructive',
+          title: 'Falha no login',
+          description,
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-    } finally {
-      setIsLoading(false);
-    }
   }
 
   const onGoogleSignIn = async () => {
