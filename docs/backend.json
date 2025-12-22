@@ -4,347 +4,339 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the application, either a buyer or a seller.",
+      "description": "Represents a user of the Mercado Local Cuidja platform.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "First name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the user."
-        },
-        "profilePicture": {
-          "type": "string",
-          "description": "URL of the user's profile picture.",
-          "format": "uri"
-        },
-        "address": {
-          "type": "string",
-          "description": "User's address."
-        },
-        "isSeller": {
-          "type": "boolean",
-          "description": "Indicates whether the user is also a seller."
-        }
-      },
-      "required": [
-        "id",
-        "email"
-      ]
-    },
-    "Store": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Store",
-      "type": "object",
-      "description": "Represents a seller's store profile.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the store entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 Store)"
+          "description": "Unique identifier for the User entity."
         },
         "name": {
           "type": "string",
-          "description": "Name of the store."
+          "description": "The user's full name."
         },
-        "logo": {
+        "email": {
           "type": "string",
-          "description": "URL of the store's logo.",
-          "format": "uri"
+          "description": "The user's email address.",
+          "format": "email"
         },
-        "description": {
+        "phone": {
           "type": "string",
-          "description": "Description of the store and its offerings."
+          "description": "The user's phone number."
         },
-        "rating": {
-          "type": "number",
-          "description": "Average rating of the store."
+        "isSeller": {
+          "type": "boolean",
+          "description": "Indicates whether the user is a seller."
+        },
+        "address": {
+          "type": "string",
+          "description": "The user's address."
         }
       },
       "required": [
         "id",
-        "userId",
-        "name"
+        "name",
+        "email",
+        "phone",
+        "isSeller",
+        "address"
       ]
     },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a product listed for sale.",
+      "description": "Represents a product or service listed on the Mercado Local Cuidja platform.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the product entity."
+          "description": "Unique identifier for the Product entity."
         },
-        "storeId": {
+        "sellerId": {
           "type": "string",
-          "description": "Reference to Store. (Relationship: Store 1:N Product)"
+          "description": "Reference to User (Seller). (Relationship: User 1:N Product)"
         },
         "name": {
           "type": "string",
-          "description": "Name of the product."
+          "description": "The name of the product or service."
         },
         "description": {
           "type": "string",
-          "description": "Description of the product."
-        },
-        "images": {
-          "type": "array",
-          "description": "Array of URLs of product images.",
-          "items": {
-            "type": "string"
-          }
+          "description": "A detailed description of the product or service."
         },
         "price": {
           "type": "number",
-          "description": "Price of the product."
+          "description": "The price of the product or service."
         },
-        "stock": {
-          "type": "number",
-          "description": "Number of units of the product in stock."
-        },
-        "status": {
+        "imageUrl": {
           "type": "string",
-          "description": "Status of the product (active, paused)."
+          "description": "URL of the product image."
         },
         "category": {
           "type": "string",
-          "description": "Category of the product."
+          "description": "Category of the product (e.g., 'Fruits', 'Vegetables', 'Handicrafts')."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location where the product is available."
         }
       },
       "required": [
         "id",
-        "storeId",
+        "sellerId",
         "name",
+        "description",
         "price",
-        "stock",
-        "status"
+        "imageUrl",
+        "category",
+        "location"
       ]
     },
     "Order": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents an order placed by a user.",
+      "description": "Represents an order placed on the Mercado Local Cuidja platform.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the order entity."
+          "description": "Unique identifier for the Order entity."
         },
-        "userId": {
+        "customerId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Order)"
-        },
-        "storeId": {
-          "type": "string",
-          "description": "Reference to Store. (Relationship: Store 1:N Order)"
-        },
-        "productIds": {
-          "type": "array",
-          "description": "References to Products. (Relationship: Order 1:N Product)",
-          "items": {
-            "type": "string"
-          }
+          "description": "Reference to User (Customer). (Relationship: User 1:N Order)"
         },
         "orderDate": {
           "type": "string",
-          "description": "Date and time when the order was placed.",
+          "description": "Date when the order was placed.",
           "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of the order (Pending, Paid, In Preparation, Shipped, Delivered, Cancelled)."
         },
         "totalAmount": {
           "type": "number",
           "description": "Total amount of the order."
         },
-        "shippingAddress": {
-          "type": "object",
-          "description": "The shipping address for the order.",
-          "properties": {
-            "name": {"type": "string"},
-            "address": {"type": "string"},
-            "city": {"type": "string"},
-            "zip": {"type": "string"}
-          }
-        },
-         "messages": {
-          "type": "array",
-          "description": "Chat messages between buyer and seller for this order.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "senderId": { "type": "string" },
-              "text": { "type": "string" },
-              "timestamp": { "type": "string", "format": "date-time" },
-              "isRead": { "type": "boolean" }
-            },
-            "required": ["senderId", "text", "timestamp"]
-          }
+        "status": {
+          "type": "string",
+          "description": "Status of the order (e.g., 'Pending', 'Shipped', 'Delivered')."
         }
       },
       "required": [
         "id",
-        "userId",
-        "storeId",
-        "productIds",
+        "customerId",
         "orderDate",
-        "status",
         "totalAmount",
-        "shippingAddress"
+        "status"
       ]
     },
-    "Review": {
+    "OrderItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Review",
+      "title": "OrderItem",
       "type": "object",
-      "description": "Represents a review given by a buyer for a product and seller.",
+      "description": "Represents an item within an order.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the review entity."
+          "description": "Unique identifier for the OrderItem entity."
         },
-        "userId": {
+        "orderId": {
           "type": "string",
-          "description": "Reference to User (Buyer). (Relationship: User 1:N Review)"
-        },
-        "storeId": {
-          "type": "string",
-          "description": "Reference to Store (Seller). (Relationship: Store 1:N Review)"
+          "description": "Reference to Order. (Relationship: Order 1:N OrderItem)"
         },
         "productId": {
           "type": "string",
-          "description": "Reference to Product. (Relationship: Product 1:N Review)"
+          "description": "Reference to Product. (Relationship: Product 1:N OrderItem)"
         },
-        "rating": {
+        "quantity": {
           "type": "number",
-          "description": "Rating given by the buyer (1-5 stars)."
+          "description": "Quantity of the product in the order item."
         },
-        "comment": {
-          "type": "string",
-          "description": "Comment provided by the buyer."
-        },
-        "reviewDate": {
-          "type": "string",
-          "description": "Date when the review was submitted.",
-          "format": "date-time"
+        "price": {
+          "type": "number",
+          "description": "Price of the product at the time of the order."
         }
       },
       "required": [
         "id",
-        "userId",
-        "storeId",
+        "orderId",
         "productId",
-        "rating",
-        "reviewDate"
+        "quantity",
+        "price"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Represents a payment transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Payment entity."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:1 Payment)"
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "Date when the payment was made.",
+          "format": "date-time"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Method of payment (e.g., 'Credit Card', 'PayPal')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount paid."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the payment (e.g., 'Completed', 'Failed')."
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "paymentDate",
+        "paymentMethod",
+        "amount",
+        "status"
       ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "users/{userId}",
         "definition": {
           "entityName": "User",
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user data. Accessible only by the user and admins.",
+          "description": "Stores user information. Security is based on the user ID (path-based ownership).",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user."
+              "description": "The unique identifier for the user."
             }
           ]
         }
       },
       {
-        "path": "/stores/{storeId}",
-        "definition": {
-          "entityName": "Store",
-          "schema": {
-            "$ref": "#/backend/entities/Store"
-          },
-          "description": "Stores store profiles. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "storeId",
-              "description": "The unique identifier of the store."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/products/{productId}",
+        "path": "users/{userId}/products/{productId}",
         "definition": {
           "entityName": "Product",
           "schema": {
             "$ref": "#/backend/entities/Product"
           },
-          "description": "Stores product information. Includes denormalized 'storeId' for authorization independence.",
+          "description": "Stores products listed by a specific user (seller). Security is based on path-based ownership (userId).",
           "params": [
             {
+              "name": "userId",
+              "description": "The unique identifier for the user (seller)."
+            },
+            {
               "name": "productId",
-              "description": "The unique identifier of the product."
+              "description": "The unique identifier for the product."
             }
           ]
         }
       },
       {
-        "path": "/orders/{orderId}",
+        "path": "products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores all products available on the platform. Includes 'sellerId' for authorization independence.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier for the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "users/{userId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores order information. Includes denormalized 'userId' and 'storeId' for authorization independence.",
+          "description": "Stores orders placed by a specific user (customer). Security is based on path-based ownership (userId).",
           "params": [
             {
+              "name": "userId",
+              "description": "The unique identifier for the user (customer)."
+            },
+            {
               "name": "orderId",
-              "description": "The unique identifier of the order."
+              "description": "The unique identifier for the order."
             }
           ]
         }
       },
       {
-        "path": "/reviews/{reviewId}",
+        "path": "orders/{orderId}",
         "definition": {
-          "entityName": "Review",
+          "entityName": "Order",
           "schema": {
-            "$ref": "#/backend/entities/Review"
+            "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores reviews for products and stores. Includes 'userId', 'storeId', and 'productId' for authorization.",
+          "description": "Stores all orders placed on the platform.",
           "params": [
             {
-              "name": "reviewId",
-              "description": "The unique identifier of the review."
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "orders/{orderId}/orderItems/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Stores items within a specific order.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "The unique identifier for the order item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "orders/{orderId}/payment",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Stores payment information for a specific order.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support a marketplace application connecting local producers, artisans, and service providers with consumers. It emphasizes authorization independence through denormalization, structural segregation for security, and consistent access modeling.  The structure prioritizes DBAC (Database-Based Access Control) using only `request.auth.uid` for authorization.  Authorization Independence is achieved primarily through denormalization of membership and ownership data into subcollections or related documents, avoiding `get()` calls in security rules. QAPs (Rules Are Not Filters) are supported by segregating data based on access requirements, preventing the need to filter data based on authorization rules. For collaborative access scenarios, the 'members' map pattern will be leveraged.\n\nSpecifically:\n\n*   **Users**: Stores user profiles and distinguishes between buyers and sellers.\n*   **Stores**: Stores store profiles, linked to seller users.\n*   **Products**: Stores product listings, linked to stores.\n*   **Orders**: Stores order information, linking buyers, sellers (via Store), and products. Includes messages specific to an order.\n*   **Reviews**: Stores product and seller reviews.\n\n**Authorization Independence:** The `members` map pattern in collaborative collections will include the `userId` and their role, removing the need to fetch parent document data. For example, within a store's products collection, the `storeId` is denormalized into each product document, enabling rules to validate product access without reading the store document.  Orders will contain both `userId` and `storeId`, to facilitate order access rules without needing to read user or store documents.\n\n**Structural Segregation:** User-specific data (e.g., user profiles, stores owned by a user) are placed under `/users/{userId}` or `/stores/{storeId}` to easily implement user-based access control. Publicly accessible data (if any in future evolutions) would be stored in separate collections with open read access.\n\n**QAPs Support:**  Because private data is segregated under user-specific paths (e.g., `/users/{userId}/orders`), listing operations only return data accessible to the authenticated user, avoiding filtering in rules.\n\n**Invariants:** Timestamps will be stored as server timestamps, ownership will be enforced through `userId` fields, and denormalized data will be kept consistent using Cloud Functions triggers."
+    "reasoning": "Considerando os requisitos do aplicativo Mercado Local Cuidja, a seguinte estrutura do Firestore foi projetada para garantir segurança, escalabilidade e facilidade de manutenção, priorizando a independência da autorização e o uso de padrões consistentes.\n\n*   **users/{userId}**: Armazena informações do usuário. A segurança é baseada no ID do usuário (path-based ownership), garantindo que apenas o usuário autenticado possa acessar seus próprios dados. Isso garante que as operações sejam atômicas.\n*   **users/{userId}/products/{productId}**: Para cada usuário (vendedor), armazena os produtos que eles listaram. Isso facilita a criação de regras de segurança onde um usuário só pode criar, ler, atualizar ou excluir seus próprios produtos.\n*   **products/{productId}**: Armazena todos os produtos disponíveis na plataforma. Isso permite consultas eficientes em todos os produtos, sem a necessidade de percorrer coleções de subdocumentos do usuário. Inclui o campo `sellerId` para referência ao vendedor.\n*   **users/{userId}/orders/{orderId}**: Armazena os pedidos feitos por um usuário. A segurança é baseada no ID do usuário, garantindo que apenas o usuário autenticado possa acessar seus próprios pedidos.\n*   **orders/{orderId}**: Armazena todos os pedidos feitos na plataforma, facilitando a administração e análise. Inclui o campo `customerId` para referência ao cliente.\n*   **orders/{orderId}/orderItems/{orderItemId}**: Armazena os itens dentro de um pedido específico. Isso permite consultas eficientes para itens de pedido específicos.\n*   **orders/{orderId}/payment**: Armazena informações de pagamento para um pedido específico. Isso mantém as informações de pagamento segregadas e fáceis de gerenciar.\n\n**Independência de Autorização (Denormalização):**\nPara manter a independência da autorização, o campo `sellerId` é denormalizado na coleção `products`. Isso permite que as regras de segurança na coleção `products` verifiquem se o usuário autenticado é o proprietário do produto sem a necessidade de chamadas `get()` para o documento do usuário. Para cada produto a `sellerId` é o `userId`.\n\n**QAPs (Consultas Seguras):**\nA estrutura suporta consultas seguras (`list` operations) através de:\n\n*   **Segregação Estrutural**: Dados com diferentes necessidades de acesso são armazenados em coleções separadas. Por exemplo, informações de usuários privados são armazenadas em `users/{userId}`, enquanto produtos visíveis publicamente são armazenados em `products/{productId}`.\n*   **Modelagem de Acesso Consistente**: O uso de path-based ownership para dados privados e uma coleção separada para dados visíveis publicamente garante que as regras de segurança possam ser escritas de forma clara e concisa.\n\nEssa estrutura garante que as regras de segurança sejam simples, robustas e fáceis de depurar, priorizando a independência da autorização e o uso de padrões consistentes para modelagem de acesso."
   }
 }
