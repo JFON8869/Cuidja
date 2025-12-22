@@ -65,29 +65,17 @@ export default function SellPage() {
     fetchStore();
   }, [user, firestore, isUserLoading]);
   
-  const isServiceProvider = store?.category === 'Serviços';
-
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || isServiceProvider) return null;
+    if (!firestore || !user) return null;
     return query(
         collection(firestore, 'products'),
         where('sellerId', '==', user.uid)
     );
-  }, [firestore, user, isServiceProvider]);
+  }, [firestore, user]);
 
-  const servicesQuery = useMemoFirebase(() => {
-      if (!firestore || !user || !isServiceProvider) return null;
-      return query(
-          collection(firestore, 'services'),
-          where('sellerId', '==', user.uid)
-      );
-  }, [firestore, user, isServiceProvider]);
 
   const { data: myProducts, isLoading: productsLoading } = useCollection(productsQuery);
-  const { data: myServices, isLoading: servicesLoading } = useCollection(servicesQuery);
-
   const myProductsCount = myProducts?.length ?? 0;
-  const myServicesCount = myServices?.length ?? 0;
 
   if (isStoreLoading || isUserLoading) {
     return (
@@ -173,43 +161,26 @@ export default function SellPage() {
       </header>
       <main className="flex-1 space-y-6 p-4">
         <Button size="lg" className="w-full" asChild>
-            <Link href={isServiceProvider ? "/vender/novo-servico" : "/vender/novo-produto"}>
+            <Link href={"/vender/novo-produto"}>
                 <PlusCircle className="mr-2" />
-                {isServiceProvider ? 'Anunciar Novo Serviço' : 'Anunciar Novo Produto'}
+                Anunciar Novo Produto
             </Link>
         </Button>
         <div className="grid grid-cols-2 gap-4">
-          {isServiceProvider ? (
-             <Link href="/vender/servicos">
-                <Card className="hover:bg-muted/50 transition-colors">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Meus Serviços
-                    </CardTitle>
-                    <Wrench className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{servicesLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : myServicesCount}</div>
-                    <p className="text-xs text-muted-foreground">Serviços ativos</p>
-                  </CardContent>
-                </Card>
-            </Link>
-          ) : (
-            <Link href="/vender/produtos">
-                <Card className="hover:bg-muted/50 transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                    Meus Produtos
-                    </CardTitle>
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{productsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : myProductsCount}</div>
-                    <p className="text-xs text-muted-foreground">Produtos ativos</p>
-                </CardContent>
-                </Card>
-            </Link>
-          )}
+          <Link href="/vender/produtos">
+              <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                  Meus Produtos
+                  </CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{productsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : myProductsCount}</div>
+                  <p className="text-xs text-muted-foreground">Produtos ativos</p>
+              </CardContent>
+              </Card>
+          </Link>
           <Link href="/vender/pedidos">
             <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
