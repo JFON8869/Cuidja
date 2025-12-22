@@ -33,7 +33,9 @@ export function FirebaseClientProvider({
   }, []); // Empty dependency array ensures this runs only once on mount
 
   if (!firebaseServices) {
-    // You can render a loading spinner here or just null
+    // Render nothing until Firebase is initialized on the client.
+    // This prevents any child components from attempting to access Firebase services
+    // before they are ready, which is the root cause of the API key error.
     return null;
   }
 
