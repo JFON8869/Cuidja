@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2, Wrench } from 'lucide-react';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import React from 'react';
 import { useRouter } from 'next/navigation';
@@ -30,13 +31,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Product } from '@/lib/data';
 
 
-interface Service extends WithId<any> {
-    name: string;
-    visitFee?: number;
-    images: { imageUrl: string }[];
-}
+interface Service extends WithId<Product> {}
 
 export default function MyServicesPage() {
   const { toast } = useToast();
@@ -47,8 +45,9 @@ export default function MyServicesPage() {
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
-      collection(firestore, 'services'),
-      where('sellerId', '==', user.uid)
+      collection(firestore, 'products'),
+      where('sellerId', '==', user.uid),
+      where('category', '==', 'Serviços')
     );
   }, [firestore, user]);
 
@@ -59,13 +58,13 @@ export default function MyServicesPage() {
     if (!firestore) return;
     setIsDeleting(true);
     try {
-        await deleteDoc(doc(firestore, "services", serviceId));
+        await deleteDoc(doc(firestore, "products", serviceId));
         toast({
             variant: "default",
             title: 'Serviço excluído!',
             description: `O serviço "${serviceName}" foi removido.`,
         })
-        router.push('/vender');
+        // NOTE: No need to router.push, the page will re-render via useCollection
     } catch(error) {
         console.error("Error deleting service: ", error);
         toast({
@@ -86,7 +85,6 @@ export default function MyServicesPage() {
                 <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-3 w-1/4" />
                 </div>
                 <Skeleton className="h-8 w-8" />
             </CardContent>
@@ -104,7 +102,7 @@ export default function MyServicesPage() {
         </Button>
         <h1 className="mx-auto font-headline text-xl">Meus Serviços</h1>
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender/novo-servico">
+          <Link href="/vender/novo-produto">
             <PlusCircle />
           </Link>
         </Button>
@@ -125,9 +123,7 @@ export default function MyServicesPage() {
                 <div className="flex-1">
                   <h3 className="font-semibold">{service.name}</h3>
                   <p className="text-sm text-primary">
-                    {service.visitFee && service.visitFee > 0 
-                      ? `Taxa de visita: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.visitFee)}`
-                      : 'Contato gratuito'}
+                    {`Taxa de contato: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}`}
                   </p>
                 </div>
                 <AlertDialog>
@@ -138,13 +134,12 @@ export default function MyServicesPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {/* TODO: Add edit page for services */}
-                      {/* <DropdownMenuItem asChild>
-                        <Link href={`/vender/servicos/editar/${service.id}`}>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/vender/produtos/editar/${service.id}`}>
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
                         </Link>
-                      </DropdownMenuItem> */}
+                      </DropdownMenuItem>
                        <AlertDialogTrigger asChild>
                           <DropdownMenuItem className="text-destructive">
                             <Trash className="mr-2 h-4 w-4" />
@@ -178,12 +173,13 @@ export default function MyServicesPage() {
           ))
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-center p-8">
+            <Wrench className="mb-4 h-16 w-16 text-muted-foreground" />
             <h2 className="text-2xl font-bold">Nenhum serviço anunciado</h2>
             <p className="text-muted-foreground mb-4">
               Anuncie seu primeiro serviço para vê-lo aqui.
             </p>
             <Button asChild>
-                <Link href="/vender/novo-servico">
+                <Link href="/vender/novo-produto">
                     <PlusCircle className="mr-2" />
                     Anunciar serviço
                 </Link>

@@ -6,8 +6,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ArrowLeft,
-  MessageSquare,
-  Briefcase,
   Loader2,
   Package,
   Wrench,
@@ -15,24 +13,15 @@ import {
 import React, { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { type Service, type Product, mockCategories } from '@/lib/data';
+import { type Product, mockCategories } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, DocumentData } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { Separator } from '@/components/ui/separator';
 
-type ServiceWithId = WithId<Service>;
 type ProductWithId = WithId<Product>;
 
 interface StoreDocument {
@@ -56,8 +45,7 @@ export default function StorePage() {
   }, [categoryFilterSlug]);
 
   const categoryName = category?.name;
-  const isServiceFilterActive = categoryFilterSlug === 'servicos';
-
+  
   const { firestore } = useFirebase();
 
   const storeRef = useMemoFirebase(() => {
@@ -69,7 +57,7 @@ export default function StorePage() {
     useDoc<StoreDocument>(storeRef);
 
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !id || isServiceFilterActive) return null;
+    if (!firestore || !id) return null;
     
     let q = query(collection(firestore, 'products'), where('storeId', '==', id));
     
@@ -77,27 +65,18 @@ export default function StorePage() {
       q = query(q, where('category', '==', categoryName));
     }
     return q;
-  }, [firestore, id, categoryName, isServiceFilterActive]);
+  }, [firestore, id, categoryName]);
   
-  const servicesQuery = useMemoFirebase(() => {
-    if (!firestore || !id || !isServiceFilterActive) return null;
-    return query(
-      collection(firestore, 'services'),
-      where('providerId', '==', id)
-    );
-  }, [firestore, id, isServiceFilterActive]);
-
-
   const { data: storeProducts, isLoading: areProductsLoading } =
     useCollection<ProductWithId>(productsQuery);
-  const { data: storeServices, isLoading: areServicesLoading } =
-    useCollection<ServiceWithId>(servicesQuery);
     
-  const isLoading = isLoadingStore || areProductsLoading || areServicesLoading;
+  const isLoading = isLoadingStore || areProductsLoading;
   
   const hasProducts = storeProducts && storeProducts.length > 0;
-  const hasServices = storeServices && storeServices.length > 0;
   const pageTitle = store?.name ? (categoryName ? `${store.name} - ${categoryName}` : store.name) : 'Loja';
+  
+  const products = useMemo(() => storeProducts?.filter(p => p.category !== 'Serviços') || [], [storeProducts]);
+  const services = useMemo(() => storeProducts?.filter(p => p.category === 'Serviços') || [], [storeProducts]);
 
   if (!store && !isLoadingStore) {
     return (
@@ -133,36 +112,6 @@ export default function StorePage() {
     );
   }
 
-
-  const getServiceButton = (service: ServiceWithId) => {
-    const hasFee = service.visitFee && service.visitFee > 0;
-    const feeString = hasFee
-      ? ` por ${new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
-        }).format(service.visitFee!)}`
-      : '';
-    const buttonText = hasFee
-      ? `Contratar Visita${feeString}`
-      : 'Entrar em Contato';
-    const buttonIcon = hasFee ? (
-      <Briefcase className="mr-2 h-4 w-4" />
-    ) : (
-      <MessageSquare className="mr-2 h-4 w-4" />
-    );
-
-    const href = `/checkout-servico?serviceId=${service.id}&storeId=${store?.id}`;
-
-    return (
-      <Button asChild className="w-full">
-        <Link href={href}>
-          {buttonIcon}
-          {buttonText}
-        </Link>
-      </Button>
-    );
-  };
-
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
@@ -179,61 +128,37 @@ export default function StorePage() {
         <div className="w-10"></div>
       </header>
       <main className="flex-1 space-y-6 overflow-y-auto p-4">
-        {hasProducts && (
+        {products.length > 0 && (
           <section>
             <h2 className="mb-4 flex items-center gap-2 font-headline text-2xl">
               <Package className="h-6 w-6" />
               Produtos
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              {storeProducts.map((product) => (
+              {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           </section>
         )}
 
-        {hasProducts && hasServices && <Separator />}
+        {products.length > 0 && services.length > 0 && <Separator />}
 
-        {hasServices && (
+        {services.length > 0 && (
           <section>
             <h2 className="mb-4 flex items-center gap-2 font-headline text-2xl">
               <Wrench className="h-6 w-6" />
               Serviços
             </h2>
-            <div className="space-y-4">
-              {storeServices.map((service) => (
-                <Card key={service.id} className="overflow-hidden">
-                  <Image
-                    src={(service.images && service.images[0].imageUrl) || `https://picsum.photos/seed/${service.id}/400/200`}
-                    alt={service.name}
-                    width={400}
-                    height={200}
-                    className="h-32 w-full object-cover"
-                  />
-                  <CardHeader>
-                    <CardTitle>{service.name}</CardTitle>
-                    {service.visitFee && service.visitFee > 0 && (
-                      <CardDescription className="pt-1 text-lg font-bold text-primary">
-                        Taxa de visita:{' '}
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(service.visitFee)}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{service.description}</p>
-                  </CardContent>
-                  <CardFooter>{getServiceButton(service)}</CardFooter>
-                </Card>
+            <div className="grid grid-cols-2 gap-4">
+              {services.map((service) => (
+                <ProductCard key={service.id} product={service} />
               ))}
             </div>
           </section>
         )}
 
-        {!hasProducts && !hasServices && (
+        {!hasProducts && (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <h2 className="text-2xl font-bold">Nenhum item encontrado</h2>
             <p className="text-muted-foreground">

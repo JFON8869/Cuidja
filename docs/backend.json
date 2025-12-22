@@ -113,7 +113,7 @@
         },
         "price": {
           "type": "number",
-          "description": "The price of the product or service."
+          "description": "The price of the product or service (or visit fee for services)."
         },
         "imageUrl": {
           "type": "string",
@@ -121,7 +121,7 @@
         },
         "category": {
           "type": "string",
-          "description": "Category of the product (e.g., 'Fruits', 'Vegetables', 'Handicrafts')."
+          "description": "Category of the product (e.g., 'Fruits', 'Vegetables', 'Serviços')."
         },
         "location": {
           "type": "string",
@@ -142,24 +142,8 @@
         "description",
         "price",
         "imageUrl",
-        "category",
-        "location"
+        "category"
       ]
-    },
-     "Service": {
-      "title": "Service",
-      "type": "object",
-      "description": "Represents a service offered by a provider.",
-      "properties": {
-        "id": { "type": "string" },
-        "providerId": { "type": "string" },
-        "sellerId": { "type": "string"},
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "category": { "enum": ["Serviços"] },
-        "visitFee": { "type": "number", "description": "Fee for technical visit or initial contact. Minimum R$10." }
-      },
-      "required": ["id", "providerId", "name", "description", "category", "sellerId", "visitFee"]
     },
     "AddonGroup": {
       "title": "AddonGroup",
@@ -190,7 +174,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents a product order placed on the platform.",
+      "description": "Represents a product or service order placed on the platform.",
       "properties": {
         "id": {
           "type": "string"
@@ -241,33 +225,11 @@
         "shippingAddress"
       ]
     },
-    "ServiceRequest": {
-        "title": "Service Request",
-        "type": "object",
-        "description": "Represents a customer's request for a service.",
-        "properties": {
-            "id": { "type": "string" },
-            "requesterId": { "type": "string" },
-            "providerId": { "type": "string" },
-            "storeId": { "type": "string" },
-            "serviceId": { "type": "string" },
-            "serviceName": { "type": "string"},
-            "requesterInfo": {
-                "$ref": "#/backend/entities/Address"
-            },
-            "message": { "type": "string" },
-            "status": { "type": "string", "enum": ["Pendente", "Contatado", "Agendado", "Concluído", "Cancelado"] },
-            "requestDate": { "type": "string", "format": "date-time" },
-            "providerHasUnread": { "type": "boolean" },
-            "requesterHasUnread": { "type": "boolean" }
-        },
-        "required": ["id", "requesterId", "providerId", "storeId", "serviceId", "status", "requestDate"]
-    },
     "OrderItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OrderItem",
       "type": "object",
-      "description": "Represents an item within an order.",
+      "description": "Represents an item within an order (can be a product or a service).",
       "properties": {
         "id": {
           "type": "string"
@@ -339,22 +301,13 @@
           "schema": {
             "$ref": "#/backend/entities/Product"
           },
-          "description": "Stores all products available on the platform. Includes 'sellerId' for authorization independence.",
+          "description": "Stores all products and services available on the platform.",
           "params": [
             {
               "name": "productId",
-              "description": "The unique identifier for the product."
+              "description": "The unique identifier for the product/service."
             }
           ]
-        }
-      },
-       {
-        "path": "services/{serviceId}",
-        "definition": {
-          "entityName": "Service",
-          "schema": { "$ref": "#/backend/entities/Service" },
-          "description": "Stores all services available on the platform.",
-          "params": [{ "name": "serviceId", "description": "The unique identifier for the service." }]
         }
       },
       {
@@ -364,7 +317,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores all product orders placed on the platform.",
+          "description": "Stores all product and service orders placed on the platform.",
           "params": [
             {
               "name": "orderId",
@@ -372,17 +325,8 @@
             }
           ]
         }
-      },
-      {
-        "path": "serviceRequests/{requestId}",
-        "definition": {
-          "entityName": "ServiceRequest",
-          "schema": { "$ref": "#/backend/entities/ServiceRequest" },
-          "description": "Stores all service requests placed on the platform.",
-          "params": [{ "name": "requestId", "description": "The unique identifier for the service request." }]
-        }
       }
     ],
-    "reasoning": "A estrutura foi simplificada para separar claramente Pedidos de Produtos de Solicitações de Serviço. A coleção `orders` agora lida exclusivamente com transações de produtos, contendo `items` e `shippingAddress`. Uma nova coleção `serviceRequests` foi criada para gerenciar solicitações de serviço, com campos como `requesterId`, `providerId`, e `requesterInfo`. Essa separação remove a complexidade e a ambiguidade, tornando os fluxos de dados mais claros e as regras de segurança mais simples de implementar para cada tipo de transação."
+    "reasoning": "The data model has been simplified by merging the `Service` entity into the `Product` entity. This unifies the concept of purchasable items, whether they are physical goods or services. The `ServiceRequest` entity and its corresponding collection have been removed, as the standard `Order` flow now handles all transactions. This reduces complexity, streamlines data management, and simplifies security rules."
   }
 }

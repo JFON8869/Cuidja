@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -56,7 +57,7 @@ const productSchema = z.object({
   description: z
     .string()
     .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
-  price: z.coerce.number().positive('O preço deve ser um número positivo.'),
+  price: z.coerce.number().positive('O preço/taxa deve ser um número positivo.'),
   category: z
     .string({ required_error: 'Selecione uma categoria.' })
     .min(1, 'Selecione uma categoria.'),
@@ -113,6 +114,10 @@ export default function NewProductPage() {
       addonGroups: [],
     },
   });
+  
+  const selectedCategory = form.watch('category');
+  const isService = selectedCategory === 'Serviços';
+
 
   const { fields: addonGroups, append: appendAddonGroup, remove: removeAddonGroup } = useFieldArray({
     control: form.control,
@@ -169,8 +174,8 @@ export default function NewProductPage() {
       imageHint: values.category.toLowerCase(),
     }));
     
-    // Clean up addon group data
-    const finalAddonGroups = values.addonGroups?.map(group => ({
+    // Clean up addon group data, only for non-services
+    const finalAddonGroups = isService ? [] : values.addonGroups?.map(group => ({
         ...group,
         id: group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7) // create a unique-ish ID
     }))
@@ -190,8 +195,8 @@ export default function NewProductPage() {
       });
 
       toast({
-        title: 'Produto anunciado!',
-        description: `O produto "${values.name}" foi cadastrado com sucesso.`,
+        title: 'Item anunciado!',
+        description: `O item "${values.name}" foi cadastrado com sucesso.`,
       });
 
       router.push('/vender/produtos');
@@ -199,8 +204,8 @@ export default function NewProductPage() {
       console.error('Error creating product:', error);
       toast({
         variant: 'destructive',
-        title: 'Erro ao criar produto',
-        description: 'Não foi possível salvar o produto. Tente novamente.',
+        title: 'Erro ao criar item',
+        description: 'Não foi possível salvar o item. Tente novamente.',
       });
     }
   }
@@ -231,19 +236,47 @@ export default function NewProductPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Anunciar Novo Produto</h1>
+        <h1 className="mx-auto font-headline text-xl">Anunciar Novo Item</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+             <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Categoria</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {mockCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="images"
               render={() => (
                 <FormItem>
                   <FormLabel>
-                    Fotos do Produto ({imagePreviews.length}/{MAX_IMAGES})
+                    Fotos do {isService ? 'Serviço' : 'Produto'} ({imagePreviews.length}/{MAX_IMAGES})
                   </FormLabel>
                   <FormControl>
                     <div className="grid grid-cols-3 gap-2">
@@ -287,7 +320,7 @@ export default function NewProductPage() {
                     </div>
                   </FormControl>
                   <FormDescription>
-                    Envie até {MAX_IMAGES} fotos do seu produto.
+                    Envie até {MAX_IMAGES} fotos.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -299,9 +332,9 @@ export default function NewProductPage() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Produto</FormLabel>
+                  <FormLabel>Nome do {isService ? 'Serviço' : 'Produto'}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Pão Artesanal" {...field} />
+                    <Input placeholder={isService ? "Ex: Instalação Elétrica" : "Ex: Pão Artesanal"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -316,7 +349,7 @@ export default function NewProductPage() {
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Descreva os detalhes do seu produto..."
+                      placeholder={isService ? "Descreva os detalhes do seu serviço..." : "Descreva os detalhes do seu produto..."}
                       className="resize-none"
                       {...field}
                     />
@@ -331,79 +364,52 @@ export default function NewProductPage() {
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preço (R$)</FormLabel>
+                  <FormLabel>{isService ? 'Taxa de Visita/Contato (R$)' : 'Preço (R$)'}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       step="0.01"
-                      placeholder="Ex: 15.50"
+                      placeholder={isService ? "Ex: 50.00" : "Ex: 15.50"}
                       {...field}
                     />
                   </FormControl>
+                   {isService && <FormDescription>Taxa mínima de R$ 10,00.</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {mockCategories
-                        .filter((category) => category.name !== 'Serviços')
-                        .map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Separator />
             
-            {/* Addon Groups Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
-              {addonGroups.map((group, groupIndex) => (
-                <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Grupo de Complementos
-              </Button>
-            </div>
-
+            {!isService && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
+                  {addonGroups.map((group, groupIndex) => (
+                    <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Adicionar Grupo de Complementos
+                  </Button>
+                </div>
+              </>
+            )}
 
             <Button
               type="submit"
               className="w-full"
               size="lg"
-              disabled={form.formState.isSubmitting || isStoreLoading}
+              disabled={form.formState.isSubmitting || isStoreLoading || !selectedCategory}
             >
               {form.formState.isSubmitting
                 ? 'Anunciando...'
-                : 'Anunciar Produto'}
+                : `Anunciar ${isService ? 'Serviço' : 'Produto'}`}
             </Button>
           </form>
         </Form>

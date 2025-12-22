@@ -5,9 +5,8 @@
  * content they create, but limited or no access to the data of others.
  *
  * Data Structure: The data is organized into two main categories:
- * 1. User-Scoped Data: Nested under `/users/{userId}`, this includes private user profiles,
- *    personal order history, and a private management area for a seller's products. Access to
- *    these paths is strictly limited to the authenticated owner.
+ * 1. User-Scoped Data: Nested under `/users/{userId}`, this includes private user profiles and
+ *    personal order history. Access to these paths is strictly limited to the authenticated owner.
  * 2. Top-Level Collections: Collections like `/products` and `/orders` serve distinct purposes.
  *    `/products` is a public, read-only collection for all users to browse, with write
  *    permissions restricted to the product's seller. `/orders` and its subcollections are
@@ -30,11 +29,6 @@
  * collection contains a `customerId`. This avoids slow and costly `get()` calls in rules,
  * making the security model more performant and scalable.
  *
- * Structural Segregation: Private user data and public data are stored in separate collections.
- * For instance, a seller manages their items in the private `/users/{userId}/products` collection,
-
- * while the public-facing versions reside in the top-level `/products` collection. This prevents
- * accidental data leakage and simplifies rules for list operations.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -112,37 +106,7 @@ service cloud.firestore {
         allow update: if isOwner(resource.data.userId);
         allow delete: if isOwner(resource.data.userId);
     }
-
-    /**
-     * @description Rules for a seller's private product management collection.
-     * @path /users/{userId}/products/{productId}
-     * @allow (create, get, list, update, delete) A seller managing their own products: `auth.uid == userId`.
-     * @deny (get) A user trying to view another seller's private product list.
-     * @principle Enforces strict ownership within a user's private data subcollections.
-     */
-    match /users/{userId}/products/{productId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for a user's private order history collection.
-     * @path /users/{userId}/orders/{orderId}
-     * @allow (create, get, list, update, delete) A customer managing their own orders: `auth.uid == userId`.
-     * @deny (get) A user trying to view another user's order history.
-     * @principle Enforces strict ownership within a user's private data subcollections.
-     */
-    match /users/{userId}/orders/{orderId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
+    
     /**
      * @description Rules for the public products collection, visible to everyone.
      * @path /products/{productId}
@@ -153,21 +117,6 @@ service cloud.firestore {
      * @principle Implements a Public Read with Owner-Only Writes pattern.
      */
     match /products/{productId} {
-      allow get, list: if true;
-      allow create: if isCreatingOwnResource();
-      allow update: if isResourceSeller(resource.data);
-      allow delete: if isResourceSeller(resource.data);
-    }
-
-    /**
-     * @description Rules for the public services collection, visible to everyone.
-     * @path /services/{serviceId}
-     * @allow (get, list) Any user can browse available services.
-     * @allow (create) A signed-in user creating a service where they set themselves as the seller.
-     * @allow (update, delete) The seller of the service modifying or deleting their own listing.
-     * @principle Implements a Public Read with Owner-Only Writes pattern for services.
-     */
-    match /services/{serviceId} {
       allow get, list: if true;
       allow create: if isCreatingOwnResource();
       allow update: if isResourceSeller(resource.data);
@@ -191,38 +140,6 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow create: if isCreatingOwnOrder();
       allow update, delete: if isDocumentOwner(resource.data) || isResourceSeller(get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data);
-    }
-
-    /**
-     * @description Rules for the items within an order.
-     * @path /orders/{orderId}/orderItems/{orderItemId}
-     * @allow (get, list, create) The customer who owns the parent order.
-     * @deny (update, delete) Order items cannot be changed after the order is placed.
-     * @deny (get) A user trying to see the items of an order that is not theirs.
-     * @principle Access is derived from the parent document using a `get()` call.
-     */
-    match /orders/{orderId}/orderItems/{orderItemId} {
-      allow get: if isOrderCustomer(orderId);
-      allow list: if isOrderCustomer(orderId);
-      allow create: if isOrderCustomer(orderId);
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Rules for the payment document associated with an order.
-     * @path /orders/{orderId}/payment
-     * @allow (get, create) The customer who owns the parent order.
-     * @deny (update, delete) Payment information cannot be changed after creation.
-     * @deny (get) A user trying to see payment details for another user's order.
-     * @principle Access is derived from the parent document using a `get()` call.
-     */
-    match /orders/{orderId}/payment/{paymentId} { // Assuming paymentId for full path match
-      allow get: if isOrderCustomer(orderId);
-      allow list: if isOrderCustomer(orderId); // A user can list payments for an order they own
-      allow create: if isOrderCustomer(orderId);
-      allow update: if false;
-      allow delete: if false;
     }
   }
 }

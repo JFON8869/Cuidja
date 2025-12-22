@@ -74,14 +74,6 @@ export default function SellPage() {
     );
   }, [firestore, user]);
 
-  const servicesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'services'),
-      where('sellerId', '==', user.uid)
-    );
-  }, [firestore, user]);
-
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !store?.id) return null;
     return query(
@@ -92,13 +84,11 @@ export default function SellPage() {
 
   const { data: myProducts, isLoading: productsLoading } =
     useCollection(productsQuery);
-  const { data: myServices, isLoading: servicesLoading } =
-    useCollection(servicesQuery);
   const { data: myOrders, isLoading: ordersLoading } =
     useCollection(ordersQuery);
 
-  const myProductsCount = myProducts?.length ?? 0;
-  const myServicesCount = myServices?.length ?? 0;
+  const myProductsCount = myProducts?.filter(p => p.category !== 'Serviços').length ?? 0;
+  const myServicesCount = myProducts?.filter(p => p.category === 'Serviços').length ?? 0;
   const myOrdersCount = myOrders?.length ?? 0;
 
   const isLoading = isStoreLoading || isUserLoading;
@@ -189,21 +179,12 @@ export default function SellPage() {
         </Button>
       </header>
       <main className="flex-1 space-y-6 overflow-y-auto p-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Button size="lg" className="w-full" asChild>
+        <Button size="lg" className="w-full" asChild>
             <Link href={'/vender/novo-produto'}>
               <PlusCircle className="mr-2" />
-              Anunciar Produto
+              Anunciar Novo Item
             </Link>
-          </Button>
-
-          <Button size="lg" variant="outline" className="w-full" asChild>
-            <Link href={'/vender/novo-servico'}>
-              <Wrench className="mr-2" />
-              Anunciar Serviço
-            </Link>
-          </Button>
-        </div>
+        </Button>
 
         <div className="grid grid-cols-2 gap-4">
           <Link href="/vender/produtos">
@@ -236,7 +217,7 @@ export default function SellPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {servicesLoading ? (
+                  {productsLoading ? (
                     <Loader2 className="h-6 w-6 animate-spin" />
                   ) : (
                     myServicesCount
@@ -265,7 +246,7 @@ export default function SellPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Pedidos de produtos e serviços
+                  Total de pedidos recebidos
                 </p>
               </CardContent>
             </Card>
