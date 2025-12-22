@@ -6,10 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
+import { collection, addDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/context/CartContext';
@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
+import { useFirebase } from '@/firebase';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -35,9 +36,10 @@ const checkoutSchema = z.object({
 });
 
 export default function CheckoutPage() {
-  const { cart, total } = useCart();
+  const { cart, total, clearCart } = useCart();
   const { toast } = useToast();
   const router = useRouter();
+  const { firestore, user } = useFirebase();
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -49,15 +51,51 @@ export default function CheckoutPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof checkoutSchema>) {
+  async function onSubmit(values: z.infer<typeof checkoutSchema>) {
+    if (!firestore || !user) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro de autenticação',
+            description: 'Você precisa estar logado para finalizar a compra.',
+        });
+        router.push('/login');
+        return;
+    }
+    
     console.log(values);
-    toast({
-      title: 'Pedido Recebido!',
-      description: 'Sua compra foi finalizada com sucesso. Obrigado!',
-    });
-    // Here you would typically clear the cart and redirect
-    // For now, let's just redirect to a confirmation page (to be created)
-    router.push('/home'); // Redirecting home for now
+
+    try {
+        const ordersCollection = collection(firestore, 'orders');
+        await addDoc(ordersCollection, {
+            userId: user.uid,
+            products: cart.map(item => ({ id: item.id, name: item.name, price: item.price })),
+            totalAmount: total,
+            status: 'Pending',
+            orderDate: new Date().toISOString(),
+            shippingAddress: {
+                name: values.name,
+                address: values.address,
+                city: values.city,
+                zip: values.zip,
+            },
+            paymentMethod: values.paymentMethod,
+        });
+
+        toast({
+            title: 'Pedido Recebido!',
+            description: 'Sua compra foi finalizada com sucesso. Obrigado!',
+        });
+        
+        clearCart();
+        router.push('/pedidos');
+    } catch(error) {
+        console.error("Error placing order: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Uh oh! Algo deu errado.',
+            description: 'Não foi possível finalizar seu pedido. Tente novamente.',
+        });
+    }
   }
   
   if (cart.length === 0) {
