@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Frown } from 'lucide-react';
 import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -29,26 +29,34 @@ export default function ServicesCategoryPage() {
       setIsLoading(true);
 
       try {
-        // 1. Find all unique providerIds from the 'services' collection
+        // 1. Find all services
         const servicesQuery = query(collection(firestore, 'services'));
         const servicesSnapshot = await getDocs(servicesQuery);
-        const providerIds = [
-          ...new Set(servicesSnapshot.docs.map((doc) => doc.data().providerId)),
-        ];
 
-        if (providerIds.length === 0) {
+        if (servicesSnapshot.empty) {
           setServiceProviders([]);
           setIsLoading(false);
           return;
         }
 
-        // 2. Fetch the store documents for each unique providerId
-        const providerPromises = providerIds.map((id) =>
+        // 2. Get unique store IDs from these services (providerId in this case is the storeId)
+        const storeIds = [
+          ...new Set(servicesSnapshot.docs.map((doc) => doc.data().providerId)),
+        ];
+
+        if (storeIds.length === 0) {
+          setServiceProviders([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. Fetch the store documents for each unique storeId
+        const storePromises = storeIds.map((id) =>
           getDoc(doc(firestore, 'stores', id as string))
         );
-        const providerDocs = await Promise.all(providerPromises);
+        const storeDocs = await Promise.all(storePromises);
 
-        const providers = providerDocs
+        const providers = storeDocs
           .filter((doc) => doc.exists())
           .map((doc) => ({
             id: doc.id,
@@ -102,11 +110,13 @@ export default function ServicesCategoryPage() {
                 key={store.id}
                 store={store}
                 categoryName="Serviços"
+                categorySlug="servicos"
               />
             ))}
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-center">
+            <Frown className="mb-4 h-16 w-16 text-muted-foreground" />
             <h2 className="text-2xl font-bold">Nenhum prestador encontrado</h2>
             <p className="text-muted-foreground">
               Não há prestadores de serviço cadastrados no momento.

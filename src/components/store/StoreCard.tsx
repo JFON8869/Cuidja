@@ -11,11 +11,10 @@ interface StoreCardProps {
     logoUrl?: string;
   };
   categoryName: string;
+  categorySlug: string;
 }
 
-export function StoreCard({ store, categoryName }: StoreCardProps) {
-  const categorySlug = slugify(categoryName);
-
+export function StoreCard({ store, categoryName, categorySlug }: StoreCardProps) {
   return (
     <Link href={`/lojas/${store.id}?category=${categorySlug}`} className="group">
       <Card className="overflow-hidden transition-all hover:shadow-lg">
@@ -39,5 +38,3 @@ export function StoreCard({ store, categoryName }: StoreCardProps) {
     </Link>
   );
 }
-
-    

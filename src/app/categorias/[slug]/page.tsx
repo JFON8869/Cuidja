@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StoreCard } from '@/components/store/StoreCard';
 import { useEffect, useState, useMemo } from 'react';
 import { mockCategories } from '@/lib/data';
+import { slugify } from '@/lib/utils';
 
 interface StoreDocument {
   id: string;
@@ -143,6 +144,7 @@ export default function CategoryPage() {
                 key={store.id}
                 store={store}
                 categoryName={categoryName}
+                categorySlug={slug}
               />
             ))}
           </div>
