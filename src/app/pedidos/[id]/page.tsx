@@ -18,6 +18,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 interface Message {
   senderId: string;
@@ -119,10 +121,19 @@ export default function OrderDetailPage() {
       setNewMessage('');
     } catch (err) {
       console.error("Error sending message: ", err);
+      
+      const permissionError = new FirestorePermissionError({
+        path: orderRef.path,
+        operation: 'update',
+        requestResourceData: updatePayload,
+      });
+
+      errorEmitter.emit('permission-error', permissionError);
+
       toast({
         variant: 'destructive',
         title: 'Erro ao enviar mensagem',
-        description: 'Não foi possível enviar sua mensagem. Tente novamente.',
+        description: 'Verifique suas permissões e tente novamente.',
       });
     } finally {
         setIsSubmitting(false);
