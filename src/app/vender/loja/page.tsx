@@ -27,21 +27,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockCategories } from '@/lib/data';
 
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja deve ter pelo menos 3 caracteres.'),
-  category: z.string({ required_error: 'Selecione uma categoria principal.'}).min(1, 'Selecione uma categoria.'),
   logo: z.any().optional(),
 });
 
@@ -49,7 +40,7 @@ export default function StoreManagementPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
-  const [store, setStore] = React.useState<{id: string, name: string, category: string, logoUrl?: string} | null>(null);
+  const [store, setStore] = React.useState<{id: string, name: string, logoUrl?: string} | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -58,7 +49,6 @@ export default function StoreManagementPage() {
     resolver: zodResolver(storeSchema),
     defaultValues: {
       name: '',
-      category: '',
     }
   });
   
@@ -77,11 +67,10 @@ export default function StoreManagementPage() {
 
       if (!querySnapshot.empty) {
         const storeDoc = querySnapshot.docs[0];
-        const storeData = { id: storeDoc.id, ...storeDoc.data() } as {id: string, name: string, category: string, logoUrl?: string};
+        const storeData = { id: storeDoc.id, ...storeDoc.data() } as {id: string, name: string, logoUrl?: string};
         setStore(storeData);
         form.reset({
             name: storeData.name,
-            category: storeData.category,
         });
         if (storeData.logoUrl) {
             setLogoPreview(storeData.logoUrl);
@@ -135,7 +124,6 @@ export default function StoreManagementPage() {
             const storeRef = doc(firestore, 'stores', store.id);
             await updateDoc(storeRef, {
                 name: values.name,
-                category: values.category,
                 logoUrl: logoUrl,
             });
             toast({ title: 'Loja atualizada com sucesso!' });
@@ -144,7 +132,6 @@ export default function StoreManagementPage() {
             const storesCollection = collection(firestore, 'stores');
             await addDoc(storesCollection, {
                 name: values.name,
-                category: values.category,
                 logoUrl: logoUrl,
                 userId: user.uid,
                 createdAt: new Date().toISOString(),
@@ -260,39 +247,6 @@ export default function StoreManagementPage() {
                 </FormItem>
               )}
             />
-            
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria Principal da Loja</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a principal categoria" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {mockCategories
-                        .map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Você poderá vender produtos e serviços de outras categorias também.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
 
             <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -304,3 +258,5 @@ export default function StoreManagementPage() {
     </div>
   );
 }
+
+    

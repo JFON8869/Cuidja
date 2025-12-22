@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,13 +8,13 @@ interface StoreCardProps {
   store: {
     id: string;
     name: string;
-    category: string;
     logoUrl?: string;
-  }
+  };
+  categoryName: string;
 }
 
-export function StoreCard({ store }: StoreCardProps) {
-  const categorySlug = slugify(store.category);
+export function StoreCard({ store, categoryName }: StoreCardProps) {
+  const categorySlug = slugify(categoryName);
 
   return (
     <Link href={`/lojas/${store.id}?category=${categorySlug}`} className="group">
@@ -31,10 +32,12 @@ export function StoreCard({ store }: StoreCardProps) {
             <CardTitle className="text-lg font-headline">
               {store.name}
             </CardTitle>
-            <p className="text-sm text-muted-foreground">{store.category}</p>
+            <p className="text-sm text-muted-foreground">{categoryName}</p>
           </div>
         </CardContent>
       </Card>
     </Link>
   );
 }
+
+    

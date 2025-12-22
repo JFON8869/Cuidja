@@ -1,19 +1,27 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Frown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useFirebase, useMemoFirebase } from '@/firebase';
-import { useCollection, WithId } from '@/firebase/firestore/use-collection';
-import { collection, query, where } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  DocumentData,
+} from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoreCard } from '@/components/store/StoreCard';
+import { useEffect, useState, useMemo } from 'react';
 
 interface StoreDocument {
+  id: string;
   name: string;
-  category: string;
-  userId: string;
   logoUrl?: string;
 }
 
@@ -23,37 +31,90 @@ export default function CategoryPage() {
   const { firestore } = useFirebase();
   const router = useRouter();
 
+  const [stores, setStores] = useState<StoreDocument[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   // Decode URI component and capitalize for display
-  const categoryName = slug ? decodeURIComponent(slug).replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Categoria';
+  const categoryName = useMemo(
+    () =>
+      slug
+        ? decodeURIComponent(slug)
+            .replace(/-/g, ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase())
+        : 'Categoria',
+    [slug]
+  );
 
-  if (slug === 'servicos') {
-    router.replace('/categorias/servicos');
-    return null;
-  }
+  useEffect(() => {
+    if (slug === 'servicos') {
+      router.replace('/categorias/servicos');
+      return;
+    }
 
-  const storesQuery = useMemoFirebase(() => {
-    if (!firestore || !categoryName) return null;
-    return query(
-      collection(firestore, 'stores'),
-      where('category', '==', categoryName)
-    );
-  }, [firestore, categoryName]);
+    async function fetchStoresByCategory() {
+      if (!firestore || !categoryName) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
 
-  const { data: stores, isLoading } = useCollection<WithId<StoreDocument>>(storesQuery);
-  
+      try {
+        // 1. Find all products in the specified category
+        const productsQuery = query(
+          collection(firestore, 'products'),
+          where('category', '==', categoryName)
+        );
+        const productsSnapshot = await getDocs(productsQuery);
+
+        // 2. Get unique store IDs from these products
+        const storeIds = [
+          ...new Set(productsSnapshot.docs.map((doc) => doc.data().storeId)),
+        ];
+
+        if (storeIds.length === 0) {
+          setStores([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. Fetch the store documents for each unique storeId
+        const storePromises = storeIds.map((id) =>
+          getDoc(doc(firestore, 'stores', id as string))
+        );
+        const storeDocs = await Promise.all(storePromises);
+
+        const fetchedStores = storeDocs
+          .filter((doc) => doc.exists())
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as StoreDocument[];
+
+        setStores(fetchedStores);
+      } catch (error) {
+        console.error('Failed to fetch stores by category:', error);
+        setStores([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchStoresByCategory();
+  }, [firestore, categoryName, slug, router]);
+
   const renderSkeleton = () => (
     <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-             <div key={i} className="flex items-center gap-4 p-4 rounded-lg border">
-                <Skeleton className="h-20 w-20 rounded-md" />
-                <div className="flex-1 space-y-2">
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                </div>
-            </div>
-        ))}
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4 rounded-lg border p-4">
+          <Skeleton className="h-20 w-20 rounded-md" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </div>
+      ))}
     </div>
-  )
+  );
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -63,9 +124,7 @@ export default function CategoryPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">
-          {categoryName}
-        </h1>
+        <h1 className="mx-auto font-headline text-xl">{categoryName}</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
@@ -73,21 +132,17 @@ export default function CategoryPage() {
           renderSkeleton()
         ) : stores && stores.length > 0 ? (
           <div className="space-y-4">
-             {stores.map((store) => (
+            {stores.map((store) => (
               <StoreCard
                 key={store.id}
-                store={{
-                  id: store.id,
-                  name: store.name,
-                  category: store.category,
-                  logoUrl: store.logoUrl,
-                }}
+                store={store}
+                categoryName={categoryName}
               />
             ))}
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <Frown className="w-16 h-16 text-muted-foreground mb-4" />
+            <Frown className="mb-4 h-16 w-16 text-muted-foreground" />
             <h2 className="text-2xl font-bold">Nenhuma loja encontrada</h2>
             <p className="text-muted-foreground">
               Ainda não há lojas nesta categoria.
@@ -98,3 +153,5 @@ export default function CategoryPage() {
     </div>
   );
 }
+
+    

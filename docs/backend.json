@@ -386,3 +386,5 @@
     "reasoning": "A estrutura foi simplificada para separar claramente Pedidos de Produtos de Solicitações de Serviço. A coleção `orders` agora lida exclusivamente com transações de produtos, contendo `items` e `shippingAddress`. Uma nova coleção `serviceRequests` foi criada para gerenciar solicitações de serviço, com campos como `requesterId`, `providerId`, e `requesterInfo`. Essa separação remove a complexidade e a ambiguidade, tornando os fluxos de dados mais claros e as regras de segurança mais simples de implementar para cada tipo de transação."
   }
 }
+
+    
