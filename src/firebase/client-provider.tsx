@@ -24,21 +24,24 @@ export function FirebaseClientProvider({
     useState<FirebaseServices | null>(null);
 
   useEffect(() => {
-    // Initialize Firebase only on the client side, after the component has mounted.
-    // This ensures browser APIs and environment variables are available.
-    if (typeof window !== 'undefined') {
+    // This effect runs only once on the client side after the component mounts.
+    // It ensures that Firebase is initialized in the browser environment
+    // where window and process.env.NEXT_PUBLIC_* variables are available.
+    if (typeof window !== 'undefined' && !firebaseServices) {
       const services = initializeFirebase();
       setFirebaseServices(services);
     }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [firebaseServices]); // Dependency array ensures this logic re-evaluates if firebaseServices changes, but the !firebaseServices check prevents re-initialization.
 
+  // CRITICAL: By returning null until firebaseServices is initialized,
+  // we prevent any child components from rendering and attempting to use
+  // Firebase services before they are ready. This is the key to preventing
+  // the 'auth/api-key-not-valid' error.
   if (!firebaseServices) {
-    // Render nothing until Firebase is initialized on the client.
-    // This prevents any child components from attempting to access Firebase services
-    // before they are ready, which is the root cause of the API key error.
     return null;
   }
 
+  // Once Firebase is initialized, provide the services to the rest of the app.
   return (
     <FirebaseProvider
       firebaseApp={firebaseServices.firebaseApp}
