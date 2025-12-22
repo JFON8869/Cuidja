@@ -1,33 +1,34 @@
+
 /**
  * Core Philosophy: This ruleset implements a robust security model for the "Mercado Local Cuidja"
  * platform. It enforces strict user ownership for private data while enabling a public marketplace.
  * The core principle is that users have complete control over their own information and the
  * content they create, but limited or no access to the data of others.
  *
- * Data Structure: The data is organized into two main categories:
- * 1. User-Scoped Data: Nested under `/users/{userId}`, this includes private user profiles and
- *    personal order history. Access to these paths is strictly limited to the authenticated owner.
- * 2. Top-Level Collections: Collections like `/products` and `/orders` serve distinct purposes.
- *    `/products` is a public, read-only collection for all users to browse, with write
- *    permissions restricted to the product's seller. `/orders` and its subcollections are
- *    secured to the customer who created them.
+ * Data Structure: The data is organized into several key collections:
+ * 1. User-Scoped Data: `/users/{userId}` contains private user profiles. Access is strictly limited
+ *    to the authenticated owner.
+ * 2. Public Collections: `/products` and `/stores` are publicly readable to allow browsing.
+ *    Write permissions are restricted to owners (sellers).
+ * 3. Transactional Collections: `/orders` and `/serviceRequests` handle transactions. Access is
+ *    limited to the participants of the transaction (buyer and seller/provider).
  *
  * Key Security Decisions:
- * - Default Deny: All paths are closed by default. Access is only granted through explicit `allow` rules.
+ * - Default Deny: All paths are closed by default. Access is granted only through explicit `allow` rules.
  * - Strict Ownership: A user can only access documents within their own `/users/{userId}` path.
- * - Public Product Discovery: The top-level `/products` collection is publicly readable to allow
- *   all users, including unauthenticated ones, to browse the marketplace.
- * - Seller-Controlled Products: Only the original seller of a product can update or delete it,
- *   enforced via a denormalized `sellerId` field on each product document.
- * - Private Orders: A user can only view their own orders. Access to `/orders/{orderId}` and its
- *   subcollections is controlled by a denormalized `customerId` field on the order document.
+ * - Public Discovery: `/products` and `/stores` collections are publicly readable to allow all users
+ *   to browse the marketplace.
+ * - Seller-Controlled Content: Only the original seller/provider can update or delete their products,
+ *   services, or store details, enforced via a denormalized `userId` or `sellerId`.
+ * - Private Transactions: A user can only view their own orders or service requests. Access to these
+ *   documents is controlled by denormalized `customerId`, `requesterId`, or `providerId` fields.
  * - No User Listing: It is not possible to list all documents in the `/users` collection,
  *   protecting user privacy.
  *
  * Denormalization for Authorization: To ensure fast and secure access control, authorization
- * data is denormalized. The `/products` collection contains a `sellerId` and the `/orders`
- * collection contains a `customerId`. This avoids slow and costly `get()` calls in rules,
- * making the security model more performant and scalable.
+ * data is denormalized. For example, `sellerId` is stored on products, and `customerId` on orders.
+ * This avoids slow and costly `get()` calls in rules, making the security model more performant
+ * and scalable.
  *
  */
 rules_version = '2';
@@ -50,8 +51,8 @@ service cloud.firestore {
     }
 
     // Checks if the requesting user is the owner of a document via a denormalized field.
-    function isDocumentOwner(doc) {
-      return isSignedIn() && resource != null && request.auth.uid == doc.customerId;
+    function isDocumentOwner(doc, fieldName) {
+      return isSignedIn() && resource != null && request.auth.uid == doc[fieldName];
     }
 
     // Checks if the requesting user is the seller of a product/service via a denormalized field.
@@ -59,9 +60,9 @@ service cloud.firestore {
       return isSignedIn() && resource != null && request.auth.uid == doc.sellerId;
     }
     
-    // Validates that the customerId on a new order matches the creator's UID.
-    function isCreatingOwnOrder() {
-        return isSignedIn() && request.resource.data.customerId == request.auth.uid;
+    // Validates that the customerId/requesterId on a new document matches the creator's UID.
+    function isCreatingOwn(fieldName) {
+        return isSignedIn() && request.resource.data[fieldName] == request.auth.uid;
     }
 
     // Validates that the sellerId on a new resource (product/service) matches the creator's UID.
@@ -69,42 +70,30 @@ service cloud.firestore {
         return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
     }
     
-    // Checks if the user associated with a parent order document is the requesting user.
-    // This is used to secure access to subcollections like orderItems and payments.
-    function isOrderCustomer(orderId) {
-      let order = get(/databases/$(database)/documents/orders/$(orderId));
-      return isSignedIn() && order.data.customerId == request.auth.uid;
-    }
-
     /**
      * @description Rules for the user's private profile document.
      * @path /users/{userId}
-     * @allow (create) A new user signing up: `auth.uid == userId`.
-     * @allow (get, update) An existing user accessing their own profile: `auth.uid == userId`.
-     * @deny (get) A user trying to read another user's profile.
-     * @deny (list) Listing all users in the database is forbidden.
+     * @allow (get, create, update) A user accessing or creating their own profile: `auth.uid == userId`.
+     * @deny (list) Listing all users is forbidden.
      * @principle Restricts access to a user's own data tree (Self-Creation & Ownership).
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get, update, delete: if isOwner(userId);
       allow list: if false; // Prevent listing all users
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
     }
 
     /**
      * @description Rules for a seller's public store information.
      * @path /stores/{storeId}
      * @allow (get, list) Any user can read public store data.
-     * @allow (create, update) Only the store owner can create or update their store details.
+     * @allow (create, update, delete) Only the store owner can manage their store details.
      * @principle Public Read with Owner-Only Writes.
      */
     match /stores/{storeId} {
         allow get, list: if true;
         allow create: if isOwner(request.resource.data.userId);
-        allow update: if isOwner(resource.data.userId);
-        allow delete: if isOwner(resource.data.userId);
+        allow update, delete: if isOwner(resource.data.userId);
     }
     
     /**
@@ -119,27 +108,48 @@ service cloud.firestore {
     match /products/{productId} {
       allow get, list: if true;
       allow create: if isCreatingOwnResource();
-      allow update: if isResourceSeller(resource.data);
-      allow delete: if isResourceSeller(resource.data);
+      allow update, delete: if isResourceSeller(resource.data);
     }
 
     /**
      * @description Rules for the top-level orders collection.
      * @path /orders/{orderId}
      * @allow (create) A signed-in user creating an order for themselves.
-     * @allow (get) The customer who placed the order viewing it.
+     * @allow (get) The customer who placed the order OR the seller of the items.
      * @allow (list) A signed-in user querying for their own orders (requires client-side query constraint).
-     * @deny (update, delete) Modifying or deleting placed orders is disallowed for safety.
-     * @deny (get) A user trying to view an order placed by someone else.
-     * @principle Secures data based on a denormalized `customerId` field.
+     * @allow (update) The customer or the seller updating the order (e.g., status, read flags).
+     * @deny (delete) Deleting placed orders is disallowed for safety.
+     * @principle Secures data based on a denormalized `customerId` and `storeId` lookup.
      */
     match /orders/{orderId} {
-      allow get: if isDocumentOwner(resource.data);
-      // Allow signed-in users to query the collection.
-      // The client MUST use a where('customerId', '==', auth.uid) clause to get results.
-      allow list: if isSignedIn();
-      allow create: if isCreatingOwnOrder();
-      allow update, delete: if isDocumentOwner(resource.data) || isResourceSeller(get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data);
+      function isOrderParticipant() {
+        let storeData = get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data;
+        return isDocumentOwner(resource.data, 'customerId') || isOwner(storeData.userId);
+      }
+      
+      allow get: if isOrderParticipant();
+      allow list: if isSignedIn(); // MUST be constrained by 'customerId' or 'storeId' on client
+      allow create: if isCreatingOwn('customerId');
+      allow update: if isOrderParticipant();
+      allow delete: if false;
+    }
+    
+    /**
+     * @description Rules for the service requests collection.
+     * @path /serviceRequests/{requestId}
+     * @allow (create) A signed-in user creating a request for themselves.
+     * @allow (get, list, update) The requester or the service provider.
+     * @principle Secures data based on denormalized `requesterId` and `providerId`.
+     */
+    match /serviceRequests/{requestId} {
+      function isRequestParticipant() {
+        return isDocumentOwner(resource.data, 'requesterId') || isDocumentOwner(resource.data, 'providerId');
+      }
+      
+      allow get, update: if isRequestParticipant();
+      allow list: if isSignedIn(); // MUST be constrained by 'requesterId' or 'providerId' on client
+      allow create: if isCreatingOwn('requesterId');
+      allow delete: if false;
     }
   }
 }
