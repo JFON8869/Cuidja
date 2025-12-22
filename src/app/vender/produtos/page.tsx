@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2 } from 'lucide-react';
 import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +40,7 @@ interface Product extends WithId<any> {
 
 export default function MyProductsPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -63,6 +65,7 @@ export default function MyProductsPage() {
             title: 'Produto excluído!',
             description: `O produto "${productName}" foi removido.`,
         })
+        router.push('/vender');
     } catch(error) {
         console.error("Error deleting product: ", error);
         toast({

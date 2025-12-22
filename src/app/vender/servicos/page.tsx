@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -6,6 +5,7 @@ import Image from 'next/image';
 import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2 } from 'lucide-react';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +40,7 @@ interface Service extends WithId<any> {
 
 export default function MyServicesPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -64,6 +65,7 @@ export default function MyServicesPage() {
             title: 'Serviço excluído!',
             description: `O serviço "${serviceName}" foi removido.`,
         })
+        router.push('/vender');
     } catch(error) {
         console.error("Error deleting service: ", error);
         toast({
