@@ -4,11 +4,11 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Briefcase } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useProductContext } from '@/context/ProductContext';
-import { mockStores, mockServices } from '@/lib/data';
+import { mockStores, mockServices, Service } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,7 @@ export default function StorePage() {
 
   const store = mockStores.find((s) => s.id === id);
   const storeProducts = products.filter((product) => product.storeId === id);
+  // This should be fetched from Firestore in a real app
   const storeServices = mockServices.filter((service) => service.providerId === id);
 
   if (!store) {
@@ -39,6 +40,24 @@ export default function StorePage() {
   }
 
   const isServiceStore = store.category === 'Serviços';
+
+  const getServiceButton = (service: Service) => {
+    const hasFee = service.visitFee && service.visitFee > 0;
+    const feeString = hasFee ? ` por ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.visitFee!)}` : '';
+    const buttonText = hasFee ? `Contratar Visita${feeString}` : 'Entrar em Contato';
+    const buttonIcon = hasFee ? <Briefcase className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />;
+    
+    const href = `/checkout-servico?serviceId=${service.id}`;
+
+    return (
+      <Button asChild className="w-full">
+        <Link href={href}>
+          {buttonIcon}
+          {buttonText}
+        </Link>
+      </Button>
+    );
+  };
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -58,21 +77,23 @@ export default function StorePage() {
       <main className="flex-1 overflow-y-auto p-4">
         {isServiceStore ? (
              <div className="space-y-4">
-                <p className="text-center text-muted-foreground">Serviços oferecidos por {store.name}. Entre em contato para solicitar um orçamento.</p>
+                <p className="text-center text-muted-foreground">Serviços oferecidos por {store.name}.</p>
                 {storeServices.map((service) => (
                     <Card key={service.id} className="overflow-hidden">
                         <Image src={service.images[0].imageUrl} alt={service.name} width={400} height={200} className="w-full h-32 object-cover" />
                         <CardHeader>
                             <CardTitle>{service.name}</CardTitle>
+                            {service.visitFee && service.visitFee > 0 && (
+                                <CardDescription className="text-lg font-bold text-primary pt-1">
+                                    Taxa de visita: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.visitFee)}
+                                </CardDescription>
+                            )}
                         </CardHeader>
                         <CardContent>
                             <CardDescription>{service.description}</CardDescription>
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full">
-                                <MessageSquare className="mr-2 h-4 w-4" />
-                                Solicitar Orçamento
-                            </Button>
+                           {getServiceButton(service)}
                         </CardFooter>
                     </Card>
                 ))}
@@ -95,4 +116,3 @@ export default function StorePage() {
     </div>
   );
 }
-

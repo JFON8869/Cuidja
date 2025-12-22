@@ -152,7 +152,8 @@
         "providerId": { "type": "string" },
         "name": { "type": "string" },
         "description": { "type": "string" },
-        "category": { "enum": ["Serviços"] }
+        "category": { "enum": ["Serviços"] },
+        "visitFee": { "type": "number", "description": "Optional fee for technical visit or initial contact." }
       },
       "required": ["id", "providerId", "name", "description", "category"]
     },
@@ -194,6 +195,10 @@
         "customerId": {
           "type": "string",
           "description": "Reference to User (Customer). (Relationship: User 1:N Order)"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to a Service, if the order is for a service."
         },
         "orderDate": {
           "type": "string",

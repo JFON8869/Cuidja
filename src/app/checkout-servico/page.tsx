@@ -1,0 +1,308 @@
+
+'use client';
+
+import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { ArrowLeft, CreditCard, Landmark, MessageSquare, Briefcase } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
+import React from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Card, CardContent } from '@/components/ui/card';
+import { useFirebase } from '@/firebase';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Service, mockServices } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const serviceCheckoutSchema = z.object({
+  name: z.string().min(3, 'Nome é obrigatório.'),
+  paymentMethod: z.enum(['card', 'pix'], {
+    required_error: 'Selecione um método de pagamento.',
+  }),
+  message: z.string().optional(),
+});
+
+
+export default function ServiceCheckoutPage() {
+  const searchParams = useSearchParams();
+  const serviceId = searchParams.get('serviceId');
+  const { toast } = useToast();
+  const router = useRouter();
+  const { firestore, user, isUserLoading } = useFirebase();
+  const [service, setService] = React.useState<Service | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchService() {
+        if (!firestore || !serviceId) {
+            setIsLoading(false);
+            return;
+        };
+        // In a real app, fetch from Firestore. Using mock data here for simplicity.
+        const foundService = mockServices.find(s => s.id === serviceId);
+        if (foundService) {
+            setService(foundService);
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Serviço não encontrado',
+            });
+            router.push('/categorias/servicos');
+        }
+        setIsLoading(false);
+    }
+    fetchService();
+  }, [firestore, serviceId, router, toast])
+
+
+  const form = useForm<z.infer<typeof serviceCheckoutSchema>>({
+    resolver: zodResolver(serviceCheckoutSchema),
+    defaultValues: {
+      name: user?.displayName || '',
+      message: '',
+    },
+  });
+
+  React.useEffect(() => {
+    if (user?.displayName) {
+        form.setValue('name', user.displayName);
+    }
+  }, [user, form]);
+  
+  async function onSubmit(values: z.infer<typeof serviceCheckoutSchema>) {
+    if (!firestore || !user || !service) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro de autenticação ou serviço',
+            description: 'Você precisa estar logado e o serviço deve ser válido.',
+        });
+        if (!user) router.push('/login');
+        return;
+    }
+    
+    try {
+        const ordersCollection = collection(firestore, 'orders');
+        
+        const initialMessage = values.message ? [{
+            senderId: user.uid,
+            text: values.message,
+            timestamp: new Date().toISOString(),
+            isRead: false,
+        }] : [];
+
+        const orderData: any = {
+            userId: user.uid,
+            storeId: service.providerId,
+            serviceId: service.id,
+            totalAmount: service.visitFee || 0,
+            status: 'Pendente',
+            orderDate: new Date().toISOString(),
+            paymentMethod: values.paymentMethod,
+            category: 'Serviços',
+            isUrgent: false, // Services don't use the urgent flag for now
+            messages: initialMessage,
+            lastMessageTimestamp: initialMessage.length > 0 ? new Date().toISOString() : null,
+            buyerHasUnreadMessages: false,
+            sellerHasUnreadMessages: initialMessage.length > 0,
+        }
+        
+        const docRef = await addDoc(ordersCollection, orderData);
+
+        toast({
+            title: 'Solicitação Enviada!',
+            description: 'Seu pedido de serviço foi enviado. O prestador entrará em contato.',
+        });
+        
+        router.push(`/pedidos/${docRef.id}`);
+    } catch(error) {
+        console.error("Error creating service order: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Uh oh! Algo deu errado.',
+            description: 'Não foi possível solicitar o serviço. Tente novamente.',
+        });
+    }
+  }
+  
+  if (isLoading || isUserLoading) {
+    return (
+        <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+            <header className="flex items-center border-b p-4">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="mx-auto h-6 w-48" />
+                <div className="w-10"></div>
+            </header>
+            <main className="flex-1 space-y-6 p-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-40 w-full" />
+            </main>
+        </div>
+    )
+  }
+
+  if (!service) {
+    return (
+        <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
+            <h1 className="text-2xl font-bold mb-4">Serviço não encontrado</h1>
+             <Button asChild>
+              <Link href="/categorias/servicos">Voltar</Link>
+            </Button>
+        </div>
+    )
+  }
+
+  const hasFee = service.visitFee && service.visitFee > 0;
+
+  return (
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+      <header className="flex items-center border-b p-4">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft />
+        </Button>
+        <h1 className="mx-auto font-headline text-xl">Solicitar Serviço</h1>
+        <div className="w-10"></div>
+      </header>
+      <main className="flex-1 overflow-y-auto p-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <section>
+              <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
+                <Briefcase className="h-5 w-5" />
+                Resumo da Solicitação
+              </h2>
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="line-clamp-1 flex-1 pr-4 font-semibold">{service.name}</span>
+                    </div>
+                     <div className="flex justify-between items-center font-bold text-lg">
+                        <span>{hasFee ? 'Taxa de Visita/Contato' : 'Custo do Contato'}</span>
+                        <span>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.visitFee || 0)}
+                        </span>
+                     </div>
+                </CardContent>
+              </Card>
+            </section>
+            
+            <Separator />
+            
+             <section>
+              <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
+                <MessageSquare className="h-5 w-5" />
+                Seus Dados e Mensagem
+              </h2>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Seu Nome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Seu nome" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Mensagem Inicial (Opcional)</FormLabel>
+                        <FormControl>
+                        <Textarea
+                            placeholder="Descreva brevemente o que você precisa. Ex: 'Gostaria de um orçamento para um armário de cozinha'."
+                            {...field}
+                        />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
+            </section>
+
+            {hasFee && (
+                <>
+                <Separator />
+                <section>
+                    <h2 className="mb-3 font-headline text-lg">Pagamento da Taxa</h2>
+                    <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                            <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="grid grid-cols-2 gap-4"
+                            >
+                            <FormItem>
+                                <FormControl>
+                                <RadioGroupItem value="card" id="card" className="sr-only" />
+                                </FormControl>
+                                <Label htmlFor="card" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                                    <CreditCard className="mb-3 h-6 w-6" />
+                                    Cartão
+                                </Label>
+                            </FormItem>
+                            <FormItem>
+                                <FormControl>
+                                <RadioGroupItem
+                                    value="pix"
+                                    id="pix"
+                                    className="sr-only"
+                                />
+                                </FormControl>
+                                <Label htmlFor="pix" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                                    <Landmark className="mb-3 h-6 w-6" />
+                                    PIX
+                                </Label>
+                            </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage className="pt-2" />
+                        </FormItem>
+                    )}
+                    />
+                </section>
+                </>
+            )}
+          </form>
+        </Form>
+      </main>
+      <footer className="border-t bg-card p-4">
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          onClick={form.handleSubmit(onSubmit)}
+          disabled={form.formState.isSubmitting || isLoading}
+        >
+          {form.formState.isSubmitting ? 'Enviando...' : hasFee ? 'Pagar e Solicitar' : 'Enviar Solicitação'}
+        </Button>
+      </footer>
+    </div>
+  );
+}

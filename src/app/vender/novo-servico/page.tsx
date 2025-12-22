@@ -37,6 +37,7 @@ const serviceSchema = z.object({
     .array(z.any())
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
+  visitFee: z.coerce.number().min(0, 'A taxa não pode ser negativa.').optional(),
 });
 
 export default function NewServicePage() {
@@ -81,6 +82,7 @@ export default function NewServicePage() {
       name: '',
       description: '',
       images: [],
+      visitFee: 0,
     },
   });
 
@@ -141,6 +143,7 @@ export default function NewServicePage() {
         providerId: storeId,
         sellerId: user.uid, // Denormalize sellerId for security rules
         category: 'Serviços',
+        visitFee: values.visitFee || 0,
         createdAt: new Date().toISOString(),
       });
 
@@ -277,6 +280,28 @@ export default function NewServicePage() {
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="visitFee"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Taxa de Visita/Contato (R$)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 50.00"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Opcional. Deixe 0 ou em branco se o contato for gratuito.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

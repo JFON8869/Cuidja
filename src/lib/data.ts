@@ -47,9 +47,10 @@ export interface Service {
     id: string;
     name: string;
     description: string;
-    providerId: string;
+    providerId: string; // This is the same as storeId
     category: 'Serviços';
     images: ImagePlaceholder[];
+    visitFee?: number; // Optional fee for technical visit or contact
 }
 
 export interface CartItem extends Product {
@@ -300,7 +301,8 @@ export const mockServices: Service[] = [
         description: 'Manutenção de jardins, poda de árvores, controle de pragas e plantio. Deixe seu jardim mais bonito com nosso serviço especializado.',
         providerId: 'joaojardineiro',
         category: 'Serviços',
-        images: [findImage('gardening-service')]
+        images: [findImage('gardening-service')],
+        visitFee: 50.00
     },
     {
         id: 'serv-reparos',
@@ -308,6 +310,16 @@ export const mockServices: Service[] = [
         description: 'Serviços de "Marido de Aluguel" para instalações elétricas, hidráulicas, montagem de móveis e pequenos reparos domésticos.',
         providerId: 'maridodefaztudo',
         category: 'Serviços',
-        images: [findImage('tools-for-hire')]
+        images: [findImage('tools-for-hire')],
+        visitFee: 70.00
+    },
+     {
+        id: 'serv-reparos-sem-taxa',
+        name: 'Orçamento de Marcenaria',
+        description: 'Criação de móveis planejados e projetos em madeira. Entre em contato para um orçamento sem compromisso.',
+        providerId: 'maridodefaztudo',
+        category: 'Serviços',
+        images: [findImage('woodworking')],
+        visitFee: 0 // Free contact
     }
 ];
