@@ -162,7 +162,7 @@ export const mockProducts: Product[] = [
     id: '2',
     name: 'Pão Artesanal de Fermentação Natural',
     description: 'Pão de fermentação natural, com casca crocante e miolo macio. Feito com muito carinho.',
-    price: 15.0,
+    price: 22.0,
     storeId: 'paodaterra',
     images: [findImage('bread')],
     category: 'Faça-Feira',
@@ -171,7 +171,7 @@ export const mockProducts: Product[] = [
     id: '3',
     name: 'Mel Silvestre 500g',
     description: 'Mel puro e delicioso, produzido por abelhas que se alimentam de flores silvestres da nossa região.',
-    price: 30.0,
+    price: 35.0,
     storeId: 'apiariosol',
     images: [findImage('honey')],
     category: 'Faça-Feira',
@@ -398,3 +398,5 @@ export const mockServices: Service[] = [
         visitFee: 40 // "Taxa" para aula experimental
     }
 ];
+
+    
