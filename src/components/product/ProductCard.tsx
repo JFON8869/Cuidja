@@ -17,7 +17,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   return (
-    <Link href="#" className="group">
+    <Link href={`/produtos/${product.id}`} className="group">
       <Card className="overflow-hidden h-full flex flex-col">
         <CardHeader className="p-0">
           <div className="aspect-w-4 aspect-h-3">

@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Edit, MoreVertical, Trash } from 'lucide-react';
+import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { mockProducts } from '@/lib/data';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +11,24 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
+import { useProductContext } from '@/context/ProductContext';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MyProductsPage() {
-  const myProducts = mockProducts.slice(0, 4); // Mock data for seller's products
+  const { products, removeProduct } = useProductContext();
+  const { toast } = useToast();
+  
+  // Assuming 'Meu Negócio' is the current seller
+  const myProducts = products.filter(p => p.seller === 'Meu Negócio');
+
+  const handleDelete = (productId: string, productName: string) => {
+    removeProduct(productId);
+    toast({
+        variant: "destructive",
+        title: 'Produto excluído!',
+        description: `O produto "${productName}" foi removido.`,
+    })
+  }
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-background shadow-2xl">
@@ -25,7 +39,11 @@ export default function MyProductsPage() {
           </Link>
         </Button>
         <h1 className="mx-auto font-headline text-xl">Meus Produtos</h1>
-        <div className="w-10"></div>
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/vender/novo-produto">
+            <PlusCircle />
+          </Link>
+        </Button>
       </header>
       <main className="flex-1 space-y-4 p-4">
         {myProducts.length > 0 ? (
@@ -60,7 +78,10 @@ export default function MyProductsPage() {
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem 
+                        className="text-destructive" 
+                        onClick={() => handleDelete(product.id, product.name)}
+                    >
                       <Trash className="mr-2 h-4 w-4" />
                       Excluir
                     </DropdownMenuItem>
@@ -70,11 +91,17 @@ export default function MyProductsPage() {
             </Card>
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center text-center">
+          <div className="flex h-full flex-col items-center justify-center text-center p-8">
             <h2 className="text-2xl font-bold">Nenhum produto anunciado</h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Anuncie seu primeiro produto para vê-lo aqui.
             </p>
+            <Button asChild>
+                <Link href="/vender/novo-produto">
+                    <PlusCircle className="mr-2" />
+                    Anunciar produto
+                </Link>
+            </Button>
           </div>
         )}
       </main>

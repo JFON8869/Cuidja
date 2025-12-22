@@ -18,6 +18,7 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
+import { useProductContext } from '@/context/ProductContext';
 
 const salesData = [
   { name: 'Jan', sales: 65 },
@@ -29,6 +30,9 @@ const salesData = [
 ];
 
 export default function SellPage() {
+  const { products } = useProductContext();
+  const myProductsCount = products.filter(p => p.seller === 'Meu Negócio').length;
+
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-background shadow-2xl">
       <header className="flex items-center border-b p-4">
@@ -57,7 +61,7 @@ export default function SellPage() {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
+                <div className="text-2xl font-bold">{myProductsCount}</div>
                 <p className="text-xs text-muted-foreground">Produtos ativos</p>
               </CardContent>
             </Card>

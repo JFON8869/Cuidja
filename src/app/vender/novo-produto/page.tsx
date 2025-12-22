@@ -7,7 +7,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Upload, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Image as ImageIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +44,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { mockCategories } from '@/lib/data';
+import { useProductContext } from '@/context/ProductContext';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -53,6 +57,7 @@ const productSchema = z.object({
   availability: z.enum(['immediate', 'on_demand', 'scheduled']),
   preparationTime: z.string().optional(),
   availableFrom: z.date().optional(),
+  image: z.any().refine(file => file, 'A imagem do produto é obrigatória.'),
 }).refine(data => {
     if (data.availability === 'on_demand' && !data.preparationTime) {
         return false;
@@ -73,6 +78,11 @@ const productSchema = z.object({
 
 export default function NewProductPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { addProduct } = useProductContext();
+  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -86,13 +96,42 @@ export default function NewProductPage() {
   });
 
   const availability = form.watch('availability');
+  
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      form.setValue('image', file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   function onSubmit(values: z.infer<typeof productSchema>) {
-    console.log(values);
+    const newProduct = {
+        id: new Date().getTime().toString(),
+        name: values.name,
+        price: values.price,
+        seller: 'Meu Negócio', // Mock seller
+        imageId: 'custom',
+        description: values.description,
+        image: {
+            id: 'custom',
+            description: values.name,
+            imageUrl: imagePreview!, // We know this exists if form is valid
+            imageHint: values.category.toLowerCase(),
+        }
+    };
+    addProduct(newProduct);
+    
     toast({
       title: 'Produto anunciado!',
       description: `O produto "${values.name}" foi cadastrado com sucesso.`,
     });
+
+    router.push('/vender/produtos');
   }
 
   return (
@@ -109,15 +148,38 @@ export default function NewProductPage() {
       <main className="flex-1 overflow-y-auto p-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-2">
-              <Label>Fotos do Produto</Label>
-              <div className="flex h-32 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted">
-                <div className="text-center">
-                  <Upload className="mx-auto h-8 w-8" />
-                  <p className="mt-2 text-sm">Arraste ou clique para enviar</p>
-                </div>
-              </div>
-            </div>
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fotos do Produto</FormLabel>
+                   <FormControl>
+                    <div 
+                      className="flex h-32 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
+                      {imagePreview ? (
+                        <Image src={imagePreview} alt="Prévia do produto" width={128} height={128} className="h-full w-auto object-contain" />
+                      ) : (
+                        <div className="text-center">
+                          <Upload className="mx-auto h-8 w-8" />
+                          <p className="mt-2 text-sm">Arraste ou clique para enviar</p>
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

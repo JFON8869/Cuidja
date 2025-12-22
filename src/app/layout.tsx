@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import BottomNav from '@/components/layout/BottomNav';
+import { AppProviders } from '@/context/AppProviders';
 
 export const metadata: Metadata = {
   title: 'Mercado Local Cuidja',
@@ -21,11 +22,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Belleza&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <div className="pb-16">
-          {children}
-        </div>
-        <BottomNav />
-        <Toaster />
+        <AppProviders>
+          <div className="pb-16">
+            {children}
+          </div>
+          <BottomNav />
+          <Toaster />
+        </AppProviders>
       </body>
     </html>
   );
