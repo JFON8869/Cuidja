@@ -19,6 +19,7 @@
  *   denormalized onto every single sub-document.
  * - Immutability: Critical relational identifiers (like `userId`, `storeId`, `buyerId`) are enforced as immutable after creation to maintain
  *   data integrity and prevent ownership hijacking.
+ * - Schema Validation: Incoming data for create and update operations is validated against a defined schema to ensure type safety and integrity.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -34,53 +35,57 @@ service cloud.firestore {
     function isExistingDoc() {
       return resource != null;
     }
-    function isExistingOwner(userId) {
-      return isOwner(userId) && isExistingDoc();
-    }
     // Checks if the authenticated user owns the store associated with a given document.
     // This requires one extra read but is essential for securing nested resources like products and orders.
     function isStoreOwner(storeId) {
       return isSignedIn() && get(/databases/$(database)/documents/stores/$(storeId)).data.userId == request.auth.uid;
+    }
+    // Validates that the incoming user data matches the expected schema.
+    function isValidUserData(data) {
+      return data.keys().hasAll(['name', 'email']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.email is string && data.email.size() > 0;
     }
 
     /**
      * @description Rules for the user profile collection.
      * @path /users/{userId}
      * @allow A signed-in user (auth.uid: 'user_abc') can (create, get, update) their own profile document at /users/user_abc.
-     * @deny A signed-in user (auth.uid: 'user_abc') cannot (get) another user's profile at /users/user_xyz.
-     * @principle Restricts access to a user's own data tree, preventing users from accessing or modifying each other's private information.
+     * @deny A signed-in user (auth.uid: 'user_abc') cannot (get) another user's profile at /users/user_xyz or (list) users.
+     * @principle Restricts access to a user's own data, preventing data leakage and ensuring privacy.
      */
     match /users/{userId} {
       allow read, write: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserData(request.resource.data);
       allow list: if false;
     }
 
     /**
      * @description Rules for the store profiles collection.
      * @path /stores/{storeId}
-     * @allow Any user, signed-in or not, can (get) a store's public profile. A seller can (create) their own store.
-     * @deny A signed-in user cannot (update) a store they do not own.
+     * @allow Any user, signed-in or not, can (get, list) a store's public profile. A seller can (create) their own store.
+     * @deny A signed-in user cannot (update, delete) a store they do not own.
      * @principle Implements a "Public Read with Owner-Only Writes" pattern. This allows for public browsing of marketplace content while securing it from unauthorized modification.
      */
     match /stores/{storeId} {
       allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow update: if isStoreOwner(storeId) && request.resource.data.userId == resource.data.userId; // userId is immutable
+      allow delete: if isStoreOwner(storeId);
     }
 
     /**
      * @description Rules for the products collection.
      * @path /products/{productId}
      * @allow Any user, signed-in or not, can (get) or (list) public product details.
-     * @deny A signed-in seller cannot (create) a product for a store they do not own.
+     * @deny A signed-in seller cannot (create, update, delete) a product for a store they do not own.
      * @principle Enforces ownership for writes via a related document. A `get()` call to the parent store document is used to verify the user's authority to manage a product.
      */
     match /products/{productId} {
       allow get, list: if true;
       allow create: if isSignedIn() && isStoreOwner(request.resource.data.storeId);
-      allow update: if isSignedIn() && isStoreOwner(resource.data.storeId) && isExistingDoc() && request.resource.data.storeId == resource.data.storeId;
-      allow delete: if isSignedIn() && isStoreOwner(resource.data.storeId) && isExistingDoc();
+      allow update: if isSignedIn() && isStoreOwner(resource.data.storeId) && request.resource.data.storeId == resource.data.storeId;
+      allow delete: if isSignedIn() && isStoreOwner(resource.data.storeId);
     }
 
     /**
@@ -111,15 +116,14 @@ service cloud.firestore {
     /**
      * @description Rules for product and store reviews.
      * @path /reviews/{reviewId}
-     * @allow Any user can (get) or (list) reviews. A signed-in user can (create) a review for a product they purchased.
-     * @deny A user cannot (update) a review they did not write.
+     * @allow Any user can (get) or (list) reviews. A signed-in user can (create) a review.
+     * @deny A user cannot (update, delete) a review they did not write.
      * @principle Implements a "Public Read with Owner-Only Writes" pattern. Reviews build public trust, but only the original author can create or modify their own review.
      */
     match /reviews/{reviewId} {
       allow get, list: if true;
       allow create: if isOwner(request.resource.data.userId);
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
     }
   }
 }

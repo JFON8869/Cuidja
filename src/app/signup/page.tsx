@@ -7,9 +7,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
   Form,
@@ -26,10 +29,13 @@ const signupSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
   email: z.string().email('E-mail inválido.'),
   password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres.'),
+  terms: z.boolean().default(false).refine(val => val === true, {
+    message: 'Você deve aceitar os termos e a política de privacidade.'
+  })
 });
 
 export default function SignupPage() {
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -40,17 +46,26 @@ export default function SignupPage() {
       name: '',
       email: '',
       password: '',
+      terms: false,
     },
   });
 
   async function onSubmit(values: z.infer<typeof signupSchema>) {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setIsLoading(true);
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      await updateProfile(userCredential.user, {
+      const user = userCredential.user;
+
+      await updateProfile(user, {
         displayName: values.name,
+      });
+
+      // Create a user document in Firestore
+      await setDoc(doc(firestore, "users", user.uid), {
+        name: values.name,
+        email: values.email,
       });
 
       toast({
@@ -124,6 +139,32 @@ export default function SignupPage() {
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="terms"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                 <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Li e concordo com os termos e políticas de privacidade.
+                  </FormLabel>
+                   <p className="text-sm text-muted-foreground">
+                    Leia nossos{' '}
+                    <Link href="/termos/comprador" className="underline hover:text-primary">Termos de Uso</Link> e nossa{' '}
+                    <Link href="/termos/privacidade" className="underline hover:text-primary">Política de Privacidade</Link>.
+                  </p>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+
           <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
             {isLoading ? 'Criando conta...' : 'Criar Conta'}
           </Button>

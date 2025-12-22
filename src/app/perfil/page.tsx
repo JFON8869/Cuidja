@@ -13,13 +13,13 @@ import {
   FileText,
   Lightbulb,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
 
 const menuItems = [
   { href: '/notificacoes', icon: Bell, label: 'Notificações' },
@@ -30,6 +30,7 @@ const menuItems = [
 const aboutItems = [
     { href: '/termos/comprador', icon: FileText, label: 'Termos de Uso (Comprador)' },
     { href: '/termos/vendedor', icon: FileText, label: 'Termos de Uso (Vendedor)' },
+    { href: '/termos/privacidade', icon: Shield, label: 'Política de Privacidade' },
     { href: '/sugestoes', icon: Lightbulb, label: 'Sugestões' },
 ]
 
