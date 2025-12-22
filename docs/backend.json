@@ -45,10 +45,11 @@
     "Address": {
       "title": "Address",
       "type": "object",
-      "description": "Represents a user's saved address.",
+      "description": "Represents a user's saved address or a shipping address.",
       "properties": {
         "nickname": {
-          "type": "string"
+          "type": "string",
+          "description": "A nickname for a saved address (e.g., Casa, Trabalho)."
         },
         "zip": {
           "type": "string"
@@ -64,15 +65,17 @@
         },
         "city": {
           "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Recipient's name for a shipping address."
         }
       },
       "required": [
-        "nickname",
-        "zip",
         "street",
         "number",
-        "neighborhood",
-        "city"
+        "city",
+        "zip"
       ]
     },
     "Store": {

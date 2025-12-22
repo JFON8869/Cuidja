@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
+  phone: z.string().min(10, 'Telefone é obrigatório.'),
   address: z.string().min(5, 'Endereço é obrigatório.'),
   city: z.string().min(3, 'Cidade é obrigatória.'),
   zip: z.string().min(8, 'CEP é obrigatório.'),
@@ -88,7 +89,8 @@ export default function CheckoutPage() {
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      name: '',
+      name: user?.displayName || '',
+      phone: user?.phoneNumber || '',
       address: '',
       city: '',
       zip: '',
@@ -131,7 +133,7 @@ export default function CheckoutPage() {
         }] : [];
 
         const orderData: any = {
-            userId: user.uid,
+            customerId: user.uid,
             storeId: storeId,
             productIds: cart.map(item => item.id),
             totalAmount: total,
@@ -143,6 +145,7 @@ export default function CheckoutPage() {
                 city: values.city,
                 zip: values.zip,
             },
+            phone: values.phone,
             paymentMethod: values.paymentMethod,
             category: firstProductInCart?.category, // Store category for later checks
             isUrgent: values.isUrgent,
@@ -213,6 +216,19 @@ export default function CheckoutPage() {
                       <FormLabel>Nome Completo</FormLabel>
                       <FormControl>
                         <Input placeholder="Seu nome" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone para Contato</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(00) 90000-0000" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -400,3 +416,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    

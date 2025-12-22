@@ -1,12 +1,13 @@
+
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, User as UserIcon, Phone, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
@@ -25,17 +26,26 @@ interface Message {
   isRead: boolean;
 }
 
+interface Address {
+    name: string;
+    address: string;
+    city: string;
+    zip: string;
+}
+
 interface Order {
   id: string;
   orderDate: string;
   productIds: string[];
   status: string;
   totalAmount: number;
-  userId: string; // buyer ID
+  customerId: string; 
   storeId: string;
-  messages?: Message[]; // Messages are now optional
+  messages?: Message[];
   sellerHasUnreadMessages?: boolean;
   buyerHasUnreadMessages?: boolean;
+  shippingAddress?: Address;
+  phone?: string;
 }
 
 export default function OrderDetailPage() {
@@ -55,7 +65,6 @@ export default function OrderDetailPage() {
 
   const { data: order, isLoading, error } = useDoc<Order>(orderRef);
   
-  // The chat is only available for orders that have the `messages` field.
   const isChatEnabled = order?.messages !== undefined;
 
   const scrollToBottom = () => {
@@ -68,11 +77,10 @@ export default function OrderDetailPage() {
     }
   }, [order?.messages, isChatEnabled]);
 
-  // Mark messages as read
   useEffect(() => {
     if (!order || !user || !orderRef || !isChatEnabled) return;
 
-    const isBuyer = user.uid === order.userId;
+    const isBuyer = user.uid === order.customerId;
     const hasUnread = isBuyer
       ? order.buyerHasUnreadMessages
       : order.sellerHasUnreadMessages;
@@ -96,7 +104,7 @@ export default function OrderDetailPage() {
       isRead: false,
     };
 
-    const isBuyer = user.uid === order?.userId;
+    const isBuyer = user.uid === order?.customerId;
     const updatePayload = {
       messages: arrayUnion(message),
       lastMessageTimestamp: new Date().toISOString(),
@@ -138,16 +146,30 @@ export default function OrderDetailPage() {
     );
   }
   
-  if (!user || (user.uid !== order.userId && !order.storeId)) {
-     // TODO: This logic needs to be improved to check if the user is the store owner
-     // For now, only buyer can see the detail page
-      if (user?.uid !== order.userId) {
-        router.push('/login');
-        return null;
-      }
-  }
+  const isBuyer = user?.uid === order.customerId;
+  const [isSeller, setIsSeller] = useState(false);
 
-  const isBuyer = user?.uid === order.userId;
+  useEffect(() => {
+    const checkSeller = async () => {
+        if (user && firestore && order.storeId) {
+            const storeRef = doc(firestore, 'stores', order.storeId);
+            const storeSnap = await getDoc(storeRef);
+            if (storeSnap.exists() && storeSnap.data().userId === user.uid) {
+                setIsSeller(true);
+            }
+        }
+    };
+    if (!isUserLoading) {
+        checkSeller();
+    }
+  }, [user, firestore, order.storeId, isUserLoading]);
+
+
+  if (!isUserLoading && !isBuyer && !isSeller) {
+     router.push('/login');
+     return null;
+  }
+  
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -171,7 +193,7 @@ export default function OrderDetailPage() {
           <CardContent className="space-y-2 text-sm">
              <p><strong>Data:</strong> {format(new Date(order.orderDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
             <p><strong>Status:</strong> <span className="font-semibold text-accent">{order.status}</span></p>
-            <p><strong>Itens:</strong> {order.productIds.length}</p>
+            <p><strong>Itens:</strong> {order.productIds?.length || 'Serviço'}</p>
             <p><strong>Total:</strong> 
                 <span className="font-bold">
                     {' '}{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.totalAmount)}
@@ -179,6 +201,30 @@ export default function OrderDetailPage() {
             </p>
           </CardContent>
         </Card>
+        
+        {isSeller && order.shippingAddress && (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        Informações de Entrega
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm">
+                   <p className="flex items-center gap-2">
+                     <UserIcon className="h-4 w-4 text-muted-foreground" />
+                     <strong>{order.shippingAddress.name}</strong>
+                    </p>
+                    {order.phone && (
+                        <p className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            {order.phone}
+                        </p>
+                    )}
+                    <p className="pt-2">{order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.zip}</p>
+                </CardContent>
+            </Card>
+        )}
 
         {isChatEnabled && (
         <Card>
@@ -250,3 +296,5 @@ const OrderDetailSkeleton = () => (
       </footer>
     </div>
 )
+
+    
