@@ -35,7 +35,7 @@ export default function CartPage() {
         ) : (
           <div className="p-4 space-y-4">
             {cart.map((item) => (
-              <div key={item.id} className="flex items-center gap-4">
+              <div key={item.cartItemId} className="flex items-start gap-4">
                 <Image
                   src={item.images[0].imageUrl}
                   alt={item.name}
@@ -45,7 +45,14 @@ export default function CartPage() {
                 />
                 <div className="flex-1">
                   <h3 className="font-semibold line-clamp-1">{item.name}</h3>
-                  <p className="text-sm text-primary font-bold">
+                   {item.selectedAddons && item.selectedAddons.length > 0 && (
+                    <ul className="text-xs text-muted-foreground mt-1">
+                        {item.selectedAddons.map(addon => (
+                            <li key={addon.name}>+ {addon.name} ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addon.price)})</li>
+                        ))}
+                    </ul>
+                   )}
+                  <p className="text-sm text-primary font-bold mt-1">
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
@@ -55,7 +62,7 @@ export default function CartPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => removeFromCart(item.id)}
+                  onClick={() => removeFromCart(item.cartItemId!)}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="h-5 w-5" />

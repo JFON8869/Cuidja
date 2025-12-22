@@ -13,6 +13,19 @@ import {
   Wrench,
 } from 'lucide-react';
 
+export interface Addon {
+  name: string;
+  price: number;
+}
+
+export interface AddonGroup {
+  id: string;
+  title: string;
+  type: 'single' | 'multiple';
+  addons: Addon[];
+}
+
+
 export interface Product {
   id: string;
   name: string;
@@ -21,11 +34,17 @@ export interface Product {
   seller: string;
   images: ImagePlaceholder[];
   category: string;
+  addons?: AddonGroup[];
+}
+
+export interface CartItem extends Product {
+    cartItemId?: string;
+    selectedAddons?: Addon[];
 }
 
 export interface Category {
   id: string;
-  name: string;
+  name:string;
   slug: string;
   Icon: LucideIcon;
 }
@@ -167,8 +186,31 @@ export const mockProducts: Product[] = [
     description: 'A clássica pizza Margherita com molho de tomate fresco, mussarela de búfala e manjericão.',
     price: 55.0,
     seller: 'Pizza Bella',
-    images: [findImage('vegetables')], // placeholder
+    images: [findImage('pizza')],
     category: 'Restaurantes',
+    addons: [
+        {
+            id: 'borda',
+            title: 'Borda Recheada',
+            type: 'single',
+            addons: [
+                { name: 'Sem Borda', price: 0 },
+                { name: 'Catupiry', price: 8.00 },
+                { name: 'Cheddar', price: 8.00 },
+                { name: 'Cream Cheese', price: 10.00 }
+            ]
+        },
+        {
+            id: 'bebida',
+            title: 'Adicionar Bebida',
+            type: 'multiple',
+            addons: [
+                { name: 'Refrigerante 2L', price: 12.00 },
+                { name: 'Suco 1L', price: 10.00 },
+                { name: 'Água Mineral', price: 5.00 }
+            ]
+        }
+    ]
   },
   {
     id: '12',

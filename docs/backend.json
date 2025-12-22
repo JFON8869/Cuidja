@@ -78,6 +78,13 @@
         "location": {
           "type": "string",
           "description": "Location where the product is available."
+        },
+        "addons": {
+          "type": "array",
+          "description": "List of add-on groups for the product.",
+          "items": {
+            "$ref": "#/backend/entities/AddonGroup"
+          }
         }
       },
       "required": [
@@ -90,6 +97,31 @@
         "category",
         "location"
       ]
+    },
+    "AddonGroup": {
+      "title": "AddonGroup",
+      "type": "object",
+      "description": "A group of add-on options for a product.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "enum": ["single", "multiple"] },
+        "addons": {
+          "type": "array",
+          "items": { "$ref": "#/backend/entities/Addon" }
+        }
+      },
+      "required": ["id", "title", "type", "addons"]
+    },
+    "Addon": {
+      "title": "Addon",
+      "type": "object",
+      "description": "A single add-on option for a product.",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" }
+      },
+      "required": ["name", "price"]
     },
     "Order": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -152,6 +184,10 @@
         "price": {
           "type": "number",
           "description": "Price of the product at the time of the order."
+        },
+        "selectedAddons": {
+          "type": "array",
+          "items": { "$ref": "#/backend/entities/Addon" }
         }
       },
       "required": [
