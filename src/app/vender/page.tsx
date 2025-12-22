@@ -82,14 +82,25 @@ export default function SellPage() {
     );
   }, [firestore, user]);
 
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore || !store?.id) return null;
+    return query(
+      collection(firestore, 'orders'),
+      where('storeId', '==', store.id)
+    );
+  }, [firestore, store]);
+
   const { data: myProducts, isLoading: productsLoading } =
     useCollection(productsQuery);
   const { data: myServices, isLoading: servicesLoading } =
     useCollection(servicesQuery);
+  const { data: myOrders, isLoading: ordersLoading } =
+    useCollection(ordersQuery);
 
   const myProductsCount = myProducts?.length ?? 0;
   const myServicesCount = myServices?.length ?? 0;
-  
+  const myOrdersCount = myOrders?.length ?? 0;
+
   const isLoading = isStoreLoading || isUserLoading;
 
   if (isLoading) {
@@ -177,7 +188,7 @@ export default function SellPage() {
           </Link>
         </Button>
       </header>
-      <main className="flex-1 space-y-6 p-4">
+      <main className="flex-1 space-y-6 overflow-y-auto p-4">
         <div className="grid grid-cols-2 gap-4">
           <Button size="lg" className="w-full" asChild>
             <Link href={'/vender/novo-produto'}>
@@ -195,6 +206,26 @@ export default function SellPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
+           <Link href="/vender/pedidos">
+             <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Minhas Vendas
+                </CardTitle>
+                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {ordersLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    myOrdersCount
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Pedidos recebidos</p>
+              </CardContent>
+            </Card>
+          </Link>
           <Link href="/vender/produtos">
             <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -215,7 +246,9 @@ export default function SellPage() {
               </CardContent>
             </Card>
           </Link>
-          <Link href="/vender/servicos">
+        </div>
+        <div className="grid grid-cols-1">
+           <Link href="/vender/servicos">
             <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
