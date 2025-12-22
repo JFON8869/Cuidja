@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -10,9 +10,6 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult,
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -29,7 +26,6 @@ import {
 import { useFirebase } from '@/firebase';
 import { FirebaseError } from 'firebase/app';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Card,
   CardContent,
@@ -43,20 +39,6 @@ const loginSchema = z.object({
   password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres.'),
 });
 
-const phoneSchema = z.object({
-  phone: z.string().min(10, 'Número de telefone inválido.'),
-});
-
-const codeSchema = z.object({
-  code: z.string().min(6, 'O código deve ter 6 dígitos.'),
-});
-
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
-}
 
 export default function LoginPage() {
   const { auth } = useFirebase();
@@ -64,12 +46,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setGoogleLoading] = useState(false);
-  const [isPhoneLoading, setIsPhoneLoading] = useState(false);
 
-  // State for phone auth
-  const [phone, setPhone] = useState('');
-  const [confirmationResult, setConfirmationResult] =
-    useState<ConfirmationResult | null>(null);
 
   const emailForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -79,39 +56,6 @@ export default function LoginPage() {
     },
   });
 
-  const phoneForm = useForm<z.infer<typeof phoneSchema>>({
-    resolver: zodResolver(phoneSchema),
-    defaultValues: { phone: '' },
-  });
-
-  const codeForm = useForm<z.infer<typeof codeSchema>>({
-    resolver: zodResolver(codeSchema),
-    defaultValues: { code: '' },
-  });
-
-  const setupRecaptcha = () => {
-    if (!auth) return;
-    // Cleanup previous verifier if it exists
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-    }
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      auth,
-      'recaptcha-container',
-      {
-        size: 'invisible',
-        callback: () => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-      }
-    );
-  };
-
-  useEffect(() => {
-    if (auth && typeof window !== 'undefined') {
-      setupRecaptcha();
-    }
-  }, [auth]);
 
   async function onEmailSubmit(values: z.infer<typeof loginSchema>) {
     if (!auth) return;
@@ -166,77 +110,17 @@ export default function LoginPage() {
     }
   };
 
-  const onPhoneSubmit = async (values: z.infer<typeof phoneSchema>) => {
-    if (!auth || !window.recaptchaVerifier) return;
-    setIsPhoneLoading(true);
-    try {
-      const sanitizedPhone = values.phone.replace(/\D/g, '');
-      const formattedPhone = `+55${sanitizedPhone}`;
-      
-      const result = await signInWithPhoneNumber(
-        auth,
-        formattedPhone,
-        window.recaptchaVerifier
-      );
-      setConfirmationResult(result);
-      setPhone(formattedPhone);
-      toast({
-        title: 'Código enviado!',
-        description: `Enviamos um código para ${values.phone}`,
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao enviar código',
-        description:
-          'Não foi possível enviar o código. Verifique o número e tente novamente.',
-      });
-       // Reset reCAPTCHA on error
-       setupRecaptcha();
-    } finally {
-      setIsPhoneLoading(false);
-    }
-  };
-
-  const onCodeSubmit = async (values: z.infer<typeof codeSchema>) => {
-    if (!confirmationResult) return;
-    setIsLoading(true);
-    try {
-      await confirmationResult.confirm(values.code);
-      toast({
-        title: 'Login realizado com sucesso!',
-      });
-      router.push('/perfil');
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Código inválido',
-        description: 'O código inserido está incorreto.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col justify-center bg-transparent p-6 shadow-2xl">
-      <div id="recaptcha-container"></div>
       <div className="mb-8 text-center">
         <h1 className="font-headline text-4xl">Bem-vindo(a)</h1>
         <p className="text-muted-foreground">Faça login para continuar</p>
       </div>
 
-      <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="email">E-mail</TabsTrigger>
-          <TabsTrigger value="phone">Telefone</TabsTrigger>
-        </TabsList>
-        <TabsContent value="email">
-          <Card>
+       <Card>
             <CardHeader>
-              <CardTitle>Login com E-mail</CardTitle>
+              <CardTitle>Login</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <Button
@@ -304,82 +188,6 @@ export default function LoginPage() {
               </Form>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="phone">
-          <Card>
-            <CardHeader>
-              <CardTitle>Login com Telefone</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!confirmationResult ? (
-                <Form {...phoneForm}>
-                  <form
-                    onSubmit={phoneForm.handleSubmit(onPhoneSubmit)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      control={phoneForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Número de Telefone</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="+55 (XX) XXXXX-XXXX"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isPhoneLoading}
-                    >
-                      {isPhoneLoading ? 'Enviando...' : 'Enviar Código'}
-                    </Button>
-                  </form>
-                </Form>
-              ) : (
-                <Form {...codeForm}>
-                  <form
-                    onSubmit={codeForm.handleSubmit(onCodeSubmit)}
-                    className="space-y-4"
-                  >
-                     <p className="text-sm text-center text-muted-foreground">
-                        Enviamos um código para {phoneForm.getValues('phone')}.
-                    </p>
-                    <FormField
-                      control={codeForm.control}
-                      name="code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Código de Verificação</FormLabel>
-                          <FormControl>
-                            <Input placeholder="XXXXXX" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? 'Verificando...' : 'Verificar e Entrar'}
-                    </Button>
-                     <Button variant="link" size="sm" onClick={() => {
-                        setConfirmationResult(null);
-                        setupRecaptcha(); // Reset recaptcha for new number
-                     }} className="w-full">
-                        Usar outro número
-                    </Button>
-                  </form>
-                </Form>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Não tem uma conta?{' '}

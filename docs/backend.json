@@ -273,8 +273,7 @@
     "providers": [
       "password",
       "anonymous",
-      "google.com",
-      "phone"
+      "google.com"
     ]
   },
   "firestore": {
@@ -379,5 +378,3 @@
     "reasoning": "The Firestore data structure is designed to support a marketplace application connecting local producers, artisans, and service providers with consumers. It emphasizes authorization independence through denormalization, structural segregation for security, and consistent access modeling.  The structure prioritizes DBAC (Database-Based Access Control) using only `request.auth.uid` for authorization.  Authorization Independence is achieved primarily through denormalization of membership and ownership data into subcollections or related documents, avoiding `get()` calls in security rules. QAPs (Rules Are Not Filters) are supported by segregating data based on access requirements, preventing the need to filter data based on authorization rules. For collaborative access scenarios, the 'members' map pattern will be leveraged.\n\nSpecifically:\n\n*   **Users**: Stores user profiles and distinguishes between buyers and sellers.\n*   **Stores**: Stores store profiles, linked to seller users.\n*   **Products**: Stores product listings, linked to stores.\n*   **Orders**: Stores order information, linking buyers, sellers (via Store), and products.\n*   **Chats**: Stores chat conversations between buyers and sellers.\n*   **Reviews**: Stores product and seller reviews.\n\n**Authorization Independence:** The `members` map pattern in collaborative collections will include the `userId` and their role, removing the need to fetch parent document data. For example, within a store's products collection, the `storeId` is denormalized into each product document, enabling rules to validate product access without reading the store document.  Orders will contain both `userId` and `storeId`, to facilitate order access rules without needing to read user or store documents.\n\n**Structural Segregation:** User-specific data (e.g., user profiles, stores owned by a user) are placed under `/users/{userId}` or `/stores/{storeId}` to easily implement user-based access control. Publicly accessible data (if any in future evolutions) would be stored in separate collections with open read access.\n\n**QAPs Support:**  Because private data is segregated under user-specific paths (e.g., `/users/{userId}/orders`), listing operations only return data accessible to the authenticated user, avoiding filtering in rules.\n\n**Invariants:** Timestamps will be stored as server timestamps, ownership will be enforced through `userId` fields, and denormalized data will be kept consistent using Cloud Functions triggers."
   }
 }
-
-    
