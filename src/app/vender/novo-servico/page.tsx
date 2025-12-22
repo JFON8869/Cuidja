@@ -38,13 +38,11 @@ const serviceSchema = z.object({
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
   visitFee: z.coerce
-    .number()
-    .min(0, 'A taxa não pode ser negativa.')
-    .optional()
-    .refine((val) => !val || val === 0 || val >= 10, {
-      message:
-        'O valor deve ser R$ 0,00 (gratuito) ou no mínimo R$ 10,00.',
-    }),
+    .number({
+      required_error: 'A taxa de visita é obrigatória.',
+      invalid_type_error: 'A taxa de visita deve ser um número.',
+    })
+    .min(10, 'A taxa de visita mínima é de R$ 10,00.'),
 });
 
 export default function NewServicePage() {
@@ -89,7 +87,7 @@ export default function NewServicePage() {
       name: '',
       description: '',
       images: [],
-      visitFee: 0,
+      visitFee: 10,
     },
   });
 
@@ -150,7 +148,7 @@ export default function NewServicePage() {
         providerId: storeId,
         sellerId: user.uid, // Denormalize sellerId for security rules
         category: 'Serviços',
-        visitFee: values.visitFee || 0,
+        visitFee: values.visitFee,
         createdAt: new Date().toISOString(),
       });
 
@@ -307,7 +305,7 @@ export default function NewServicePage() {
                     />
                   </FormControl>
                   <FormDescription>
-                    Deixe R$ 0,00 para contato gratuito. Se houver taxa, o mínimo é R$ 10,00.
+                    O valor mínimo para a taxa de visita ou contato é de R$ 10,00.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
