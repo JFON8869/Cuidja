@@ -68,6 +68,16 @@ body {
   }
   body {
     @apply bg-muted text-foreground;
+    /* Use bg-muted to keep a fallback if the gradient fails */
+    background-color: hsl(var(--muted)); 
+  }
+  .gradient-background {
+    background: linear-gradient(180deg, #DDEBEE 0%, #FDD8A8 100%);
+    background-image: url('/logo-background.svg'), linear-gradient(180deg, #DDEBEE 0%, #FDD8A8 100%);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 80% auto;
+    opacity: 0.6;
   }
 }
 

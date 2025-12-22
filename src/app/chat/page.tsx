@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export default function ChatPage() {
   return (
-    <div className="relative bg-background max-w-sm mx-auto flex flex-col min-h-[100dvh] shadow-2xl">
+    <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] shadow-2xl">
        <header className="flex items-center p-4 border-b">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/">

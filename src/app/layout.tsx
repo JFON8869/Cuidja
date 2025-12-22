@@ -23,6 +23,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AppProviders>
+          <div className="gradient-background fixed inset-0 -z-10" />
           <div className="pb-16">
             {children}
           </div>
