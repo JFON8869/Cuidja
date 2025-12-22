@@ -58,7 +58,7 @@ export default function SellPage() {
         const storeDoc = querySnapshot.docs[0];
         setStore({ id: storeDoc.id, category: storeDoc.data().category });
       } else {
-        setStore(null); // Explicitly set to null if no store found
+        setStore(null);
       }
       setStoreLoading(false);
     }
@@ -106,7 +106,7 @@ export default function SellPage() {
         </header>
         <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
             <h2 className="text-2xl font-bold">Faça login para começar</h2>
-            <p className="text-muted-foreground mb-6">Você precisa estar logado para criar uma loja e vender seus produtos.</p>
+            <p className="text-muted-foreground mb-6">Você precisa estar logado para criar uma loja e vender.</p>
             <Button size="lg" asChild>
                 <Link href="/login">
                     Fazer Login
@@ -143,7 +143,8 @@ export default function SellPage() {
       </div>
     );
   }
-
+  
+  // A store exists, show the main dashboard
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
@@ -160,18 +161,31 @@ export default function SellPage() {
         </Button>
       </header>
       <main className="flex-1 space-y-6 p-4">
-        <Button size="lg" className="w-full" asChild>
-            <Link href={"/vender/novo-produto"}>
-                <PlusCircle className="mr-2" />
-                Anunciar Novo Produto
-            </Link>
-        </Button>
+        
+        <div className="grid grid-cols-1 gap-4">
+           <Button size="lg" className="w-full" asChild>
+                <Link href={"/vender/novo-produto"}>
+                    <PlusCircle className="mr-2" />
+                    Anunciar Novo Produto
+                </Link>
+            </Button>
+            
+            {store?.category === 'Serviços' && (
+                <Button size="lg" variant="outline" className="w-full" asChild>
+                    <Link href={"/vender/novo-servico"}>
+                        <Wrench className="mr-2" />
+                        Anunciar Novo Serviço
+                    </Link>
+                </Button>
+            )}
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Link href="/vender/produtos">
               <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                  Meus Produtos
+                    Meus Produtos
                   </CardTitle>
                   <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
