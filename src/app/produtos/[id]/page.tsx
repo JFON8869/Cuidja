@@ -238,9 +238,9 @@ export default function ProductDetailPage() {
             size="lg"
             variant="outline"
             className="w-full"
-            onClick={() => setIsCartSheetOpen(false)}
+            asChild
           >
-            Continuar Comprando
+            <Link href="/home">Continuar Comprando</Link>
           </Button>
         </SheetFooter>
       </SheetContent>
