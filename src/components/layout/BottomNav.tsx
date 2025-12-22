@@ -15,6 +15,16 @@ const navItems = [
   { href: '/perfil', label: 'Perfil', icon: User, auth: true },
 ];
 
+const NavItemSkeleton = ({ label }: { label: string }) => (
+  <div
+    key={label}
+    className="flex h-full w-full animate-pulse flex-col items-center justify-center gap-1 rounded-md bg-muted/50 p-2"
+  >
+    <div className="h-5 w-5 rounded bg-muted"></div>
+    <div className="h-3 w-8 rounded bg-muted"></div>
+  </div>
+);
+
 export default function BottomNav() {
   const pathname = usePathname();
   const { user, isUserLoading } = useFirebase();
@@ -38,29 +48,15 @@ export default function BottomNav() {
             (pathname.startsWith(href) && href !== '/home') ||
             pathname === href;
           
-          // Render a placeholder or skeleton if not on the client yet for auth-dependent items
           if (!isClient && requiresAuth) {
-            return (
-              <div key={label} className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-md p-2">
-                <div className="h-5 w-5 rounded bg-muted"></div>
-                <div className="h-3 w-8 rounded bg-muted"></div>
-              </div>
-            );
+            return <NavItemSkeleton key={label} label={label} />;
           }
 
+          if (requiresAuth && isUserLoading) {
+             return <NavItemSkeleton key={label} label={label} />;
+          }
+          
           const finalHref = requiresAuth && !user ? '/login' : href;
-
-          if (isUserLoading && requiresAuth) {
-            return (
-              <div
-                key={label}
-                className="flex h-full w-full animate-pulse flex-col items-center justify-center gap-1 rounded-md bg-muted/50 p-2"
-              >
-                <div className="h-5 w-5 rounded bg-muted"></div>
-                <div className="h-3 w-8 rounded bg-muted"></div>
-              </div>
-            );
-          }
 
           return (
             <Link
