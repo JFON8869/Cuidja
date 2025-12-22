@@ -100,6 +100,20 @@ service cloud.firestore {
     }
 
     /**
+     * @description Rules for a seller's public store information.
+     * @path /stores/{storeId}
+     * @allow (get, list) Any user can read public store data.
+     * @allow (create, update) Only the store owner can create or update their store details.
+     * @principle Public Read with Owner-Only Writes.
+     */
+    match /stores/{storeId} {
+        allow get, list: if true;
+        allow create: if isOwner(request.resource.data.userId);
+        allow update: if isOwner(resource.data.userId);
+        allow delete: if isOwner(resource.data.userId);
+    }
+
+    /**
      * @description Rules for a seller's private product management collection.
      * @path /users/{userId}/products/{productId}
      * @allow (create, get, list, update, delete) A seller managing their own products: `auth.uid == userId`.
@@ -199,3 +213,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
