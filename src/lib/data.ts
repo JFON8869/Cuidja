@@ -43,6 +43,15 @@ export interface Product {
   addons?: AddonGroup[];
 }
 
+export interface Service {
+    id: string;
+    name: string;
+    description: string;
+    providerId: string;
+    category: 'Serviços';
+    images: ImagePlaceholder[];
+}
+
 export interface CartItem extends Product {
     cartItemId?: string;
     selectedAddons?: Addon[];
@@ -120,6 +129,7 @@ export const mockStores: Store[] = [
   { id: 'bordadosfinos', name: 'Bordados Finos', category: 'Artesanatos', logo: findImage('textiles') },
   // Serviços
   { id: 'joaojardineiro', name: 'João Jardineiro', category: 'Serviços', logo: findImage('woodworking') },
+  { id: 'maridodefaztudo', name: 'Marido de Aluguel Faz-Tudo', category: 'Serviços', logo: findImage('tools-for-hire') },
   // Restaurantes
   { id: 'pizzabella', name: 'Pizza Bella', category: 'Restaurantes', logo: findImage('pizza') },
   { id: 'burgerhouse', name: 'Burger House', category: 'Restaurantes', logo: findImage('bread') },
@@ -198,16 +208,6 @@ export const mockProducts: Product[] = [
     storeId: 'bordadosfinos',
     images: [findImage('textiles')],
     category: 'Artesanatos',
-  },
-  // Serviços
-  {
-    id: '10',
-    name: 'Serviço de Jardinagem',
-    description: 'Deixe seu jardim mais bonito com nosso serviço de jardinagem. Cuidamos de tudo para você.',
-    price: 120.0,
-    storeId: 'joaojardineiro',
-    images: [findImage('woodworking')], // using as placeholder
-    category: 'Serviços',
   },
   // Restaurantes
   {
@@ -291,4 +291,23 @@ export const mockProducts: Product[] = [
     images: [findImage('category-pharmacy')],
     category: 'Farmácias',
   },
+];
+
+export const mockServices: Service[] = [
+    {
+        id: 'serv-jardinagem',
+        name: 'Serviço de Jardinagem',
+        description: 'Manutenção de jardins, poda de árvores, controle de pragas e plantio. Deixe seu jardim mais bonito com nosso serviço especializado.',
+        providerId: 'joaojardineiro',
+        category: 'Serviços',
+        images: [findImage('gardening-service')]
+    },
+    {
+        id: 'serv-reparos',
+        name: 'Pequenos Reparos e Manutenção',
+        description: 'Serviços de "Marido de Aluguel" para instalações elétricas, hidráulicas, montagem de móveis e pequenos reparos domésticos.',
+        providerId: 'maridodefaztudo',
+        category: 'Serviços',
+        images: [findImage('tools-for-hire')]
+    }
 ];

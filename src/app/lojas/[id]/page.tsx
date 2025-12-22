@@ -1,15 +1,17 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MessageSquare } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useProductContext } from '@/context/ProductContext';
-import { mockStores } from '@/lib/data';
+import { mockStores, mockServices } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function StorePage() {
   const params = useParams();
@@ -20,6 +22,7 @@ export default function StorePage() {
 
   const store = mockStores.find((s) => s.id === id);
   const storeProducts = products.filter((product) => product.storeId === id);
+  const storeServices = mockServices.filter((service) => service.providerId === id);
 
   if (!store) {
     return (
@@ -34,6 +37,8 @@ export default function StorePage() {
       </div>
     );
   }
+
+  const isServiceStore = store.category === 'Serviços';
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -51,7 +56,28 @@ export default function StorePage() {
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
-        {storeProducts.length > 0 ? (
+        {isServiceStore ? (
+             <div className="space-y-4">
+                <p className="text-center text-muted-foreground">Serviços oferecidos por {store.name}. Entre em contato para solicitar um orçamento.</p>
+                {storeServices.map((service) => (
+                    <Card key={service.id} className="overflow-hidden">
+                        <Image src={service.images[0].imageUrl} alt={service.name} width={400} height={200} className="w-full h-32 object-cover" />
+                        <CardHeader>
+                            <CardTitle>{service.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <CardDescription>{service.description}</CardDescription>
+                        </CardContent>
+                        <CardFooter>
+                            <Button className="w-full">
+                                <MessageSquare className="mr-2 h-4 w-4" />
+                                Solicitar Orçamento
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+             </div>
+        ) : storeProducts.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
             {storeProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
@@ -69,3 +95,4 @@ export default function StorePage() {
     </div>
   );
 }
+

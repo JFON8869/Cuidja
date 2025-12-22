@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -141,6 +142,19 @@
         "category",
         "location"
       ]
+    },
+     "Service": {
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a service offered by a provider.",
+      "properties": {
+        "id": { "type": "string" },
+        "providerId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "enum": ["Serviços"] }
+      },
+      "required": ["id", "providerId", "name", "description", "category"]
     },
     "AddonGroup": {
       "title": "AddonGroup",
@@ -381,6 +395,15 @@
               "description": "The unique identifier for the product."
             }
           ]
+        }
+      },
+       {
+        "path": "services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": { "$ref": "#/backend/entities/Service" },
+          "description": "Stores all services available on the platform.",
+          "params": [{ "name": "serviceId", "description": "The unique identifier for the service." }]
         }
       },
       {

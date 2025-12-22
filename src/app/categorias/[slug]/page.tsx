@@ -1,21 +1,35 @@
+
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useProductContext } from '@/context/ProductContext';
 import { mockCategories, mockStores } from '@/lib/data';
 import { StoreCard } from '@/components/store/StoreCard';
+import { useEffect } from 'react';
 
 export default function CategoryPage() {
   const params = useParams();
-  const slug = params.slug;
+  const slug = params.slug as string;
+
+  // If the category is "servicos", redirect to the dedicated services page
+  useEffect(() => {
+    if (slug === 'servicos') {
+      redirect('/categorias/servicos');
+    }
+  }, [slug]);
 
   const category = mockCategories.find((cat) => cat.slug === slug);
   const categoryStores = mockStores.filter(
     (store) => store.category === category?.name
   );
+  
+  // This page will not render for "servicos", but as a fallback:
+  if (slug === 'servicos') {
+    return null; 
+  }
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">

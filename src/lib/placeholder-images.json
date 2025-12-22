@@ -149,6 +149,18 @@
       "description": "services icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/services.png",
       "imageHint": "tools icon"
+    },
+    {
+      "id": "gardening-service",
+      "description": "A well-maintained garden, representing gardening services.",
+      "imageUrl": "https://images.unsplash.com/photo-1628102490399-a15f72e9a385?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxnYXJkZW5pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDI0MjI3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gardening service"
+    },
+    {
+      "id": "tools-for-hire",
+      "description": "A collection of tools, representing handyman or 'marido de aluguel' services.",
+      "imageUrl": "https://images.unsplash.com/photo-1581143717215-c277a79963d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxoYW5keW1hbiUyMHRvb2xzfGVufDB8fHx8MTc3MDI0MjI3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handyman tools"
     }
   ]
 }
