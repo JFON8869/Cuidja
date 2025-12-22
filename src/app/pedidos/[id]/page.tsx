@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import StatusUpdater from '@/components/vender/StatusUpdater';
 
 interface Message {
   senderId: string;
@@ -44,8 +45,8 @@ interface Order {
   customerId: string; 
   storeId: string;
   messages?: Message[];
-  sellerHasUnreadMessages?: boolean;
-  buyerHasUnreadMessages?: boolean;
+  sellerHasUnread?: boolean;
+  buyerHasUnread?: boolean;
   shippingAddress?: Address;
   phone?: string;
 }
@@ -65,8 +66,29 @@ export default function OrderDetailPage() {
     return doc(firestore, 'orders', id as string);
   }, [firestore, id]);
 
-  const { data: order, isLoading, error } = useDoc<Order>(orderRef);
-  
+  const { data: order, isLoading, error } = useDoc<WithId<Order>>(orderRef);
+  const [isSeller, setIsSeller] = useState(false);
+
+  useEffect(() => {
+    const checkSeller = async () => {
+        if (user && firestore && order?.storeId) {
+            const storeRef = doc(firestore, 'stores', order.storeId);
+            const storeSnap = await getDoc(storeRef);
+            if (storeSnap.exists() && storeSnap.data().userId === user.uid) {
+                setIsSeller(true);
+            } else {
+                setIsSeller(false);
+            }
+        } else {
+            setIsSeller(false);
+        }
+    };
+    if (!isUserLoading && user && order) {
+        checkSeller();
+    }
+  }, [user, firestore, order, isUserLoading]);
+
+
   const isChatEnabled = order?.messages !== undefined;
 
   const scrollToBottom = () => {
@@ -79,19 +101,19 @@ export default function OrderDetailPage() {
     }
   }, [order?.messages, isChatEnabled]);
 
+  // Mark order as read when viewing
   useEffect(() => {
-    if (!order || !user || !orderRef || !isChatEnabled) return;
-
-    const isBuyer = user.uid === order.customerId;
-    const hasUnread = isBuyer
-      ? order.buyerHasUnreadMessages
-      : order.sellerHasUnreadMessages;
+    if (!orderRef || !order || !user || isSeller === undefined) return;
     
+    const isBuyer = user.uid === order.customerId;
+    const hasUnread = isBuyer ? order.buyerHasUnread : order.sellerHasUnread;
+    const payload = isBuyer ? { buyerHasUnread: false } : { sellerHasUnread: false };
+
     if (hasUnread) {
-        const payload = isBuyer ? { buyerHasUnreadMessages: false } : { sellerHasUnreadMessages: false }
-        updateDoc(orderRef, payload);
+        updateDoc(orderRef, payload).catch(err => console.error("Failed to mark order as read:", err));
     }
-  }, [order, user, orderRef, isChatEnabled]);
+  }, [order, user, orderRef, isSeller]);
+  
   
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
@@ -111,8 +133,8 @@ export default function OrderDetailPage() {
       messages: arrayUnion(message),
       lastMessageTimestamp: new Date().toISOString(),
       ...(isBuyer 
-         ? { sellerHasUnreadMessages: true }
-         : { buyerHasUnreadMessages: true }
+         ? { sellerHasUnread: true }
+         : { buyerHasUnread: true }
       ),
     };
 
@@ -158,24 +180,7 @@ export default function OrderDetailPage() {
   }
   
   const isBuyer = user?.uid === order.customerId;
-  const [isSeller, setIsSeller] = useState(false);
-
-  useEffect(() => {
-    const checkSeller = async () => {
-        if (user && firestore && order.storeId) {
-            const storeRef = doc(firestore, 'stores', order.storeId);
-            const storeSnap = await getDoc(storeRef);
-            if (storeSnap.exists() && storeSnap.data().userId === user.uid) {
-                setIsSeller(true);
-            }
-        }
-    };
-    if (!isUserLoading) {
-        checkSeller();
-    }
-  }, [user, firestore, order.storeId, isUserLoading]);
-
-
+  
   if (!isUserLoading && !isBuyer && !isSeller) {
      router.push('/login');
      return null;
@@ -197,21 +202,25 @@ export default function OrderDetailPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalhes do Pedido</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-             <p><strong>Data:</strong> {format(new Date(order.orderDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-            <p><strong>Status:</strong> <span className="font-semibold text-accent">{order.status}</span></p>
-            <p><strong>Itens:</strong> {order.productIds?.length || 'Serviço'}</p>
-            <p><strong>Total:</strong> 
-                <span className="font-bold">
-                    {' '}{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.totalAmount)}
-                </span>
-            </p>
-          </CardContent>
-        </Card>
+        {isSeller ? (
+            <StatusUpdater order={order} orderRef={orderRef} />
+        ) : (
+            <Card>
+            <CardHeader>
+                <CardTitle>Detalhes do Pedido</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                <p><strong>Data:</strong> {format(new Date(order.orderDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                <p><strong>Status:</strong> <span className="font-semibold text-accent">{order.status}</span></p>
+                <p><strong>Itens:</strong> {order.productIds?.length || 'Serviço'}</p>
+                <p><strong>Total:</strong> 
+                    <span className="font-bold">
+                        {' '}{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.totalAmount)}
+                    </span>
+                </p>
+            </CardContent>
+            </Card>
+        )}
         
         {isSeller && order.shippingAddress && (
              <Card>
@@ -307,5 +316,3 @@ const OrderDetailSkeleton = () => (
       </footer>
     </div>
 )
-
-    
