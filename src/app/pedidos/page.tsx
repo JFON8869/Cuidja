@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { ArrowLeft, ShoppingBag, Bell } from 'lucide-react';
@@ -33,7 +34,7 @@ export default function OrdersPage() {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'orders'),
-      where('userId', '==', user.uid),
+      where('customerId', '==', user.uid),
       orderBy('orderDate', 'desc')
     );
   }, [firestore, user]);
@@ -117,7 +118,7 @@ export default function OrdersPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <p>Itens: {order.productIds.length}</p>
+                    <p>Itens: {order.productIds.length > 0 ? order.productIds.length : '1 Serviço'}</p>
                     <p className="text-muted-foreground">
                       Status:{' '}
                       <span className="font-semibold text-accent">

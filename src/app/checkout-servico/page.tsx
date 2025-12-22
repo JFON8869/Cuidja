@@ -37,9 +37,7 @@ const serviceCheckoutSchema = z.object({
   address: z.string().min(5, 'Endereço é obrigatório.'),
   city: z.string().min(3, 'Cidade é obrigatória.'),
   zip: z.string().min(8, 'CEP é obrigatório.'),
-  paymentMethod: z.enum(['card', 'pix'], {
-    required_error: 'Selecione um método de pagamento.',
-  }),
+  paymentMethod: z.enum(['card', 'pix']).optional(),
   message: z.string().optional(),
 });
 
@@ -70,6 +68,14 @@ export default function ServiceCheckoutPage() {
       message: '',
     },
   });
+  
+  const hasFee = service?.visitFee && service.visitFee > 0;
+  if (hasFee) {
+     serviceCheckoutSchema.extend({
+         paymentMethod: z.enum(['card', 'pix'], { required_error: 'Selecione um método de pagamento.'})
+     })
+  }
+
 
   React.useEffect(() => {
     if (user?.displayName) {
@@ -102,9 +108,10 @@ export default function ServiceCheckoutPage() {
         }] : [];
 
         const orderData: any = {
-            userId: user.uid,
+            customerId: user.uid,
             storeId: storeId,
             serviceId: service.id,
+            productIds: [], // Explicitly set productIds to empty for services
             totalAmount: service.visitFee || 0,
             status: 'Pendente',
             orderDate: new Date().toISOString(),
@@ -171,8 +178,6 @@ export default function ServiceCheckoutPage() {
         </div>
     )
   }
-
-  const hasFee = service.visitFee && service.visitFee > 0;
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -375,4 +380,3 @@ export default function ServiceCheckoutPage() {
   );
 }
 
-    
