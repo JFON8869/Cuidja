@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, Heart, User, ShoppingCart } from "lucide-react";
+import { Home, PlusCircle, Heart, User, ShoppingCart, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Início", icon: Home },
   { href: "/vender", label: "Vender", icon: PlusCircle },
   { href: "/carrinho", label: "Carrinho", icon: ShoppingCart },
-  { href: "/favoritos", label: "Favoritos", icon: Heart },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/perfil", label: "Perfil", icon: User },
 ];
 
