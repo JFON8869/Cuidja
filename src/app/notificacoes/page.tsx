@@ -35,6 +35,7 @@ interface ServiceRequest extends WithId<any> {
     requestDate: string;
     serviceName: string;
     status: string;
+    providerId: string;
     providerHasUnread?: boolean;
 }
 
@@ -55,12 +56,6 @@ export default function NotificationsPage() {
     const fetchNotifications = async () => {
       setIsLoading(true);
       try {
-        // Find stores this user owns
-        const storesRef = collection(firestore, 'stores');
-        const storeQuery = query(storesRef, where('userId', '==', user.uid));
-        const storeSnapshot = await getDocs(storeQuery);
-        const storeIds = storeSnapshot.docs.map(doc => doc.id);
-
         const fetchedNotifications: Notification[] = [];
 
         // 1. Get unread orders where user is the BUYER
@@ -74,8 +69,13 @@ export default function NotificationsPage() {
           fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
         });
         
+        // 2. Get unread orders where user is the SELLER (via store ownership)
+        const storesRef = collection(firestore, 'stores');
+        const storeQuery = query(storesRef, where('userId', '==', user.uid));
+        const storeSnapshot = await getDocs(storeQuery);
+        const storeIds = storeSnapshot.docs.map(doc => doc.id);
+
         if (storeIds.length > 0) {
-            // 2. Get unread orders where user is the SELLER
             const sellerOrdersQuery = query(
               collection(firestore, 'orders'),
               where('storeId', 'in', storeIds),
@@ -85,18 +85,19 @@ export default function NotificationsPage() {
             sellerOrdersSnapshot.forEach(doc => {
               fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
             });
-            
-             // 3. Get unread service requests where user is the PROVIDER
-            const serviceRequestsQuery = query(
-              collection(firestore, 'serviceRequests'),
-              where('providerId', '==', user.uid),
-              where('providerHasUnread', '==', true)
-            );
-            const serviceRequestsSnapshot = await getDocs(serviceRequestsQuery);
-            serviceRequestsSnapshot.forEach(doc => {
-              fetchedNotifications.push({ ...(doc.data() as ServiceRequest), id: doc.id, type: 'request' });
-            });
         }
+            
+        // 3. Get unread service requests where user is the PROVIDER
+        const serviceRequestsQuery = query(
+          collection(firestore, 'serviceRequests'),
+          where('providerId', '==', user.uid),
+          where('providerHasUnread', '==', true)
+        );
+        const serviceRequestsSnapshot = await getDocs(serviceRequestsQuery);
+        serviceRequestsSnapshot.forEach(doc => {
+          fetchedNotifications.push({ ...(doc.data() as ServiceRequest), id: doc.id, type: 'request' });
+        });
+        
         
         // Sort all combined notifications by date on the client-side
         fetchedNotifications.sort((a, b) => {
@@ -195,7 +196,7 @@ export default function NotificationsPage() {
                                             </>
                                         ) : (
                                             <>
-                                                Nova solicitação para <span className="font-bold">{(notification as ServiceRequest).serviceName}</span>.
+                                                Nova solicitação para o serviço <span className="font-bold">{(notification as ServiceRequest).serviceName}</span>.
                                             </>
                                         )
                                     ) : (

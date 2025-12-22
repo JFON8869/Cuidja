@@ -6,13 +6,14 @@ import Link from 'next/link';
 import { ArrowLeft, User as UserIcon, Phone, MapPin, MessageSquare, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import StatusUpdater from '@/components/vender/StatusUpdater';
 
 // Simplified types for the page
 interface RequesterInfo {
@@ -32,6 +33,7 @@ interface ServiceRequest {
   providerId: string;
   requesterInfo: RequesterInfo;
   message?: string;
+  providerHasUnread?: boolean;
 }
 
 export default function ServiceRequestDetailPage() {
@@ -46,6 +48,15 @@ export default function ServiceRequestDetailPage() {
   }, [firestore, id]);
 
   const { data: request, isLoading, error } = useDoc<ServiceRequest>(requestRef);
+
+  useEffect(() => {
+    if (!requestRef || !request || !user) return;
+    
+    // Mark as read if the provider is viewing it
+    if (user.uid === request.providerId && request.providerHasUnread) {
+        updateDoc(requestRef, { providerHasUnread: false }).catch(err => console.error("Failed to mark request as read:", err));
+    }
+  }, [request, user, requestRef]);
 
   if (isLoading || isUserLoading) {
     return <RequestDetailSkeleton />;
@@ -63,7 +74,6 @@ export default function ServiceRequestDetailPage() {
     );
   }
   
-  // Security check: Only the provider should see this page.
   const isProvider = user?.uid === request.providerId;
   
   if (!isUserLoading && !isProvider) {
@@ -75,7 +85,7 @@ export default function ServiceRequestDetailPage() {
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={"/vender/pedidos"}>
+          <Link href={"/vender/solicitacoes"}>
             <ArrowLeft />
           </Link>
         </Button>
@@ -132,7 +142,6 @@ export default function ServiceRequestDetailPage() {
        )}
       </main>
       
-      {/* Footer can be added later for actions like changing status */}
        <footer className="border-t bg-card p-4">
           <Button className="w-full" size="lg">Entrar em Contato</Button>
       </footer>
