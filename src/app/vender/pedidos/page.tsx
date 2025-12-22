@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Bell } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Bell, Siren } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import {
@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface Order extends WithId<any> {
   id: string;
@@ -31,6 +32,7 @@ interface Order extends WithId<any> {
   status: string;
   totalAmount: number;
   sellerHasUnreadMessages?: boolean;
+  isUrgent?: boolean;
 }
 
 export default function SellerOrdersPage() {
@@ -138,7 +140,13 @@ export default function SellerOrdersPage() {
           <div className="space-y-4 p-4">
             {orders.map((order) => (
               <Link key={order.id} href={`/pedidos/${order.id}`} passHref>
-                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                <Card className={cn("hover:bg-muted/50 transition-colors cursor-pointer", order.isUrgent && "border-destructive")}>
+                   {order.isUrgent && (
+                    <div className="w-full bg-destructive text-destructive-foreground text-center py-1 font-bold flex items-center justify-center gap-2 text-sm">
+                        <Siren className="h-4 w-4" />
+                        PEDIDO URGENTE
+                    </div>
+                  )}
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>

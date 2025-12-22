@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, Landmark, MessageSquare, Truck } from 'lucide-react';
+import { ArrowLeft, CreditCard, Landmark, MessageSquare, Siren, Truck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,6 +29,8 @@ import { useProductContext } from '@/context/ProductContext';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { Textarea } from '@/components/ui/textarea';
 import { useEffect, useState, useMemo } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -39,6 +41,7 @@ const checkoutSchema = z.object({
     required_error: 'Selecione um método de pagamento.',
   }),
   message: z.string().optional(),
+  isUrgent: z.boolean().default(false),
 });
 
 
@@ -55,7 +58,7 @@ export default function CheckoutPage() {
   const productStoreId = firstProductInCart?.storeId;
 
   const urgentCategories = useMemo(() => ['Gás e Água', 'Serviços', 'Farmácias'], []);
-  const isUrgentOrder = useMemo(() => {
+  const isUrgentCategory = useMemo(() => {
     return cart.some(item => urgentCategories.includes(item.category));
   }, [cart, urgentCategories]);
 
@@ -88,8 +91,13 @@ export default function CheckoutPage() {
       city: '',
       zip: '',
       message: '',
+      isUrgent: isUrgentCategory,
     },
   });
+  
+  useEffect(() => {
+    form.setValue('isUrgent', isUrgentCategory);
+  }, [isUrgentCategory, form])
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     if (!firestore || !user) {
@@ -113,7 +121,7 @@ export default function CheckoutPage() {
     try {
         const ordersCollection = collection(firestore, 'orders');
         
-        const initialMessage = (isUrgentOrder && values.message) ? [{
+        const initialMessage = (isUrgentCategory && values.message) ? [{
             senderId: user.uid,
             text: values.message,
             timestamp: new Date().toISOString(),
@@ -137,11 +145,12 @@ export default function CheckoutPage() {
             category: firstProductInCart?.category // Store category for later checks
         }
 
-        if (isUrgentOrder) {
+        if (isUrgentCategory) {
             orderData.messages = initialMessage;
             orderData.lastMessageTimestamp = initialMessage.length > 0 ? new Date().toISOString() : null;
             orderData.buyerHasUnreadMessages = false;
             orderData.sellerHasUnreadMessages = initialMessage.length > 0;
+            orderData.isUrgent = values.isUrgent;
         }
         
         await addDoc(ordersCollection, orderData);
@@ -251,29 +260,54 @@ export default function CheckoutPage() {
               </div>
             </section>
             
-            {isUrgentOrder && (
+            {isUrgentCategory && (
                 <>
                 <Separator />
-                <section>
-                <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
-                    <MessageSquare className="h-5 w-5" />
-                    Mensagem para o Vendedor (Opcional)
-                </h2>
-                <FormField
+                <section className="space-y-4">
+                  <FormField
                     control={form.control}
-                    name="message"
+                    name="isUrgent"
                     render={({ field }) => (
-                    <FormItem>
+                      <FormItem className={cn("flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm", field.value && "border-destructive bg-destructive/10")}>
+                        <div className="space-y-0.5">
+                          <FormLabel className="flex items-center gap-2">
+                             <Siren className={cn("h-5 w-5", field.value && "text-destructive")}/>
+                             Pedido Urgente
+                          </FormLabel>
+                          <FormDescription>
+                            Prioridade máxima para o vendedor.
+                          </FormDescription>
+                        </div>
                         <FormControl>
-                        <Textarea
-                            placeholder="Deixe uma observação sobre seu pedido, como ponto de referência ou detalhes do produto."
-                            {...field}
-                        />
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormControl>
-                        <FormMessage />
-                    </FormItem>
+                      </FormItem>
                     )}
-                />
+                  />
+                  <div>
+                    <h2 className="mb-2 flex items-center gap-2 font-headline text-lg">
+                        <MessageSquare className="h-5 w-5" />
+                        Mensagem (Opcional)
+                    </h2>
+                    <FormField
+                        control={form.control}
+                        name="message"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                            <Textarea
+                                placeholder="Deixe uma observação, como ponto de referência ou detalhes."
+                                {...field}
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  </div>
                 </section>
                 </>
             )}
