@@ -361,11 +361,13 @@ export default function NewProductPage() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {mockCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
+                      {mockCategories
+                        .filter((category) => category.name !== 'Serviços')
+                        .map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
