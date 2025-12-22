@@ -17,7 +17,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/CartContext';
 import { Product, Addon, AddonGroup, SelectedAddon } from '@/lib/data';
-import { Minus, Plus } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+
 
 interface ProductOptionsSheetProps {
   product: Product;
@@ -32,42 +34,34 @@ export function ProductOptionsSheet({ product, onAddToCart, children }: ProductO
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsState>({});
 
-  // Reset state when the sheet is opened or closed
+  // Reset state when the sheet is opened
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
       setSelectedOptions({});
     }
   }, [isOpen]);
 
 
-  const handleSelectionChange = (group: AddonGroup, addon: Addon, change: 'set' | 'increment' | 'decrement') => {
+  const handleSelectionChange = (group: AddonGroup, addon: Addon) => {
     setSelectedOptions(prev => {
-        const newState = { ...prev };
-        let groupSelections = newState[group.id] ? [...newState[group.id]] : [];
-        const existingAddonIndex = groupSelections.findIndex(a => a.name === addon.name);
-        
-        if (group.type === 'single') {
-            newState[group.id] = [{ ...addon, quantity: 1 }];
-        } else { // Multiple
-            if (existingAddonIndex > -1) {
-                // Addon already in selection
-                const existingAddon = groupSelections[existingAddonIndex];
-                let newQuantity = existingAddon.quantity;
-                if (change === 'increment') newQuantity++;
-                else if (change === 'decrement') newQuantity--;
-                
-                if (newQuantity > 0) {
-                    groupSelections[existingAddonIndex] = { ...existingAddon, quantity: newQuantity };
-                } else {
-                    groupSelections.splice(existingAddonIndex, 1);
-                }
-            } else if (change === 'increment' || change === 'set') {
-                // Add new addon to selection
-                groupSelections.push({ ...addon, quantity: 1 });
-            }
-            newState[group.id] = groupSelections;
+      const newState = { ...prev };
+      let groupSelections = newState[group.id] ? [...newState[group.id]] : [];
+      const existingAddonIndex = groupSelections.findIndex(a => a.name === addon.name);
+
+      if (group.type === 'single') {
+        // For single selection, just set the new addon
+        newState[group.id] = [{ ...addon, quantity: 1 }];
+      } else { // Multiple selection
+        if (existingAddonIndex > -1) {
+          // If addon is already selected, remove it (uncheck)
+          groupSelections.splice(existingAddonIndex, 1);
+        } else {
+          // If addon is not selected, add it (check)
+          groupSelections.push({ ...addon, quantity: 1 });
         }
-        return newState;
+        newState[group.id] = groupSelections;
+      }
+      return newState;
     });
   };
 
@@ -85,11 +79,10 @@ export function ProductOptionsSheet({ product, onAddToCart, children }: ProductO
     setIsOpen(false);     // Close the options sheet
   }
   
-  const getAddonQuantity = (groupId: string, addonName: string): number => {
+  const isAddonChecked = (groupId: string, addonName: string): boolean => {
       const group = selectedOptions[groupId];
-      if (!group) return 0;
-      const addon = group.find(a => a.name === addonName);
-      return addon?.quantity || 0;
+      if (!group) return false;
+      return group.some(a => a.name === addonName);
   }
   
   const getSingleSelectedName = (groupId: string): string | undefined => {
@@ -121,7 +114,7 @@ export function ProductOptionsSheet({ product, onAddToCart, children }: ProductO
                     onValueChange={(value) => {
                         const selectedAddon = group.addons.find(a => a.name === value);
                         if (selectedAddon) {
-                            handleSelectionChange(group, selectedAddon, 'set');
+                            handleSelectionChange(group, selectedAddon);
                         }
                     }}
                     value={getSingleSelectedName(group.id)}
@@ -142,30 +135,26 @@ export function ProductOptionsSheet({ product, onAddToCart, children }: ProductO
                 </RadioGroup>
               ) : ( // Multiple choice
                 <div className="space-y-3">
-                    {group.addons.map((addon) => {
-                        const quantity = getAddonQuantity(group.id, addon.name);
-                        return (
-                             <div key={addon.name} className="flex items-center justify-between">
-                               <Label htmlFor={`${group.id}-${addon.name}`} className="flex-1 font-normal">
-                                    {addon.name}
-                                    {addon.price > 0 && (
-                                    <span className="text-sm text-muted-foreground ml-2">
-                                        (+{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addon.price)})
-                                    </span>
-                                    )}
-                                </Label>
-                                <div className="flex items-center gap-2">
-                                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSelectionChange(group, addon, 'decrement')} disabled={quantity === 0}>
-                                        <Minus className="h-4 w-4" />
-                                    </Button>
-                                    <span className="w-6 text-center font-bold">{quantity}</span>
-                                     <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSelectionChange(group, addon, 'increment')}>
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        )
-                    })}
+                    {group.addons.map((addon) => (
+                         <div key={addon.name} className="flex items-center space-x-2">
+                            <Checkbox
+                                id={`${group.id}-${addon.name}`}
+                                checked={isAddonChecked(group.id, addon.name)}
+                                onCheckedChange={() => handleSelectionChange(group, addon)}
+                            />
+                            <Label 
+                                htmlFor={`${group.id}-${addon.name}`}
+                                className="font-normal flex-1 cursor-pointer"
+                            >
+                                {addon.name}
+                                {addon.price > 0 && (
+                                <span className="text-sm text-muted-foreground ml-2">
+                                    (+{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addon.price)})
+                                </span>
+                                )}
+                            </Label>
+                        </div>
+                    ))}
                 </div>
               )}
                <Separator className="mt-4" />
