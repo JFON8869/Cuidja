@@ -1,0 +1,381 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application, either a buyer or a seller.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "profilePicture": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "address": {
+          "type": "string",
+          "description": "User's address."
+        },
+        "isSeller": {
+          "type": "boolean",
+          "description": "Indicates whether the user is also a seller."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName"
+      ]
+    },
+    "Store": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Store",
+      "type": "object",
+      "description": "Represents a seller's store profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the store entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 Store)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the store."
+        },
+        "logo": {
+          "type": "string",
+          "description": "URL of the store's logo.",
+          "format": "uri"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the store and its offerings."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average rating of the store."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product listed for sale.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the product entity."
+        },
+        "storeId": {
+          "type": "string",
+          "description": "Reference to Store. (Relationship: Store 1:N Product)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the product."
+        },
+        "images": {
+          "type": "array",
+          "description": "Array of URLs of product images.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the product."
+        },
+        "stock": {
+          "type": "number",
+          "description": "Number of units of the product in stock."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the product (active, paused)."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the product."
+        }
+      },
+      "required": [
+        "id",
+        "storeId",
+        "name",
+        "price",
+        "stock",
+        "status"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order placed by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Order)"
+        },
+        "storeId": {
+          "type": "string",
+          "description": "Reference to Store. (Relationship: Store 1:N Order)"
+        },
+        "productIds": {
+          "type": "array",
+          "description": "References to Products. (Relationship: Order 1:N Product)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "Date and time when the order was placed.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the order (Pending, Paid, In Preparation, Shipped, Delivered, Cancelled)."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total amount of the order."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "storeId",
+        "productIds",
+        "orderDate",
+        "status",
+        "totalAmount"
+      ]
+    },
+    "Chat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Chat",
+      "type": "object",
+      "description": "Represents a chat conversation between a buyer and a seller.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the chat entity."
+        },
+        "buyerId": {
+          "type": "string",
+          "description": "Reference to User (Buyer). (Relationship: User 1:N Chat)"
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Reference to User (Seller). (Relationship: User 1:N Chat)"
+        },
+        "messages": {
+          "type": "array",
+          "description": "Array of messages in the chat.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of the last message in the chat.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "buyerId",
+        "sellerId",
+        "messages",
+        "timestamp"
+      ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a review given by a buyer for a product and seller.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the review entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User (Buyer). (Relationship: User 1:N Review)"
+        },
+        "storeId": {
+          "type": "string",
+          "description": "Reference to Store (Seller). (Relationship: Store 1:N Review)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to Product. (Relationship: Product 1:N Review)"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating given by the buyer (1-5 stars)."
+        },
+        "comment": {
+          "type": "string",
+          "description": "Comment provided by the buyer."
+        },
+        "reviewDate": {
+          "type": "string",
+          "description": "Date when the review was submitted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "storeId",
+        "productId",
+        "rating",
+        "reviewDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data. Accessible only by the user and admins.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stores/{storeId}",
+        "definition": {
+          "entityName": "Store",
+          "schema": {
+            "$ref": "#/backend/entities/Store"
+          },
+          "description": "Stores store profiles. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "storeId",
+              "description": "The unique identifier of the store."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product information. Includes denormalized 'storeId' for authorization independence.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier of the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores order information. Includes denormalized 'userId' and 'storeId' for authorization independence.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chats/{chatId}",
+        "definition": {
+          "entityName": "Chat",
+          "schema": {
+            "$ref": "#/backend/entities/Chat"
+          },
+          "description": "Stores chat conversations between buyers and sellers. 'buyerId' and 'sellerId' are used for authorization.",
+          "params": [
+            {
+              "name": "chatId",
+              "description": "The unique identifier of the chat."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores reviews for products and stores. Includes 'userId', 'storeId', and 'productId' for authorization.",
+          "params": [
+            {
+              "name": "reviewId",
+              "description": "The unique identifier of the review."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support a marketplace application connecting local producers, artisans, and service providers with consumers. It emphasizes authorization independence through denormalization, structural segregation for security, and consistent access modeling.  The structure prioritizes DBAC (Database-Based Access Control) using only `request.auth.uid` for authorization.  Authorization Independence is achieved primarily through denormalization of membership and ownership data into subcollections or related documents, avoiding `get()` calls in security rules. QAPs (Rules Are Not Filters) are supported by segregating data based on access requirements, preventing the need to filter data based on authorization rules. For collaborative access scenarios, the 'members' map pattern will be leveraged.\n\nSpecifically:\n\n*   **Users**: Stores user profiles and distinguishes between buyers and sellers.\n*   **Stores**: Stores store profiles, linked to seller users.\n*   **Products**: Stores product listings, linked to stores.\n*   **Orders**: Stores order information, linking buyers, sellers (via Store), and products.\n*   **Chats**: Stores chat conversations between buyers and sellers.\n*   **Reviews**: Stores product and seller reviews.\n\n**Authorization Independence:** The `members` map pattern in collaborative collections will include the `userId` and their role, removing the need to fetch parent document data. For example, within a store's products collection, the `storeId` is denormalized into each product document, enabling rules to validate product access without reading the store document.  Orders will contain both `userId` and `storeId`, to facilitate order access rules without needing to read user or store documents.\n\n**Structural Segregation:** User-specific data (e.g., user profiles, stores owned by a user) are placed under `/users/{userId}` or `/stores/{storeId}` to easily implement user-based access control. Publicly accessible data (if any in future evolutions) would be stored in separate collections with open read access.\n\n**QAPs Support:**  Because private data is segregated under user-specific paths (e.g., `/users/{userId}/orders`), listing operations only return data accessible to the authenticated user, avoiding filtering in rules.\n\n**Invariants:** Timestamps will be stored as server timestamps, ownership will be enforced through `userId` fields, and denormalized data will be kept consistent using Cloud Functions triggers."
+  }
+}

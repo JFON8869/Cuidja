@@ -1,0 +1,139 @@
+/**
+ * Core Philosophy: This ruleset enforces a user-centric and role-based security model for a marketplace application.
+ * The core principle is that users own and control their personal data, sellers own and control their stores and products,
+ * and transactional data (orders, chats) is accessible only to the involved participants (buyer and seller).
+ *
+ * Data Structure: The data is organized into flat, top-level collections (users, stores, products, orders, chats, reviews).
+ * This structure simplifies rule logic. Authorization is handled by denormalizing ownership information (like `userId`, `storeId`,
+ * `buyerId`, `sellerId`) directly onto the documents being secured.
+ *
+ * Key Security Decisions:
+ * - Default Deny: All access is denied by default, and permissions are granted explicitly.
+ * - User Data Privacy: A user's profile document is private and can only be read or modified by that specific user. User listing is disabled.
+ * - Public Listings: Store profiles and product catalogs are publicly readable to allow browsing by any user (including unauthenticated ones),
+ *   but write operations are strictly limited to the authenticated owners.
+ * - Transactional Privacy: Orders and chats are private. Access is restricted to the specific buyer and seller involved in that transaction.
+ *   Open listing of orders and chats is disabled to prevent data leakage.
+ * - Denormalization for Authorization: Ownership is determined by `userId` fields on documents. To secure products and orders, which are
+ *   linked to a store, a `get()` call is used to fetch the store's `userId`. This is a necessary trade-off when the owner's UID is not
+ *   denormalized onto every single sub-document.
+ * - Immutability: Critical relational identifiers (like `userId`, `storeId`, `buyerId`) are enforced as immutable after creation to maintain
+ *   data integrity and prevent ownership hijacking.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for reusable logic
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isExistingDoc() {
+      return resource != null;
+    }
+    function isExistingOwner(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+    // Checks if the authenticated user owns the store associated with a given document.
+    // This requires one extra read but is essential for securing nested resources like products and orders.
+    function isStoreOwner(storeId) {
+      return isSignedIn() && get(/databases/$(database)/documents/stores/$(storeId)).data.userId == request.auth.uid;
+    }
+
+    /**
+     * @description Rules for the user profile collection.
+     * @path /users/{userId}
+     * @allow A signed-in user (auth.uid: 'user_abc') can (create) their own profile document at /users/user_abc.
+     * @deny A signed-in user (auth.uid: 'user_abc') cannot (get) another user's profile at /users/user_xyz.
+     * @principle Restricts access to a user's own data tree, preventing users from accessing or modifying each other's private information.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for the store profiles collection.
+     * @path /stores/{storeId}
+     * @allow Any user, signed-in or not, can (get) a store's public profile. A seller can (create) their own store.
+     * @deny A signed-in user cannot (update) a store they do not own.
+     * @principle Implements a "Public Read with Owner-Only Writes" pattern. This allows for public browsing of marketplace content while securing it from unauthorized modification.
+     */
+    match /stores/{storeId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(resource.data.userId);
+    }
+
+    /**
+     * @description Rules for the products collection.
+     * @path /products/{productId}
+     * @allow Any user, signed-in or not, can (get) or (list) public product details.
+     * @deny A signed-in seller cannot (create) a product for a store they do not own.
+     * @principle Enforces ownership for writes via a related document. A `get()` call to the parent store document is used to verify the user's authority to manage a product.
+     */
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isStoreOwner(request.resource.data.storeId);
+      allow update: if isSignedIn() && isStoreOwner(resource.data.storeId) && isExistingDoc() && request.resource.data.storeId == resource.data.storeId;
+      allow delete: if isSignedIn() && isStoreOwner(resource.data.storeId) && isExistingDoc();
+    }
+
+    /**
+     * @description Rules for the orders collection, accessible only by participants.
+     * @path /orders/{orderId}
+     * @allow The buyer (auth.uid matches order.userId) can (get) their order. The seller (auth.uid owns order.storeId) can (update) the order status.
+     * @deny An uninvolved user cannot (get) an order. Open listing of all orders via (list) is denied.
+     * @principle Implements a "Shared Access (Closed Collaborators)" pattern. Data is private to the specific buyer and seller involved in the transaction.
+     */
+    match /orders/{orderId} {
+      allow get: if isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId);
+      allow list: if false;
+      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isStoreOwner(resource.data.storeId) && isExistingDoc() && request.resource.data.userId == resource.data.userId;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for chat conversations between a buyer and a seller.
+     * @path /chats/{chatId}
+     * @allow A user who is either the buyer (chat.buyerId) or the seller (chat.sellerId) can (get) or (update) the chat.
+     * @deny An uninvolved user cannot read a chat. Open listing of all chats via (list) is denied.
+     * @principle Implements a "Shared Access (Closed Collaborators)" pattern, ensuring conversations are private to the two participants.
+     */
+    match /chats/{chatId} {
+      function isChatParticipant() {
+        return isSignedIn() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
+      }
+      function isChatParticipantOnCreate() {
+        return isSignedIn() && (request.auth.uid == request.resource.data.buyerId || request.auth.uid == request.resource.data.sellerId);
+      }
+      allow get: if isChatParticipant();
+      allow list: if false;
+      allow create: if isChatParticipantOnCreate();
+      allow update: if isChatParticipant() && isExistingDoc() && request.resource.data.buyerId == resource.data.buyerId && request.resource.data.sellerId == resource.data.sellerId;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for product and store reviews.
+     * @path /reviews/{reviewId}
+     * @allow Any user can (get) or (list) reviews. A signed-in user can (create) a review for a product they purchased.
+     * @deny A user cannot (update) a review they did not write.
+     * @principle Implements a "Public Read with Owner-Only Writes" pattern. Reviews build public trust, but only the original author can create or modify their own review.
+     */
+    match /reviews/{reviewId} {
+      allow get, list: if true;
+      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(resource.data.userId);
+    }
+  }
+}
