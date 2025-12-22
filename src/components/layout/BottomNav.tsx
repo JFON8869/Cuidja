@@ -1,36 +1,56 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, PlusCircle, Heart, User, ShoppingCart, MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  Home,
+  PlusCircle,
+  Heart,
+  User,
+  ShoppingCart,
+  MessageSquare,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useFirebase } from '@/firebase';
 
 const navItems = [
-  { href: "/", label: "Início", icon: Home },
-  { href: "/vender", label: "Vender", icon: PlusCircle },
-  { href: "/carrinho", label: "Carrinho", icon: ShoppingCart },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/perfil", label: "Perfil", icon: User },
+  { href: '/', label: 'Início', icon: Home },
+  { href: '/vender', label: 'Vender', icon: PlusCircle },
+  { href: '/carrinho', label: 'Carrinho', icon: ShoppingCart },
+  { href: '/chat', label: 'Chat', icon: MessageSquare },
+  { href: '/perfil', label: 'Perfil', icon: User, auth: true },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { user, isUserLoading } = useFirebase();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm h-16 bg-card border-t z-10">
-      <div className="flex justify-around items-center h-full">
-        {navItems.map(({ href, label, icon: Icon }) => {
+    <nav className="fixed bottom-0 left-1/2 z-10 h-16 w-full max-w-sm -translate-x-1/2 border-t bg-card">
+      <div className="flex h-full items-center justify-around">
+        {navItems.map(({ href, label, icon: Icon, auth: requiresAuth }) => {
           const isActive = pathname === href;
+          const finalHref = requiresAuth && !user ? '/login' : href;
+
+          if (isUserLoading && requiresAuth) {
+             return (
+              <div key={label} className="flex h-full w-full animate-pulse flex-col items-center justify-center gap-1 rounded-md bg-muted/50 p-2">
+                <div className="h-5 w-5 rounded bg-muted"></div>
+                <div className="h-2 w-8 rounded bg-muted"></div>
+              </div>
+            );
+          }
+
           return (
             <Link
               key={label}
-              href={href}
+              href={finalHref}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-xs font-medium w-full h-full",
-                isActive ? "text-primary" : "text-muted-foreground"
+                'flex h-full w-full flex-col items-center justify-center gap-1 text-xs font-medium',
+                isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="h-5 w-5" />
               <span>{label}</span>
             </Link>
           );

@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import BottomNav from '@/components/layout/BottomNav';
 import { AppProviders } from '@/context/AppProviders';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Mercado Local Cuidja',
@@ -22,14 +23,16 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Belleza&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppProviders>
-          <div className="gradient-background fixed inset-0 -z-10" />
-          <div className="pb-16">
-            {children}
-          </div>
-          <BottomNav />
-          <Toaster />
-        </AppProviders>
+        <FirebaseClientProvider>
+          <AppProviders>
+            <div className="gradient-background fixed inset-0 -z-10" />
+            <div className="pb-16">
+              {children}
+            </div>
+            <BottomNav />
+            <Toaster />
+          </AppProviders>
+        </FirebaseClientProvider>
       </body>
     </html>
   );
