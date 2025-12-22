@@ -72,11 +72,8 @@ body {
     background-color: hsl(var(--muted)); 
   }
   .gradient-background {
-    background-image: url('/logo-background.svg');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 80% auto;
-    opacity: 0.1; /* Reduced opacity for watermark effect */
+    background-image: linear-gradient(to bottom, #C5DADF, #FEBA77);
+    opacity: 0.7;
   }
 }
 
