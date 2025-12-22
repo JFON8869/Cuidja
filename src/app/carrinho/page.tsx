@@ -76,8 +76,8 @@ export default function CartPage() {
                     }).format(total)}
                 </span>
             </div>
-            <Button size="lg" className="w-full">
-                Finalizar Compra
+            <Button size="lg" className="w-full" asChild>
+              <Link href="/checkout">Finalizar Compra</Link>
             </Button>
         </footer>
       )}
