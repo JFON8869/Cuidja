@@ -58,7 +58,7 @@ export default function CheckoutPage() {
   const firstProductInCart = cart.length > 0 ? cart[0] : null;
   const productStoreId = firstProductInCart?.storeId;
 
-  const urgentCategories = useMemo(() => ['Gás e Água', 'Serviços', 'Farmácias'], []);
+  const urgentCategories = useMemo(() => ['Gás e Água', 'Farmácias'], []);
   const isUrgentCategory = useMemo(() => {
     return cart.some(item => urgentCategories.includes(item.category));
   }, [cart, urgentCategories]);
