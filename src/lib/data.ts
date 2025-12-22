@@ -1,3 +1,4 @@
+
 import type { ImagePlaceholder } from './placeholder-images';
 import { PlaceHolderImages } from './placeholder-images';
 import type { LucideIcon } from 'lucide-react';
@@ -50,14 +51,14 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const mockCategories: Category[] = [
-  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils, color: 'bg-orange-400' },
-  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater, color: 'bg-blue-400' },
+  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils, color: 'bg-green-500' },
+  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater, color: 'bg-green-500' },
   { id: '3', name: 'Faça-Feira', slug: 'faca-feira', Icon: ShoppingBasket, color: 'bg-green-500' },
-  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush, color: 'bg-purple-400' },
-  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets, color: 'bg-sky-400' },
-  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog, color: 'bg-yellow-600' },
-  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill, color: 'bg-red-400' },
-  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench, color: 'bg-gray-500' },
+  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush, color: 'bg-green-500' },
+  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets, color: 'bg-green-500' },
+  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog, color: 'bg-green-500' },
+  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill, color: 'bg-green-500' },
+  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench, color: 'bg-green-500' },
 ];
 
 export const mockBanners: Banner[] = [
