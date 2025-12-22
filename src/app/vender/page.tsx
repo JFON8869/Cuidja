@@ -10,6 +10,7 @@ import {
   Package,
   Store,
   Loader2,
+  Wrench,
 } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -39,7 +40,7 @@ const salesData = [
 export default function SellPage() {
   const { products } = useProductContext();
   const { user, firestore, isUserLoading } = useFirebase();
-  const [storeId, setStoreId] = useState<string | null>(null);
+  const [store, setStore] = useState<{id: string, category: string} | null>(null);
   const [isStoreLoading, setStoreLoading] = useState(true);
 
   useEffect(() => {
@@ -55,18 +56,21 @@ export default function SellPage() {
       const q = query(storesRef, where('userId', '==', user.uid));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
-        setStoreId(querySnapshot.docs[0].id);
+        const storeDoc = querySnapshot.docs[0];
+        setStore({ id: storeDoc.id, category: storeDoc.data().category });
       } else {
-        setStoreId(null); // Explicitly set to null if no store found
+        setStore(null); // Explicitly set to null if no store found
       }
       setStoreLoading(false);
     }
     fetchStore();
   }, [user, firestore, isUserLoading]);
 
-  const myProductsCount = storeId
-    ? products.filter((p) => p.storeId === storeId).length
+  const myProductsCount = store
+    ? products.filter((p) => p.storeId === store.id).length
     : 0;
+
+  const isServiceProvider = store?.category === 'Serviços';
 
   if (isStoreLoading || isUserLoading) {
     return (
@@ -84,7 +88,7 @@ export default function SellPage() {
   }
 
   // If user is logged in but has no store
-  if (user && !storeId) {
+  if (user && !store) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
         <header className="flex items-center border-b p-4">
@@ -99,7 +103,7 @@ export default function SellPage() {
         <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
             <Store className="h-20 w-20 text-muted-foreground mb-4"/>
             <h2 className="text-2xl font-bold">Crie sua loja para começar</h2>
-            <p className="text-muted-foreground mb-6">O primeiro passo para vender seus produtos é criar sua loja. É rápido e fácil!</p>
+            <p className="text-muted-foreground mb-6">O primeiro passo para vender é criar sua loja. É rápido e fácil!</p>
             <Button size="lg" asChild>
                 <Link href="/vender/loja">
                     <PlusCircle className="mr-2"/>
@@ -128,26 +132,44 @@ export default function SellPage() {
       </header>
       <main className="flex-1 space-y-6 p-4">
         <Button size="lg" className="w-full" asChild>
-          <Link href="/vender/novo-produto">
-            <PlusCircle className="mr-2" />
-            Anunciar Novo Produto
-          </Link>
+            <Link href={isServiceProvider ? "/vender/novo-servico" : "/vender/novo-produto"}>
+                <PlusCircle className="mr-2" />
+                {isServiceProvider ? 'Anunciar Novo Serviço' : 'Anunciar Novo Produto'}
+            </Link>
         </Button>
         <div className="grid grid-cols-2 gap-4">
-          <Link href="/vender/produtos">
-            <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Meus Produtos
-                </CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{myProductsCount}</div>
-                <p className="text-xs text-muted-foreground">Produtos ativos</p>
-              </CardContent>
-            </Card>
-          </Link>
+          {isServiceProvider ? (
+             <Link href="/vender/servicos">
+                <Card className="hover:bg-muted/50 transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Meus Serviços
+                    </CardTitle>
+                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    {/* TODO: Fetch services count */}
+                    <div className="text-2xl font-bold">...</div>
+                    <p className="text-xs text-muted-foreground">Serviços ativos</p>
+                  </CardContent>
+                </Card>
+            </Link>
+          ) : (
+            <Link href="/vender/produtos">
+                <Card className="hover:bg-muted/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                    Meus Produtos
+                    </CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{myProductsCount}</div>
+                    <p className="text-xs text-muted-foreground">Produtos ativos</p>
+                </CardContent>
+                </Card>
+            </Link>
+          )}
           <Link href="/vender/pedidos">
             <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
