@@ -5,19 +5,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { handleGoogleSignIn } from '@/lib/auth-actions';
 
 export default function WelcomePage() {
-  const { auth } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
   const [isGoogleLoading, setGoogleLoading] = useState(false);
 
   const onGoogleSignIn = async () => {
-    if (!auth) return;
-    await handleGoogleSignIn(auth, router, toast, setGoogleLoading);
+    await handleGoogleSignIn(router, toast, setGoogleLoading);
   };
 
   return (
