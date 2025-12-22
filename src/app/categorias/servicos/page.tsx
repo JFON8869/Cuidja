@@ -20,14 +20,17 @@ interface StoreDocument {
 }
 
 export default function ServicesCategoryPage() {
-  const { firestore, isUserLoading } = useFirebase();
+  const { firestore } = useFirebase();
 
-  // Memoize the query to prevent re-renders
+  // Memoize the query to prevent re-renders. This query finds stores that offer services.
+  // A better approach would be a dedicated field e.g. `offersServices: true`
+  // For now, we query stores that have listed their primary category as 'Serviços'.
+  // This will also include stores that offer both products and services.
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'stores'),
-      where('category', '==', 'Serviços')
+      where('category', '==', 'Serviços') // This might need adjustment based on the final data model
     );
   }, [firestore]);
 
@@ -67,19 +70,13 @@ export default function ServicesCategoryPage() {
         ) : serviceProviders && serviceProviders.length > 0 ? (
           <div className="space-y-4">
             {serviceProviders.map((store) => (
-              // The StoreCard is adapted to handle the Firestore document structure
               <StoreCard
                 key={store.id}
                 store={{
                   id: store.id,
                   name: store.name,
                   category: store.category,
-                  logo: {
-                    id: store.id,
-                    imageUrl: store.logoUrl || '/placeholder.png', // Provide a fallback
-                    imageHint: 'store logo',
-                    description: `Logo for ${store.name}`
-                  },
+                  logoUrl: store.logoUrl,
                 }}
               />
             ))}

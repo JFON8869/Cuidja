@@ -44,20 +44,20 @@ export default function StorePage() {
   const { data: store, isLoading: isLoadingStore } = useDoc<StoreDocument>(storeRef);
 
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !store?.id) return null;
+    if (!firestore || !id) return null;
     return query(
         collection(firestore, 'products'),
-        where('storeId', '==', store.id)
+        where('storeId', '==', id)
     );
-  }, [firestore, store]);
+  }, [firestore, id]);
 
   const servicesQuery = useMemoFirebase(() => {
-    if (!firestore || !store?.id) return null;
+    if (!firestore || !id) return null;
     return query(
         collection(firestore, 'services'),
-        where('providerId', '==', store.id)
+        where('providerId', '==', id)
     );
-  }, [firestore, store]);
+  }, [firestore, id]);
 
   const { data: storeProducts, isLoading: areProductsLoading } = useCollection<ProductWithId>(productsQuery);
   const { data: storeServices, isLoading: areServicesLoading } = useCollection<ServiceWithId>(servicesQuery);
@@ -133,7 +133,7 @@ export default function StorePage() {
                     Produtos
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
-                    {storeProducts.map((product) => (
+                    {storeProducts!.map((product) => (
                         <ProductCard key={product.id} product={product} />
                     ))}
                 </div>
@@ -147,7 +147,7 @@ export default function StorePage() {
                     Serviços
                 </h2>
                 <div className="space-y-4">
-                    {storeServices.map((service) => (
+                    {storeServices!.map((service) => (
                         <Card key={service.id} className="overflow-hidden">
                             <Image src={service.images[0].imageUrl} alt={service.name} width={400} height={200} className="w-full h-32 object-cover" />
                             <CardHeader>
