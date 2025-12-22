@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import BottomNav from '@/components/layout/BottomNav';
 
 export default function FavoritesPage() {
   return (
@@ -25,7 +24,6 @@ export default function FavoritesPage() {
           <Link href="/">Começar a procurar</Link>
         </Button>
       </main>
-      <BottomNav />
     </div>
   );
 }

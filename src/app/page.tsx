@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Bell,
   Heart,
   LayoutGrid,
   Leaf,
   MessageCircle,
   PlusCircle,
   Search,
-  ShoppingCart,
   Store,
   User,
 } from "lucide-react";
@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProductCard } from "@/components/product/ProductCard";
 import { mockCategories, mockProducts } from "@/lib/data";
-import BottomNav from "@/components/layout/BottomNav";
 
 export default function Home() {
   const recommendedProducts = mockProducts.slice(0, 5);
@@ -37,15 +36,15 @@ export default function Home() {
             </Link>
           </Button>
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/carrinho">
-              <ShoppingCart className="w-5 h-5" />
-              <span className="sr-only">Carrinho</span>
+            <Link href="/notificacoes">
+              <Bell className="w-5 h-5" />
+              <span className="sr-only">Notificações</span>
             </Link>
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pb-24">
+      <main className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-8">
           {/* Search Section */}
           <div className="relative">
@@ -109,8 +108,6 @@ export default function Home() {
           </section>
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { ArrowLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import BottomNav from '@/components/layout/BottomNav';
 import { Input } from '@/components/ui/input';
 
 export default function SearchPage() {
@@ -26,7 +25,6 @@ export default function SearchPage() {
           />
         </div>
       </main>
-      <BottomNav />
     </div>
   );
 }

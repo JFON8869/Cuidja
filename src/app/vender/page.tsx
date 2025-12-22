@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import BottomNav from "@/components/layout/BottomNav";
 
 export default function SellPage() {
   return (
@@ -18,7 +17,6 @@ export default function SellPage() {
       <main className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Conteúdo da página de vendas.</p>
       </main>
-      <BottomNav />
     </div>
   );
 }
