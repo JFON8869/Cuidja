@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -142,7 +143,8 @@ export default function CheckoutPage() {
                 zip: values.zip,
             },
             paymentMethod: values.paymentMethod,
-            category: firstProductInCart?.category // Store category for later checks
+            category: firstProductInCart?.category, // Store category for later checks
+            isUrgent: values.isUrgent,
         }
 
         if (isUrgentCategory) {
@@ -150,7 +152,6 @@ export default function CheckoutPage() {
             orderData.lastMessageTimestamp = initialMessage.length > 0 ? new Date().toISOString() : null;
             orderData.buyerHasUnreadMessages = false;
             orderData.sellerHasUnreadMessages = initialMessage.length > 0;
-            orderData.isUrgent = values.isUrgent;
         }
         
         await addDoc(ordersCollection, orderData);
