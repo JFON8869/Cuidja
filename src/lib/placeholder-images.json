@@ -161,6 +161,72 @@
       "description": "A collection of tools, representing handyman or 'marido de aluguel' services.",
       "imageUrl": "https://images.unsplash.com/photo-1581143717215-c277a79963d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxoYW5keW1hbiUyMHRvb2xzfGVufDB8fHx8MTc3MDI0MjI3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "handyman tools"
+    },
+    {
+      "id": "farm-eggs",
+      "description": "A carton of fresh farm eggs.",
+      "imageUrl": "https://images.unsplash.com/photo-1598109769719-747f485f7957?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmYXJtJTIwZWdnc3xlbnwwfHx8fDE3NzAzMjU5OTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "farm eggs"
+    },
+    {
+      "id": "corn-cake",
+      "description": "A slice of Brazilian corn cake (bolo de fubá) with guava paste.",
+      "imageUrl": "https://images.unsplash.com/photo-1631083445145-a7641c8d6ac4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxib2xvJTIwZGUlMjBmdWIlQzMlQTF8ZW58MHx8fHwxNzczMzI2MDIxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "corn cake"
+    },
+    {
+      "id": "dulce-de-leche",
+      "description": "Creamy dulce de leche in a jar.",
+      "imageUrl": "https://images.unsplash.com/photo-1579580048144-937b8c31034b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxkdWxjZSUyMGRlJTIwbGVjaGV8ZW58MHx8fHwxNzczMzI2MDQwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dulce de leche"
+    },
+    {
+      "id": "wood-board",
+      "description": "An elegant wooden cutting board.",
+      "imageUrl": "https://images.unsplash.com/photo-1632296493055-66d99599a4c8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b29kZW4lMjBjdXR0aW5nJTIwYm9hcmR8ZW58MHx8fHwxNzczMzI2MDYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cutting board"
+    },
+    {
+      "id": "ceramic-mug",
+      "description": "A handmade ceramic mug.",
+      "imageUrl": "https://images.unsplash.com/photo-1610442340356-91a52550b4a7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxoYW5kbWFkZSUyMGNlcmFtaWMlMjBtdWd8ZW58MHx8fHwxNzczMzI2MDc4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ceramic mug"
+    },
+    {
+      "id": "burger-classic",
+      "description": "A classic beef burger with cheese and salad.",
+      "imageUrl": "https://images.unsplash.com/photo-1571091718767-18b5b1457add?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxidXJnZXJ8ZW58MHx8fHwxNzczMzI2MTAxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "classic burger"
+    },
+    {
+      "id": "carrot-cake",
+      "description": "A slice of carrot cake with chocolate frosting.",
+      "imageUrl": "https://images.unsplash.com/photo-1621280125869-035824c44933?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJyb3QlMjBjYWtlJTIwc2xpY2V8ZW58MHx8fHwxNzczMzI2MTIwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "carrot cake"
+    },
+    {
+      "id": "pizza-pepperoni",
+      "description": "A large pepperoni pizza with extra cheese.",
+      "imageUrl": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXBwZXJvbmklMjBwaXp6YXxlbnwwfHx8fDE3NzMzMjYxNDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pepperoni pizza"
+    },
+    {
+      "id": "guitar-teacher",
+      "description": "A person playing an acoustic guitar.",
+      "imageUrl": "https://images.unsplash.com/photo-1510915361894-db8b60106945?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhY291c3RpYyUyMGd1aXRhcnxlbnwwfHx8fDE3NzMzMjYxODR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "acoustic guitar"
+    },
+    {
+      "id": "burger-logo",
+      "description": "Logo for a burger joint.",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/burger-logo.png",
+      "imageHint": "burger logo"
+    },
+    {
+      "id": "cake-logo",
+      "description": "Logo for a cake shop.",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/cake-logo.png",
+      "imageHint": "cake logo"
     }
   ]
 }

@@ -128,12 +128,15 @@ export const mockStores: Store[] = [
   // Artesanatos
   { id: 'artebarro', name: 'Arte em Barro', category: 'Artesanatos', logo: findImage('pottery') },
   { id: 'bordadosfinos', name: 'Bordados Finos', category: 'Artesanatos', logo: findImage('textiles') },
+  { id: 'madeiraviva', name: 'Madeira Viva', category: 'Artesanatos', logo: findImage('woodworking') },
   // Serviços
-  { id: 'joaojardineiro', name: 'João Jardineiro', category: 'Serviços', logo: findImage('woodworking') },
+  { id: 'joaojardineiro', name: 'João Jardineiro', category: 'Serviços', logo: findImage('gardening-service') },
   { id: 'maridodefaztudo', name: 'Marido de Aluguel Faz-Tudo', category: 'Serviços', logo: findImage('tools-for-hire') },
+  { id: 'musiclass', name: 'Musiclass', category: 'Serviços', logo: findImage('guitar-teacher') },
   // Restaurantes
   { id: 'pizzabella', name: 'Pizza Bella', category: 'Restaurantes', logo: findImage('pizza') },
-  { id: 'burgerhouse', name: 'Burger House', category: 'Restaurantes', logo: findImage('bread') },
+  { id: 'burgerhouse', name: 'Burger House', category: 'Restaurantes', logo: findImage('burger-logo') },
+  { id: 'cantinhodavo', name: 'Cantinho da Vó', category: 'Restaurantes', logo: findImage('cake-logo')},
   // Bebidas
   { id: 'sucoscia', name: 'Sucos & Cia', category: 'Bebidas', logo: findImage('fruits') },
   // Gás e Água
@@ -157,7 +160,7 @@ export const mockProducts: Product[] = [
   },
   {
     id: '2',
-    name: 'Pão Artesanal',
+    name: 'Pão Artesanal de Fermentação Natural',
     description: 'Pão de fermentação natural, com casca crocante e miolo macio. Feito com muito carinho.',
     price: 15.0,
     storeId: 'paodaterra',
@@ -166,7 +169,7 @@ export const mockProducts: Product[] = [
   },
   {
     id: '3',
-    name: 'Mel Silvestre',
+    name: 'Mel Silvestre 500g',
     description: 'Mel puro e delicioso, produzido por abelhas que se alimentam de flores silvestres da nossa região.',
     price: 30.0,
     storeId: 'apiariosol',
@@ -184,17 +187,44 @@ export const mockProducts: Product[] = [
   },
   {
     id: '7',
-    name: 'Queijo Minas Frescal',
+    name: 'Queijo Minas Frescal 500g',
     description: 'Queijo fresco, leve e saboroso, produzido com leite puro da fazenda. Ótimo para o café da manhã.',
     price: 45.0,
     storeId: 'laticiniosserra',
     images: [findImage('cheese')],
     category: 'Faça-Feira',
   },
+   {
+    id: '17',
+    name: 'Ovos Caipira (Dúzia)',
+    description: 'Ovos de galinhas criadas soltas, com uma gema mais amarela e sabor incomparável.',
+    price: 18.0,
+    storeId: 'sitiov',
+    images: [findImage('farm-eggs')],
+    category: 'Faça-Feira',
+  },
+  {
+    id: '18',
+    name: 'Bolo de Fubá com Goiabada',
+    description: 'Aquele bolo fofinho que lembra casa de vó, com pedaços de goiabada derretendo.',
+    price: 25.0,
+    storeId: 'paodaterra',
+    images: [findImage('corn-cake')],
+    category: 'Faça-Feira',
+  },
+  {
+    id: '19',
+    name: 'Doce de Leite Pastoso 400g',
+    description: 'O verdadeiro sabor do doce de leite mineiro, cremoso e irresistível.',
+    price: 22.0,
+    storeId: 'laticiniosserra',
+    images: [findImage('dulce-de-leche')],
+    category: 'Faça-Feira',
+  },
   // Artesanatos
   {
     id: '4',
-    name: 'Vaso de Cerâmica',
+    name: 'Vaso de Cerâmica "Sol"',
     description: 'Vaso de cerâmica feito à mão por artesãos locais. Cada peça é única e perfeita para suas plantas.',
     price: 50.0,
     storeId: 'artebarro',
@@ -203,11 +233,29 @@ export const mockProducts: Product[] = [
   },
   {
     id: '8',
-    name: 'Pano de Prato Bordado',
+    name: 'Pano de Prato Bordado "Flores"',
     description: 'Pano de prato de alta qualidade, com lindos bordados feitos à mão. Uma peça que une utilidade e beleza.',
     price: 25.0,
     storeId: 'bordadosfinos',
     images: [findImage('textiles')],
+    category: 'Artesanatos',
+  },
+   {
+    id: '20',
+    name: 'Tábua de Corte em Madeira Nobre',
+    description: 'Tábua de corte robusta e elegante, feita com madeira de demolição. Perfeita para servir e cortar.',
+    price: 120.0,
+    storeId: 'madeiraviva',
+    images: [findImage('wood-board')],
+    category: 'Artesanatos',
+  },
+  {
+    id: '21',
+    name: 'Caneca de Cerâmica "Manhã"',
+    description: 'Comece seu dia com uma caneca exclusiva, moldada e pintada à mão. Ideal para café ou chá.',
+    price: 45.0,
+    storeId: 'artebarro',
+    images: [findImage('ceramic-mug')],
     category: 'Artesanatos',
   },
   // Restaurantes
@@ -245,11 +293,29 @@ export const mockProducts: Product[] = [
   },
   {
     id: '12',
-    name: 'Hambúrguer Artesanal',
+    name: 'Burger Clássico',
     description: 'Delicioso hambúrguer de 180g, queijo cheddar, bacon crocante e pão brioche.',
     price: 35.0,
     storeId: 'burgerhouse',
-    images: [findImage('bread')], // placeholder
+    images: [findImage('burger-classic')], // placeholder
+    category: 'Restaurantes',
+  },
+  {
+    id: '22',
+    name: 'Fatia de Bolo de Cenoura com Chocolate',
+    description: 'Uma fatia generosa do melhor bolo de cenoura, com uma cobertura cremosa de brigadeiro.',
+    price: 12.0,
+    storeId: 'cantinhodavo',
+    images: [findImage('carrot-cake')],
+    category: 'Restaurantes',
+  },
+  {
+    id: '23',
+    name: 'Pizza de Calabresa Grande',
+    description: 'Molho de tomate, calabresa fatiada, cebola e azeitonas. Uma explosão de sabor!',
+    price: 50.0,
+    storeId: 'pizzabella',
+    images: [findImage('pizza-pepperoni')],
     category: 'Restaurantes',
   },
   // Bebidas
@@ -314,12 +380,21 @@ export const mockServices: Service[] = [
         visitFee: 70.00
     },
      {
-        id: 'serv-reparos-sem-taxa',
+        id: 'serv-marcenaria',
         name: 'Orçamento de Marcenaria',
         description: 'Criação de móveis planejados e projetos em madeira. Entre em contato para um orçamento sem compromisso.',
-        providerId: 'maridodefaztudo',
+        providerId: 'madeiraviva',
         category: 'Serviços',
         images: [findImage('woodworking')],
         visitFee: 0 // Free contact
+    },
+    {
+        id: 'serv-aula-violao',
+        name: 'Aula Particular de Violão',
+        description: 'Aulas de violão para iniciantes e intermediários. Aprenda a tocar suas músicas favoritas. Pacotes mensais ou aulas avulsas.',
+        providerId: 'musiclass',
+        category: 'Serviços',
+        images: [findImage('guitar-teacher')],
+        visitFee: 40 // "Taxa" para aula experimental
     }
 ];
