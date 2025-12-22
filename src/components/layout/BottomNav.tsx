@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, PlusCircle, User, ShoppingCart, Wrench, Bell } from 'lucide-react';
+import { Home, PlusCircle, User, ShoppingCart, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -31,54 +31,63 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { user, isUserLoading, firestore } = useFirebase();
   const [isClient, setIsClient] = useState(false);
-  const [storeId, setStoreId] = useState<string | null>(null);
+  const [hasNotifications, setHasNotifications] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
   
   useEffect(() => {
-    async function fetchStoreId() {
-      if (!firestore || !user) {
-        setStoreId(null);
-        return;
-      }
+    if (isUserLoading || !user || !firestore) {
+      setHasNotifications(false);
+      return;
+    }
+
+    const checkNotifications = async () => {
+      // Find stores this user owns
       const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setStoreId(querySnapshot.docs[0].id);
-      } else {
-        setStoreId(null);
+      const storeQuery = query(storesRef, where('userId', '==', user.uid));
+      const storeSnapshot = await getDocs(storeQuery);
+      const storeIds = storeSnapshot.docs.map(doc => doc.id);
+      
+      let unreadFound = false;
+
+      // Check for unread buyer notifications
+      const buyerQuery = query(collection(firestore, 'orders'), where('customerId', '==', user.uid), where('buyerHasUnread', '==', true));
+      const buyerSnapshot = await getDocs(buyerQuery);
+      if (!buyerSnapshot.empty) {
+        unreadFound = true;
       }
-    }
-    if (!isUserLoading) {
-      fetchStoreId();
-    }
+
+      // Check for unread seller/provider notifications if the user has stores
+      if (!unreadFound && storeIds.length > 0) {
+        const sellerQuery = query(collection(firestore, 'orders'), where('storeId', 'in', storeIds), where('sellerHasUnread', '==', true));
+        const sellerSnapshot = await getDocs(sellerQuery);
+        if (!sellerSnapshot.empty) {
+            unreadFound = true;
+        }
+      }
+      
+      // Check for unread service requests for providers
+       if (!unreadFound) {
+        const requestQuery = query(collection(firestore, 'serviceRequests'), where('providerId', '==', user.uid), where('providerHasUnread', '==', true));
+        const requestSnapshot = await getDocs(requestQuery);
+        if (!requestSnapshot.empty) {
+          unreadFound = true;
+        }
+       }
+       
+      setHasNotifications(unreadFound);
+    };
+
+    // Use an interval to periodically check for notifications
+    const interval = setInterval(checkNotifications, 5000); // Check every 5 seconds
+    checkNotifications(); // Initial check
+
+    return () => clearInterval(interval); // Cleanup interval
+
   }, [firestore, user, isUserLoading]);
 
-  const buyerNotificationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('customerId', '==', user.uid),
-      where('buyerHasUnread', '==', true)
-    );
-  }, [firestore, user]);
-
-  const sellerNotificationsQuery = useMemoFirebase(() => {
-    if (!firestore || !storeId) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('storeId', '==', storeId),
-      where('sellerHasUnread', '==', true)
-    );
-  }, [firestore, storeId]);
-  
-  const { data: buyerNotifications } = useCollection(buyerNotificationsQuery);
-  const { data: sellerNotifications } = useCollection(sellerNotificationsQuery);
-
-  const hasNotifications = (buyerNotifications?.length ?? 0) > 0 || (sellerNotifications?.length ?? 0) > 0;
 
   const pagesToHideNav = ['/', '/login', '/signup'];
   if (pagesToHideNav.includes(pathname)) {

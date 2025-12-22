@@ -1,4 +1,3 @@
-
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
@@ -36,10 +35,17 @@ interface Address {
     zip: string;
 }
 
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 interface Order {
   id: string;
   orderDate: string;
-  productIds: string[];
+  items: OrderItem[];
   status: string;
   totalAmount: number;
   customerId: string; 
@@ -105,10 +111,15 @@ export default function OrderDetailPage() {
     if (!orderRef || !order || !user || isSeller === undefined) return;
     
     const isBuyer = user.uid === order.customerId;
-    const hasUnread = isBuyer ? order.buyerHasUnread : order.sellerHasUnread;
-    const payload = isBuyer ? { buyerHasUnread: false } : { sellerHasUnread: false };
+    let payload = {};
 
-    if (hasUnread) {
+    if (isBuyer && order.buyerHasUnread) {
+        payload = { buyerHasUnread: false };
+    } else if (!isBuyer && order.sellerHasUnread) {
+        payload = { sellerHasUnread: false };
+    }
+
+    if (Object.keys(payload).length > 0) {
         updateDoc(orderRef, payload).catch(err => console.error("Failed to mark order as read:", err));
     }
   }, [order, user, orderRef, isSeller]);
@@ -207,7 +218,7 @@ export default function OrderDetailPage() {
             <CardContent className="space-y-2 text-sm">
                 <p><strong>Data:</strong> {format(new Date(order.orderDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
                 <p><strong>Status:</strong> <span className="font-semibold text-accent">{order.status}</span></p>
-                <p><strong>Itens:</strong> {order.productIds?.length || 'Serviço'}</p>
+                <p><strong>Itens:</strong> {order.items?.length || 'N/A'}</p>
                 <p><strong>Total:</strong> 
                     <span className="font-bold">
                         {' '}{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.totalAmount)}

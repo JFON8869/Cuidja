@@ -1,15 +1,14 @@
 'use client';
 import Link from 'next/link';
-import { ArrowLeft, Bell, Package, ShoppingCart, Info } from 'lucide-react';
+import { ArrowLeft, Bell, Package, Wrench, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React, { useEffect, useState, useMemo } from 'react';
-import { getDocs } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -19,7 +18,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { toast } from 'react-hot-toast';
-
 
 interface Order extends WithId<any> {
   id: string;
@@ -32,22 +30,97 @@ interface Order extends WithId<any> {
   customerId: string;
 }
 
+interface ServiceRequest extends WithId<any> {
+    id: string;
+    requestDate: string;
+    serviceName: string;
+    status: string;
+    providerHasUnread?: boolean;
+}
+
+type Notification = (Order | ServiceRequest) & {type: 'order' | 'request'};
+
 export default function NotificationsPage() {
   const { firestore, user, isUserLoading } = useFirebase();
   const [showPermissionCard, setShowPermissionCard] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const notificationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('buyerHasUnread', '==', true),
-      where('customerId', '==', user.uid),
-      orderBy('orderDate', 'desc')
-    );
-  }, [firestore, user]);
+  useEffect(() => {
+    if (isUserLoading || !user || !firestore) {
+      if (!isUserLoading) setIsLoading(false);
+      return;
+    }
 
-  const { data: notifications, isLoading: notificationsLoading } = useCollection<Order>(notificationsQuery);
-  const isLoading = isUserLoading || notificationsLoading;
+    const fetchNotifications = async () => {
+      setIsLoading(true);
+      try {
+        // Find stores this user owns
+        const storesRef = collection(firestore, 'stores');
+        const storeQuery = query(storesRef, where('userId', '==', user.uid));
+        const storeSnapshot = await getDocs(storeQuery);
+        const storeIds = storeSnapshot.docs.map(doc => doc.id);
+
+        const fetchedNotifications: Notification[] = [];
+
+        // 1. Get unread orders where user is the BUYER
+        const buyerOrdersQuery = query(
+          collection(firestore, 'orders'),
+          where('customerId', '==', user.uid),
+          where('buyerHasUnread', '==', true),
+          orderBy('orderDate', 'desc')
+        );
+        const buyerOrdersSnapshot = await getDocs(buyerOrdersQuery);
+        buyerOrdersSnapshot.forEach(doc => {
+          fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
+        });
+        
+        if (storeIds.length > 0) {
+            // 2. Get unread orders where user is the SELLER
+            const sellerOrdersQuery = query(
+              collection(firestore, 'orders'),
+              where('storeId', 'in', storeIds),
+              where('sellerHasUnread', '==', true),
+              orderBy('orderDate', 'desc')
+            );
+            const sellerOrdersSnapshot = await getDocs(sellerOrdersQuery);
+            sellerOrdersSnapshot.forEach(doc => {
+              fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
+            });
+            
+             // 3. Get unread service requests where user is the PROVIDER
+            const serviceRequestsQuery = query(
+              collection(firestore, 'serviceRequests'),
+              where('providerId', '==', user.uid),
+              where('providerHasUnread', '==', true),
+              orderBy('requestDate', 'desc')
+            );
+            const serviceRequestsSnapshot = await getDocs(serviceRequestsQuery);
+            serviceRequestsSnapshot.forEach(doc => {
+              fetchedNotifications.push({ ...(doc.data() as ServiceRequest), id: doc.id, type: 'request' });
+            });
+        }
+        
+        // Sort all combined notifications by date
+        fetchedNotifications.sort((a, b) => {
+            const dateA = new Date((a as any).orderDate || (a as any).requestDate);
+            const dateB = new Date((b as any).orderDate || (b as any).requestDate);
+            return dateB.getTime() - dateA.getTime();
+        });
+
+
+        setNotifications(fetchedNotifications);
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+        toast.error("Erro ao buscar notificações.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [user, firestore, isUserLoading]);
+
 
   const handlePermissionRequest = (allow: boolean) => {
     setShowPermissionCard(false);
@@ -105,33 +178,42 @@ export default function NotificationsPage() {
         {isLoading ? renderSkeleton() : (
             notifications && notifications.length > 0 ? (
                 <div className="divide-y">
-                    {notifications.map(notification => (
-                        <Link href={`/pedidos/${notification.id}`} key={notification.id} className="flex items-start gap-4 p-4 hover:bg-muted/50 transition-colors">
+                    {notifications.map(notification => {
+                        const isOrder = notification.type === 'order';
+                        const href = isOrder ? `/pedidos/${notification.id}` : `/vender/solicitacoes/${notification.id}`;
+                        const isSellerNotification = (isOrder && (notification as Order).customerId !== user?.uid) || !isOrder;
+                        const date = isOrder ? (notification as Order).orderDate : (notification as ServiceRequest).requestDate;
+
+                        return (
+                        <Link href={href} key={notification.id} className="flex items-start gap-4 p-4 hover:bg-muted/50 transition-colors">
                             <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                                {notification.customerId === user?.uid ? (
-                                    <Package className="h-5 w-5 text-primary" />
-                                ) : (
-                                    <ShoppingCart className="h-5 w-5 text-primary" />
-                                )}
+                                {isOrder ? <Package className="h-5 w-5 text-primary" /> : <Wrench className="h-5 w-5 text-primary" />}
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm">
-                                    {notification.customerId !== user?.uid ? (
-                                        <>
-                                            Você tem um novo pedido! <span className="font-bold">#{notification.id.substring(0,7)}</span>.
-                                        </>
+                                    {isSellerNotification ? (
+                                        isOrder ? (
+                                            <>
+                                                Você recebeu um novo pedido! <span className="font-bold">#{notification.id.substring(0,7)}</span>.
+                                            </>
+                                        ) : (
+                                            <>
+                                                Nova solicitação para <span className="font-bold">{(notification as ServiceRequest).serviceName}</span>.
+                                            </>
+                                        )
                                     ) : (
                                         <>
-                                            O status do seu pedido <span className="font-bold">#{notification.id.substring(0,7)}</span> foi atualizado para <span className="font-semibold text-accent">{notification.status}</span>.
+                                            O status do seu pedido <span className="font-bold">#{notification.id.substring(0,7)}</span> foi atualizado para <span className="font-semibold text-accent">{(notification as Order).status}</span>.
                                         </>
                                     )}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {formatDistanceToNow(new Date(notification.orderDate), { addSuffix: true, locale: ptBR })}
+                                    {formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR })}
                                 </p>
                             </div>
                         </Link>
-                    ))}
+                        )
+                    })}
                 </div>
             ) : (
                  <div className="flex-1 flex flex-col items-center justify-center text-center p-4 h-full">
