@@ -3,13 +3,7 @@ import Link from "next/link";
 import {
   Bell,
   Heart,
-  LayoutGrid,
-  Leaf,
-  MessageCircle,
-  PlusCircle,
   Search,
-  Store,
-  User,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,17 +19,11 @@ export default function Home() {
     <div className="relative bg-background max-w-sm mx-auto flex flex-col min-h-[100dvh] shadow-2xl overflow-hidden">
       <header className="flex items-center justify-between p-4 border-b">
         <Link href="/" className="flex items-center gap-2 text-primary">
-          <Leaf className="w-7 h-7" />
+          <Image src="/logo.svg" alt="Cuidja Logo" width={32} height={32} />
           <h1 className="text-2xl font-headline tracking-wider">Cuidja</h1>
         </Link>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/favoritos">
-              <Heart className="w-5 h-5" />
-              <span className="sr-only">Favoritos</span>
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" asChild>
+           <Button variant="ghost" size="icon" asChild>
             <Link href="/notificacoes">
               <Bell className="w-5 h-5" />
               <span className="sr-only">Notificações</span>
@@ -47,13 +35,14 @@ export default function Home() {
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-8">
           {/* Search Section */}
-          <div className="relative">
+          <Link href="/buscar" className="relative block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Buscar no Cuidja..."
               className="pl-10 text-base"
+              readOnly
             />
-          </div>
+          </Link>
 
           {/* Categories Section */}
           <section>
