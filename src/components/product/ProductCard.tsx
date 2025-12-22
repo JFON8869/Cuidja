@@ -2,12 +2,11 @@ import Image from "next/image";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type Product, type Store as StoreData } from "@/lib/data";
+import { type Product } from "@/lib/data";
 import { Store } from "lucide-react";
 import Link from "next/link";
 import { WithId } from "@/firebase/firestore/use-collection";
@@ -27,9 +26,13 @@ export function ProductCard({ product }: ProductCardProps) {
     async function fetchStoreName() {
       if (!firestore || !product.storeId) return;
       const storeRef = doc(firestore, 'stores', product.storeId);
-      const storeSnap = await getDoc(storeRef);
-      if (storeSnap.exists()) {
-        setStoreName(storeSnap.data().name);
+      try {
+        const storeSnap = await getDoc(storeRef);
+        if (storeSnap.exists()) {
+          setStoreName(storeSnap.data().name);
+        }
+      } catch (error) {
+        console.error("Failed to fetch store name for product card:", error);
       }
     }
     fetchStoreName();

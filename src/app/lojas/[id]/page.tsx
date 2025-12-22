@@ -8,8 +8,7 @@ import { ArrowLeft, MessageSquare, Briefcase, Loader2 } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
-import { useProductContext } from '@/context/ProductContext';
-import { Service } from '@/lib/data';
+import { type Service, type Product } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +18,7 @@ import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 type ServiceWithId = WithId<Service>;
+type ProductWithId = WithId<Product>;
 
 interface StoreDocument {
   id: string;
@@ -33,7 +33,6 @@ export default function StorePage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { products } = useProductContext();
   const { firestore } = useFirebase();
   
   const storeRef = useMemoFirebase(() => {
@@ -43,6 +42,14 @@ export default function StorePage() {
 
   const { data: store, isLoading: isLoadingStore } = useDoc<StoreDocument>(storeRef);
 
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore || !store?.id) return null;
+    return query(
+        collection(firestore, 'products'),
+        where('storeId', '==', store.id)
+    );
+  }, [firestore, store]);
+
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !store?.id) return null;
     return query(
@@ -51,9 +58,10 @@ export default function StorePage() {
     );
   }, [firestore, store]);
 
+  const { data: storeProducts, isLoading: areProductsLoading } = useCollection<ProductWithId>(productsQuery);
   const { data: storeServices, isLoading: areServicesLoading } = useCollection<ServiceWithId>(servicesQuery);
 
-  const storeProducts = products.filter((product) => product.storeId === id);
+  const isLoading = isLoadingStore || areProductsLoading || areServicesLoading;
 
   if (!store && !isLoadingStore) {
     return (
@@ -69,7 +77,7 @@ export default function StorePage() {
     );
   }
   
-  if (isLoadingStore) {
+  if (isLoading) {
       return (
          <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
             <header className="flex items-center border-b p-4">
@@ -151,7 +159,7 @@ export default function StorePage() {
                     </div>
                 )}
              </div>
-        ) : storeProducts.length > 0 ? (
+        ) : storeProducts && storeProducts.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
             {storeProducts.map((product) => (
               <ProductCard key={product.id} product={product} />

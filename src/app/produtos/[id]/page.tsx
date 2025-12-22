@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Store, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Store, ShoppingCart, Loader2 } from 'lucide-react';
+import { doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
-import { useProductContext } from '@/context/ProductContext';
 import { useCart } from '@/context/CartContext';
 import {
   Carousel,
@@ -24,21 +24,45 @@ import {
   SheetHeader,
   SheetTitle,
   SheetFooter,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import { ProductOptionsSheet } from '@/components/product/ProductOptionsSheet';
-import { Product, mockStores } from '@/lib/data';
+import { Product, Store as StoreType } from '@/lib/data';
+import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  const { products } = useProductContext();
+
+  const { firestore } = useFirebase();
   const { cart, addToCart, total } = useCart();
   const [isCartSheetOpen, setIsCartSheetOpen] = useState(false);
 
-  const product = products.find((p) => p.id === id);
-  const store = product ? mockStores.find(s => s.id === product.storeId) : undefined;
+  const productRef = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'products', id as string);
+  }, [firestore, id]);
+
+  const { data: product, isLoading: isLoadingProduct } = useDoc<WithId<Product>>(productRef);
+
+  const storeRef = useMemoFirebase(() => {
+    if (!firestore || !product?.storeId) return null;
+    return doc(firestore, 'stores', product.storeId);
+  }, [firestore, product?.storeId]);
+
+  const { data: store, isLoading: isLoadingStore } = useDoc<WithId<StoreType>>(storeRef);
+
+  const isLoading = isLoadingProduct || isLoadingStore;
+
+
+  if (isLoading) {
+    return (
+       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   if (!product) {
     return (

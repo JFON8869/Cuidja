@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Frown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { mockCategories, Store } from '@/lib/data';
+import { mockCategories } from '@/lib/data';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { collection, query, where } from 'firebase/firestore';
@@ -26,7 +26,6 @@ export default function CategoryPage() {
 
   const category = mockCategories.find((cat) => cat.slug === slug);
   
-  // Special case for services, which has its own dedicated page
   if (slug === 'servicos') {
     router.replace('/categorias/servicos');
     return null;
@@ -81,12 +80,7 @@ export default function CategoryPage() {
                   id: store.id,
                   name: store.name,
                   category: store.category,
-                  logo: {
-                    id: store.id,
-                    imageUrl: store.logoUrl || '/placeholder.png', // Provide a fallback
-                    imageHint: 'store logo',
-                    description: `Logo for ${store.name}`
-                  },
+                  logoUrl: store.logoUrl,
                 }}
               />
             ))}
