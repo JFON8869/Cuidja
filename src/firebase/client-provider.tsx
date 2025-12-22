@@ -6,6 +6,7 @@ import { initializeFirebase } from '@/firebase';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import { getFirebaseConfig } from './config';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -28,8 +29,14 @@ export function FirebaseClientProvider({
     // It ensures that Firebase is initialized in the browser environment
     // where window and process.env.NEXT_PUBLIC_* variables are available.
     if (typeof window !== 'undefined' && !firebaseServices) {
-      const services = initializeFirebase();
-      setFirebaseServices(services);
+      // getFirebaseConfig is called here, inside the client-only effect.
+      const firebaseConfig = getFirebaseConfig();
+      if (firebaseConfig.apiKey) {
+        const services = initializeFirebase(firebaseConfig);
+        setFirebaseServices(services);
+      } else {
+        console.error("Firebase API Key is missing. Firebase could not be initialized.");
+      }
     }
   }, [firebaseServices]); // Dependency array ensures this logic re-evaluates if firebaseServices changes, but the !firebaseServices check prevents re-initialization.
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { getFirebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
@@ -16,14 +16,11 @@ interface FirebaseServices {
 let firebaseServices: FirebaseServices | null = null;
 
 // IMPORTANT: This function now implements a singleton pattern.
-export function initializeFirebase(): FirebaseServices {
+export function initializeFirebase(firebaseConfig: FirebaseOptions): FirebaseServices {
   // If the services are already initialized, return the existing instance.
   if (firebaseServices) {
     return firebaseServices;
   }
-
-  // Get the configuration from environment variables.
-  const firebaseConfig = getFirebaseConfig();
 
   // Validate that the config was actually loaded with an API key.
   // This is the most critical check to prevent the "api-key-not-valid" error.
