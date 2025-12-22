@@ -28,7 +28,6 @@ export interface Category {
   name: string;
   slug: string;
   Icon: LucideIcon;
-  color: string;
 }
 
 export interface Banner {
@@ -51,14 +50,14 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const mockCategories: Category[] = [
-  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils, color: 'bg-green-500' },
-  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater, color: 'bg-green-500' },
-  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', Icon: ShoppingBasket, color: 'bg-green-500' },
-  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush, color: 'bg-green-500' },
-  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets, color: 'bg-green-500' },
-  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog, color: 'bg-green-500' },
-  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill, color: 'bg-green-500' },
-  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench, color: 'bg-green-500' },
+  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils },
+  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater },
+  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', Icon: ShoppingBasket },
+  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush },
+  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets },
+  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog },
+  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill },
+  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench },
 ];
 
 export const mockBanners: Banner[] = [

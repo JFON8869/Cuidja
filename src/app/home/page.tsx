@@ -71,7 +71,7 @@ export default function Home() {
                   <div
                     className={cn(
                       'flex h-16 w-16 items-center justify-center rounded-xl border bg-card shadow-sm',
-                      category.color
+                      'bg-green-500'
                     )}
                   >
                     <category.Icon className="h-8 w-8 text-white" />
