@@ -43,6 +43,15 @@ interface StoreDocument {
   userId: string;
 }
 
+// Helper to format slugs back to category names (e.g., "faca-feira" -> "Faça-Feira")
+function formatCategoryFromSlug(slug: string): string {
+    return slug
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+
 export default function StorePage() {
   const params = useParams();
   const router = useRouter();
@@ -63,24 +72,22 @@ export default function StorePage() {
     useDoc<StoreDocument>(storeRef);
 
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !id || isServiceFilter) return null; // Don't fetch products if filtering for services
+    if (!firestore || !id || isServiceFilter) return null;
     let q = query(collection(firestore, 'products'), where('storeId', '==', id));
     if (categoryFilter) {
-      // Capitalize first letter of slug for matching
-      const formattedCategory =
-        categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1);
+      const formattedCategory = formatCategoryFromSlug(categoryFilter);
       q = query(q, where('category', '==', formattedCategory));
     }
     return q;
   }, [firestore, id, categoryFilter, isServiceFilter]);
-
+  
   const servicesQuery = useMemoFirebase(() => {
-    if (!firestore || !id || !isServiceFilter) return null; // Only fetch services when filtering for them
+    if (!firestore || !id) return null;
     return query(
       collection(firestore, 'services'),
       where('providerId', '==', id)
     );
-  }, [firestore, id, isServiceFilter]);
+  }, [firestore, id]);
 
   const { data: storeProducts, isLoading: areProductsLoading } =
     useCollection<ProductWithId>(productsQuery);
@@ -117,9 +124,7 @@ export default function StorePage() {
   const hasServices = storeServices && storeServices.length > 0;
   const pageTitle =
     categoryFilter && store?.name
-      ? `${store.name} - ${
-          categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)
-        }`
+      ? `${store.name} - ${formatCategoryFromSlug(categoryFilter)}`
       : store?.name;
 
   const getServiceButton = (service: ServiceWithId) => {
@@ -167,7 +172,7 @@ export default function StorePage() {
         <div className="w-10"></div>
       </header>
       <main className="flex-1 space-y-6 overflow-y-auto p-4">
-        {hasProducts && !isServiceFilter && (
+        {hasProducts && (
           <section>
             <h2 className="mb-4 flex items-center gap-2 font-headline text-2xl">
               <Package className="h-6 w-6" />
@@ -181,7 +186,9 @@ export default function StorePage() {
           </section>
         )}
 
-        {hasServices && isServiceFilter && (
+        {hasProducts && hasServices && <Separator />}
+
+        {hasServices && (
           <section>
             <h2 className="mb-4 flex items-center gap-2 font-headline text-2xl">
               <Wrench className="h-6 w-6" />
@@ -191,7 +198,7 @@ export default function StorePage() {
               {storeServices!.map((service) => (
                 <Card key={service.id} className="overflow-hidden">
                   <Image
-                    src={service.images[0].imageUrl}
+                    src={(service.images && service.images[0].imageUrl) || `https://picsum.photos/seed/${service.id}/400/200`}
                     alt={service.name}
                     width={400}
                     height={200}
@@ -223,7 +230,7 @@ export default function StorePage() {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <h2 className="text-2xl font-bold">Nenhum item encontrado</h2>
             <p className="text-muted-foreground">
-              Esta loja ainda não tem itens nesta categoria.
+              Esta loja ainda não tem itens.
             </p>
           </div>
         )}
