@@ -79,6 +79,24 @@
       "imageHint": "woodworking craft"
     },
     {
+      "id": "banner-fruits-vegetables",
+      "description": "A vibrant banner showing fresh fruits and vegetables.",
+      "imageUrl": "https://images.unsplash.com/photo-1590779033100-9f60a05a013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcnVpdHMlMjBhbmQlMjB2ZWdldGFibGVzJTIwYmFubmVyfGVufDB8fHx8MTc3MDE3NjQ1OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fresh produce"
+    },
+    {
+      "id": "banner-crafts",
+      "description": "A banner displaying various handmade crafts.",
+      "imageUrl": "https://images.unsplash.com/photo-1600132806376-bf4e7234663b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kbWFkZSUyMGNyYWZ0cyUyMGJhbm5lcnxlbnwwfHx8fDE3NzAxNzY1MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handmade crafts"
+    },
+    {
+      "id": "banner-bread-cheese",
+      "description": "A banner featuring artisanal bread and cheese.",
+      "imageUrl": "https://images.unsplash.com/photo-1620200884803-7c275997453b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhcnRpc2FuYWwlMjBicmVhZCUyMGNoZWVzZSUyMGJhbm5lcnxlbnwwfHx8fDE3NzAxNzY1NDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bread cheese"
+    },
+    {
       "id": "category-restaurants",
       "description": "restaurant icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/restaurant.png",

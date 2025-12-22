@@ -1,18 +1,30 @@
 'use client';
 
+import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Bell, Search } from 'lucide-react';
+import Autoplay from 'embla-carousel-autoplay';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product/ProductCard';
-import { mockCategories } from '@/lib/data';
+import { mockCategories, mockBanners } from '@/lib/data';
 import { useProductContext } from '@/context/ProductContext';
 import { cn } from '@/lib/utils';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from '@/components/ui/carousel';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Home() {
   const { products } = useProductContext();
+
+  const plugin = React.useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: true })
+  );
 
   const recommendedProducts = products.slice(0, 5);
   const featuredProducts = products.slice(5);
@@ -70,6 +82,46 @@ export default function Home() {
                 </Link>
               ))}
             </div>
+          </section>
+
+          {/* Banner Carousel Section */}
+          <section>
+            <Carousel
+              plugins={[plugin.current]}
+              className="w-full"
+              onMouseEnter={plugin.current.stop}
+              onMouseLeave={plugin.current.reset}
+              opts={{
+                loop: true,
+              }}
+            >
+              <CarouselContent>
+                {mockBanners.map((banner) => (
+                  <CarouselItem key={banner.id}>
+                    <Link href={banner.link}>
+                      <Card className="overflow-hidden">
+                        <CardContent className="relative aspect-[16/9] p-0">
+                          <Image
+                            src={banner.image.imageUrl}
+                            alt={banner.title}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            data-ai-hint={banner.image.imageHint}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/0" />
+                          <div className="absolute bottom-0 left-0 p-4 text-white">
+                            <h3 className="font-headline text-xl">
+                              {banner.title}
+                            </h3>
+                            <p className="text-sm">{banner.subtitle}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
           </section>
 
           {/* Personalized Recommendations Section */}

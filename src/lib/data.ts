@@ -30,6 +30,14 @@ export interface Category {
   color: string;
 }
 
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: ImagePlaceholder;
+  link: string;
+}
+
 const findImage = (id: string): ImagePlaceholder => {
   const image = PlaceHolderImages.find((img) => img.id === id);
   if (!image) {
@@ -52,6 +60,30 @@ export const mockCategories: Category[] = [
   { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench, color: 'bg-gray-500' },
 ];
 
+export const mockBanners: Banner[] = [
+  {
+    id: 'banner-1',
+    title: 'Feira Orgânica',
+    subtitle: 'Produtos frescos toda semana!',
+    image: findImage('banner-fruits-vegetables'),
+    link: '/categorias/faca-feira',
+  },
+  {
+    id: 'banner-2',
+    title: 'Arte que Inspira',
+    subtitle: 'Descubra o artesanato local.',
+    image: findImage('banner-crafts'),
+    link: '/categorias/artesanatos',
+  },
+  {
+    id: 'banner-3',
+    title: 'Os Mais Pedidos',
+    subtitle: 'Confira os produtos populares!',
+    image: findImage('banner-bread-cheese'),
+    link: '/home', // Link to a general "popular" page or anchor
+  },
+];
+
 export const mockProducts: Product[] = [
   // Faça-Feira
   {
@@ -60,7 +92,7 @@ export const mockProducts: Product[] = [
     description: 'Uma seleção fresquinha de vegetais e legumes orgânicos, colhidos direto da horta para a sua mesa.',
     price: 85.5,
     seller: 'Sítio Verde',
-    images: [findImage('vegetables')],
+    images: [findImage('vegetables'), findImage('carrots'), findImage('lettuce')],
     category: 'Faça-Feira',
   },
   {
@@ -106,7 +138,7 @@ export const mockProducts: Product[] = [
     description: 'Vaso de cerâmica feito à mão por artesãos locais. Cada peça é única e perfeita para suas plantas.',
     price: 50.0,
     seller: 'Arte em Barro',
-    images: [findImage('pottery')],
+    images: [findImage('pottery'), findImage('pottery-craft')],
     category: 'Artesanatos',
   },
   {
