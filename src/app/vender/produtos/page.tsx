@@ -74,9 +74,11 @@ export default function MyProductsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
+                    <DropdownMenuItem asChild>
+                      <Link href={`/vender/produtos/editar/${product.id}`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                         className="text-destructive" 

@@ -7,6 +7,7 @@ interface ProductContextType {
   products: Product[];
   addProduct: (product: Product) => void;
   removeProduct: (productId: string) => void;
+  updateProduct: (productId: string, updatedProduct: Product) => void;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -22,8 +23,14 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     setProducts((prevProducts) => prevProducts.filter(p => p.id !== productId));
   }
 
+  const updateProduct = (productId: string, updatedProduct: Product) => {
+    setProducts((prevProducts) => 
+      prevProducts.map(p => p.id === productId ? updatedProduct : p)
+    );
+  }
+
   return (
-    <ProductContext.Provider value={{ products, addProduct, removeProduct }}>
+    <ProductContext.Provider value={{ products, addProduct, removeProduct, updateProduct }}>
       {children}
     </ProductContext.Provider>
   );
