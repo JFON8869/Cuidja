@@ -11,12 +11,14 @@ export default function CategoriesPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="text-xl font-headline mx-auto">Todas as Categorias</h1>
+        <h1 className="text-xl font-headline mx-auto">Categorias</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 flex items-center justify-center">
-        <p className="text-muted-foreground">Conteúdo da página de categorias.</p>
+        <p className="text-muted-foreground">Selecione uma categoria na página inicial.</p>
       </main>
     </div>
   );
 }
+
+    

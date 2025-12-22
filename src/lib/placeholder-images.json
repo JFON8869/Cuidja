@@ -81,49 +81,49 @@
     {
       "id": "category-restaurants",
       "description": "restaurant icon",
-      "imageUrl": "https://images.unsplash.com/photo-1707400727930-e42810a740ac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxyZXN0YXVyYW50JTIwaWNvbnxlbnwwfHx8fDE3NjY0MTE0Mzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/restaurant.png",
       "imageHint": "restaurant icon"
     },
     {
       "id": "category-drinks",
       "description": "drinks icon",
-      "imageUrl": "https://images.unsplash.com/photo-1766080971268-69097a30c51c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkcmlua3MlMjBpY29ufGVufDB8fHx8MTc2NjQxMTQzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/drinks.png",
       "imageHint": "drinks icon"
     },
     {
       "id": "category-market",
       "description": "market icon",
-      "imageUrl": "https://images.unsplash.com/photo-1760773767252-26e604903e70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYXJrZXQlMjBpY29ufGVufDB8fHx8MTc2NjQxMTQzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/market.png",
       "imageHint": "market icon"
     },
     {
       "id": "category-crafts",
       "description": "crafts icon",
-      "imageUrl": "https://images.unsplash.com/photo-1694878981816-8d3c35611d7c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjcmFmdHMlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/crafts.png",
       "imageHint": "crafts icon"
     },
     {
       "id": "category-gas-water",
       "description": "gas and water icon",
-      "imageUrl": "https://images.unsplash.com/photo-1744113627248-8c9ba859be91?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxnYXMlMjB3YXRlcnxlbnwwfHx8fDE3NjY0MTE0Mzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/gas-water.png",
       "imageHint": "gas water"
     },
     {
       "id": "category-pets",
       "description": "pets icon",
-      "imageUrl": "https://images.unsplash.com/photo-1702907151143-fc7d6e0a8637?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwZXRzJTIwaWNvbnxlbnwwfHx8fDE3NjY0MTE0Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/pets.png",
       "imageHint": "pets icon"
     },
     {
       "id": "category-pharmacy",
       "description": "pharmacy icon",
-      "imageUrl": "https://images.unsplash.com/photo-1750323844540-5bb7c8f1a11a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwaGFybWFjeSUyMGljb258ZW58MHx8fHwxNzY2NDExNDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/pharmacy.png",
       "imageHint": "pharmacy icon"
     },
     {
       "id": "category-services",
       "description": "services icon",
-      "imageUrl": "https://images.unsplash.com/photo-1764557222706-a8b967702853?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx0b29scyUyMGljb258ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/services.png",
       "imageHint": "tools icon"
     }
   ]

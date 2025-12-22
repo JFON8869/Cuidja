@@ -9,11 +9,13 @@ export interface Product {
   seller: string;
   imageId: string;
   image: ImagePlaceholder;
+  category: string;
 }
 
 export interface Category {
   id: string;
   name: string;
+  slug: string;
   iconUrl: string;
   hint: string;
 }
@@ -30,14 +32,14 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const mockCategories: Category[] = [
-  { id: '1', name: 'Restaurantes', iconUrl: findImage('category-restaurants').imageUrl, hint: findImage('category-restaurants').imageHint },
-  { id: '2', name: 'Bebidas', iconUrl: findImage('category-drinks').imageUrl, hint: findImage('category-drinks').imageHint },
-  { id: '3', name: 'Faça-Feira', iconUrl: findImage('category-market').imageUrl, hint: findImage('category-market').imageHint },
-  { id: '4', name: 'Artesanatos', iconUrl: findImage('category-crafts').imageUrl, hint: findImage('category-crafts').imageHint },
-  { id: '5', name: 'Gás e Água', iconUrl: findImage('category-gas-water').imageUrl, hint: findImage('category-gas-water').imageHint },
-  { id: '6', name: 'Pets', iconUrl: findImage('category-pets').imageUrl, hint: findImage('category-pets').imageHint },
-  { id: '7', name: 'Farmácias', iconUrl: findImage('category-pharmacy').imageUrl, hint: findImage('category-pharmacy').imageHint },
-  { id: '8', name: 'Serviços', iconUrl: findImage('category-services').imageUrl, hint: findImage('category-services').imageHint },
+  { id: '1', name: 'Restaurantes', slug: 'restaurantes', iconUrl: findImage('category-restaurants').imageUrl, hint: findImage('category-restaurants').imageHint },
+  { id: '2', name: 'Bebidas', slug: 'bebidas', iconUrl: findImage('category-drinks').imageUrl, hint: findImage('category-drinks').imageHint },
+  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', iconUrl: findImage('category-market').imageUrl, hint: findImage('category-market').imageHint },
+  { id: '4', name: 'Artesanatos', slug: 'artesanatos', iconUrl: findImage('category-crafts').imageUrl, hint: findImage('category-crafts').imageHint },
+  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', iconUrl: findImage('category-gas-water').imageUrl, hint: findImage('category-gas-water').imageHint },
+  { id: '6', name: 'Pets', slug: 'pets', iconUrl: findImage('category-pets').imageUrl, hint: findImage('category-pets').imageHint },
+  { id: '7', name: 'Farmácias', slug: 'farmacias', iconUrl: findImage('category-pharmacy').imageUrl, hint: findImage('category-pharmacy').imageHint },
+  { id: '8', name: 'Serviços', slug: 'servicos', iconUrl: findImage('category-services').imageUrl, hint: findImage('category-services').imageHint },
 ];
 
 export const mockProducts: Product[] = [
@@ -49,6 +51,7 @@ export const mockProducts: Product[] = [
     seller: 'Sítio Verde',
     imageId: 'vegetables',
     image: findImage('vegetables'),
+    category: 'Faça-Feira',
   },
   {
     id: '2',
@@ -58,6 +61,7 @@ export const mockProducts: Product[] = [
     seller: 'Pão da Terra',
     imageId: 'bread',
     image: findImage('bread'),
+    category: 'Faça-Feira',
   },
   {
     id: '3',
@@ -67,6 +71,7 @@ export const mockProducts: Product[] = [
     seller: 'Apiário do Sol',
     imageId: 'honey',
     image: findImage('honey'),
+    category: 'Faça-Feira',
   },
   {
     id: '4',
@@ -76,6 +81,7 @@ export const mockProducts: Product[] = [
     seller: 'Arte em Barro',
     imageId: 'pottery',
     image: findImage('pottery'),
+    category: 'Artesanatos',
   },
   {
     id: '5',
@@ -85,6 +91,7 @@ export const mockProducts: Product[] = [
     seller: 'Quitutes da Vovó',
     imageId: 'jam',
     image: findImage('jam'),
+    category: 'Faça-Feira',
   },
   {
     id: '6',
@@ -94,6 +101,7 @@ export const mockProducts: Product[] = [
     seller: 'Sítio Verde',
     imageId: 'tomatoes',
     image: findImage('tomatoes'),
+    category: 'Faça-Feira',
   },
   {
     id: '7',
@@ -103,6 +111,7 @@ export const mockProducts: Product[] = [
     seller: 'Laticínios da Serra',
     imageId: 'cheese',
     image: findImage('cheese'),
+    category: 'Faça-Feira',
   },
   {
     id: '8',
@@ -112,6 +121,7 @@ export const mockProducts: Product[] = [
     seller: 'Bordados Finos',
     imageId: 'textiles',
     image: findImage('textiles'),
+    category: 'Artesanatos',
   },
   {
     id: '9',
@@ -121,6 +131,7 @@ export const mockProducts: Product[] = [
     seller: 'Horta Feliz',
     imageId: 'carrots',
     image: findImage('carrots'),
+    category: 'Faça-Feira',
   },
     {
     id: '10',
@@ -130,5 +141,8 @@ export const mockProducts: Product[] = [
     seller: 'João Jardineiro',
     imageId: 'woodworking', // using as placeholder
     image: findImage('woodworking'),
+    category: 'Serviços',
   },
 ];
+
+    

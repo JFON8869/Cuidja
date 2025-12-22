@@ -51,7 +51,7 @@ export default function Home() {
             <div className="grid grid-cols-4 gap-4">
               {mockCategories.map((category) => (
                 <Link
-                  href="/categorias"
+                  href={`/categorias/${category.slug}`}
                   key={category.id}
                   className="flex flex-col items-center gap-2 text-center"
                 >
@@ -59,8 +59,10 @@ export default function Home() {
                     <Image
                       src={category.iconUrl}
                       alt={category.name}
-                      width={32}
-                      height={32}
+                      width={48}
+                      height={48}
+                      className="object-contain"
+                      unoptimized // Adicionado para evitar otimização em SVGs ou PNGs remotos
                       data-ai-hint={category.hint}
                     />
                   </div>
@@ -101,3 +103,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

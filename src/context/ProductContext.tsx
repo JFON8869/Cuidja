@@ -15,7 +15,12 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>(mockProducts);
 
   const addProduct = (product: Product) => {
-    setProducts((prevProducts) => [product, ...prevProducts]);
+    // Adicionando a categoria ao novo produto antes de salvá-lo
+    const newProductWithCategory = {
+        ...product,
+        category: product.category || 'Serviços' // Fallback para uma categoria padrão
+    };
+    setProducts((prevProducts) => [newProductWithCategory, ...prevProducts]);
   };
 
   const removeProduct = (productId: string) => {
@@ -36,3 +41,5 @@ export function useProductContext() {
   }
   return context;
 }
+
+    
