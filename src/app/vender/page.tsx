@@ -105,6 +105,31 @@ export default function SellPage() {
     );
   }
 
+  if (!user) {
+     return (
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+        <header className="flex items-center border-b p-4">
+           <Button variant="ghost" size="icon" asChild>
+            <Link href="/home">
+              <ArrowLeft />
+            </Link>
+          </Button>
+          <h1 className="mx-auto font-headline text-xl">Seja um Vendedor</h1>
+          <div className="w-10"></div>
+        </header>
+        <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
+            <h2 className="text-2xl font-bold">Faça login para começar</h2>
+            <p className="text-muted-foreground mb-6">Você precisa estar logado para criar uma loja e vender seus produtos.</p>
+            <Button size="lg" asChild>
+                <Link href="/login">
+                    Fazer Login
+                </Link>
+            </Button>
+        </main>
+      </div>
+    );
+  }
+
   // If user is logged in but has no store
   if (user && !store) {
     return (
