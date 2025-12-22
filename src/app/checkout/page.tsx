@@ -31,7 +31,6 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { useDoc } from '@/firebase/firestore/use-doc';
-import { SelectedAddon } from '@/lib/data';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -312,9 +311,9 @@ export default function CheckoutPage() {
               <Card>
                 <CardContent className="p-4 space-y-3">
                     {cart.map(item => (
-                        <div key={item.id} className="flex justify-between items-start text-sm">
+                        <div key={item.cartItemId} className="flex justify-between items-start text-sm">
                             <div className="flex-1 pr-4">
-                                <span className="line-clamp-1">{item.name}</span>
+                                <p className="font-semibold line-clamp-1">{item.name}</p>
                                 {item.selectedAddons && item.selectedAddons.length > 0 && (
                                     <ul className="text-xs text-muted-foreground mt-1">
                                         {item.selectedAddons.map(addon => (

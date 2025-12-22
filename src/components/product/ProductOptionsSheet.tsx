@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -31,36 +31,53 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsState>({});
 
-  const handleSingleSelectChange = (group: AddonGroup, addonName: string) => {
-    const selectedAddon = group.addons.find(a => a.name === addonName);
-    setSelectedOptions(prev => ({
-      ...prev,
-      [group.id]: selectedAddon ? [{ ...selectedAddon, quantity: 1 }] : [],
-    }));
-  };
-
-  const handleQuantityChange = (group: AddonGroup, addon: Addon, change: 1 | -1) => {
-    setSelectedOptions(prev => {
-        const newSelectedOptions = { ...prev };
-        let groupAddons = newSelectedOptions[group.id] || [];
-        const existingAddonIndex = groupAddons.findIndex(a => a.name === addon.name);
-
-        if (existingAddonIndex > -1) {
-            // Addon exists, update quantity
-            const newQuantity = groupAddons[existingAddonIndex].quantity + change;
-            if (newQuantity > 0) {
-                groupAddons[existingAddonIndex].quantity = newQuantity;
-            } else {
-                // Remove if quantity is 0 or less
-                groupAddons.splice(existingAddonIndex, 1);
-            }
-        } else if (change === 1) {
-            // Addon doesn't exist, add with quantity 1
-            groupAddons.push({ ...addon, quantity: 1 });
+  // Pre-select default single-choice options (usually free ones)
+  useEffect(() => {
+    if (product.addons && isOpen) {
+      const defaultSelections: SelectedOptionsState = {};
+      product.addons.forEach(group => {
+        if (group.type === 'single') {
+          const defaultAddon = group.addons.find(a => a.price === 0) || group.addons[0];
+          if (defaultAddon) {
+            defaultSelections[group.id] = [{ ...defaultAddon, quantity: 1 }];
+          }
         }
+      });
+      setSelectedOptions(defaultSelections);
+    } else {
+      setSelectedOptions({}); // Reset on close
+    }
+  }, [product.addons, isOpen]);
+
+
+  const handleSelectionChange = (group: AddonGroup, addon: Addon, change: 'set' | 'increment' | 'decrement') => {
+    setSelectedOptions(prev => {
+        const newState = { ...prev };
+        let groupSelections = newState[group.id] ? [...newState[group.id]] : [];
+        const existingAddonIndex = groupSelections.findIndex(a => a.name === addon.name);
         
-        newSelectedOptions[group.id] = groupAddons;
-        return newSelectedOptions;
+        if (group.type === 'single') {
+            newState[group.id] = [{ ...addon, quantity: 1 }];
+        } else { // Multiple
+            if (existingAddonIndex > -1) {
+                // Addon already in selection
+                const existingAddon = groupSelections[existingAddonIndex];
+                let newQuantity = existingAddon.quantity;
+                if (change === 'increment') newQuantity++;
+                else if (change === 'decrement') newQuantity--;
+                
+                if (newQuantity > 0) {
+                    groupSelections[existingAddonIndex] = { ...existingAddon, quantity: newQuantity };
+                } else {
+                    groupSelections.splice(existingAddonIndex, 1);
+                }
+            } else if (change === 'increment' || change === 'set') {
+                // Add new addon to selection
+                groupSelections.push({ ...addon, quantity: 1 });
+            }
+            newState[group.id] = groupSelections;
+        }
+        return newState;
     });
   };
 
@@ -74,13 +91,24 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
   const handleAddToCartClick = () => {
     const allSelectedAddons = Object.values(selectedOptions).flat();
     addToCart(product, allSelectedAddons);
-    onAddToCart(product);
-    setIsOpen(false);
-    setSelectedOptions({});
+    onAddToCart(product); // This just triggers the confirmation sheet
+    setIsOpen(false);     // Close the options sheet
+    // State is reset by the useEffect on [isOpen]
   }
   
-  const getAddonQuantity = (groupId: string, addonName: string) => {
-      return selectedOptions[groupId]?.find(a => a.name === addonName)?.quantity || 0;
+  const getAddonQuantity = (groupId: string, addonName: string): number => {
+      const group = selectedOptions[groupId];
+      if (!group) return 0;
+      const addon = group.find(a => a.name === addonName);
+      return addon?.quantity || 0;
+  }
+  
+  const getSingleSelectedName = (groupId: string): string | undefined => {
+      const group = selectedOptions[groupId];
+      if (group && group.length > 0) {
+        return group[0].name;
+      }
+      return undefined;
   }
 
   return (
@@ -103,8 +131,13 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
               <h3 className="mb-3 font-semibold">{group.title}</h3>
               {group.type === 'single' ? (
                 <RadioGroup 
-                    onValueChange={(value) => handleSingleSelectChange(group, value)}
-                    defaultValue={selectedOptions[group.id]?.[0]?.name || group.addons.find(a => a.price === 0)?.name}
+                    onValueChange={(value) => {
+                        const selectedAddon = group.addons.find(a => a.name === value);
+                        if (selectedAddon) {
+                            handleSelectionChange(group, selectedAddon, 'set');
+                        }
+                    }}
+                    value={getSingleSelectedName(group.id)}
                 >
                   {group.addons.map((addon) => (
                     <div key={addon.name} className="flex items-center justify-between">
@@ -120,8 +153,8 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
                     </div>
                   ))}
                 </RadioGroup>
-              ) : (
-                <div className="space-y-2">
+              ) : ( // Multiple choice
+                <div className="space-y-3">
                     {group.addons.map((addon) => {
                         const quantity = getAddonQuantity(group.id, addon.name);
                         return (
@@ -135,11 +168,11 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
                                     )}
                                 </Label>
                                 <div className="flex items-center gap-2">
-                                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(group, addon, -1)} disabled={quantity === 0}>
+                                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSelectionChange(group, addon, 'decrement')} disabled={quantity === 0}>
                                         <Minus className="h-4 w-4" />
                                     </Button>
-                                    <span className="w-5 text-center font-bold">{quantity}</span>
-                                     <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(group, addon, 1)}>
+                                    <span className="w-6 text-center font-bold">{quantity}</span>
+                                     <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSelectionChange(group, addon, 'increment')}>
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </div>
