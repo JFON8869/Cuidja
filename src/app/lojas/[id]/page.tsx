@@ -38,7 +38,6 @@ type ProductWithId = WithId<Product>;
 interface StoreDocument {
   id: string;
   name: string;
-  category: string;
   logoUrl?: string;
   userId: string;
 }
@@ -71,22 +70,19 @@ export default function StorePage() {
   const { data: store, isLoading: isLoadingStore } =
     useDoc<StoreDocument>(storeRef);
   
-  // Always query for services associated with the store/provider.
   const servicesQuery = useMemoFirebase(() => {
-    if (!firestore || !id) return null;
+    if (!firestore || !id || !isServiceFilterActive) return null; // Only query if service filter is active
     return query(
       collection(firestore, 'services'),
       where('providerId', '==', id)
     );
-  }, [firestore, id]);
+  }, [firestore, id, isServiceFilterActive]);
 
-  // Query for products, applying category filter if it's not a service filter.
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !id) return null;
+    if (!firestore || !id || isServiceFilterActive) return null; // Don't query if service filter is active
     let q = query(collection(firestore, 'products'), where('storeId', '==', id));
     
-    // Only apply category filter to products if the filter is not 'servicos'
-    if (categoryFilter && !isServiceFilterActive) {
+    if (categoryFilter) {
       const formattedCategory = formatCategoryFromSlug(categoryFilter);
       q = query(q, where('category', '==', formattedCategory));
     }
@@ -100,9 +96,9 @@ export default function StorePage() {
     
   const isLoading = isLoadingStore || areProductsLoading || areServicesLoading;
   
-  // Determine which items to display based on the filter
-  const displayedProducts = isServiceFilterActive ? [] : storeProducts;
-  const displayedServices = storeServices;
+  const hasProducts = !isServiceFilterActive && storeProducts && storeProducts.length > 0;
+  const hasServices = isServiceFilterActive && storeServices && storeServices.length > 0;
+  const pageTitle = store?.name || 'Loja';
 
   if (!store && !isLoadingStore) {
     return (
@@ -138,9 +134,6 @@ export default function StorePage() {
     );
   }
 
-  const hasProducts = displayedProducts && displayedProducts.length > 0;
-  const hasServices = displayedServices && displayedServices.length > 0;
-  const pageTitle = store?.name || 'Loja';
 
   const getServiceButton = (service: ServiceWithId) => {
     const hasFee = service.visitFee && service.visitFee > 0;
@@ -194,14 +187,12 @@ export default function StorePage() {
               Produtos
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              {displayedProducts.map((product) => (
+              {storeProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           </section>
         )}
-
-        {hasProducts && hasServices && <Separator />}
 
         {hasServices && (
           <section>
@@ -210,7 +201,7 @@ export default function StorePage() {
               Serviços
             </h2>
             <div className="space-y-4">
-              {displayedServices.map((service) => (
+              {storeServices.map((service) => (
                 <Card key={service.id} className="overflow-hidden">
                   <Image
                     src={(service.images && service.images[0].imageUrl) || `https://picsum.photos/seed/${service.id}/400/200`}
@@ -245,7 +236,7 @@ export default function StorePage() {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <h2 className="text-2xl font-bold">Nenhum item encontrado</h2>
             <p className="text-muted-foreground">
-              Esta loja ainda não tem itens para exibir.
+              Esta loja ainda não tem itens para exibir nesta categoria.
             </p>
           </div>
         )}
