@@ -14,12 +14,14 @@ import {
   Lightbulb,
   ChevronRight,
   Shield,
+  Cloud,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const menuItems = [
   { href: '/notificacoes', icon: Bell, label: 'Notificações' },
@@ -106,7 +108,10 @@ export default function ProfilePage() {
               <h2 className="text-xl font-bold">
                 {user.displayName || 'Usuário'}
               </h2>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
+              <div className="flex items-center gap-2">
+                 <Cloud className={cn("h-4 w-4", user ? "text-green-500" : "text-muted-foreground")} />
+                 <p className="text-sm text-muted-foreground">{user.email}</p>
+              </div>
             </div>
           </div>
         </div>
