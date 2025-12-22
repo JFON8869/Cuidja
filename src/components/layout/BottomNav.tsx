@@ -34,10 +34,9 @@ export default function BottomNav() {
     setIsClient(true);
   }, []);
 
-  const isWelcomePage = pathname === '/';
-
-  if (isWelcomePage) {
-    return null; // Don't show nav on the welcome page
+  const pagesToHideNav = ['/', '/login', '/signup'];
+  if (pagesToHideNav.includes(pathname)) {
+    return null; // Don't show nav on specified pages
   }
 
   return (
