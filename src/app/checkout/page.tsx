@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
 import { useFirebase } from '@/firebase';
+import { Label } from '@/components/ui/label';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
