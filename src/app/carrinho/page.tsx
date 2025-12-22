@@ -41,7 +41,7 @@ export default function CartPage() {
                   alt={item.name}
                   width={64}
                   height={64}
-                  className="rounded-md border object-cover"
+                  className="rounded-md border object-cover aspect-square"
                 />
                 <div className="flex-1">
                   <h3 className="font-semibold line-clamp-1">{item.name}</h3>

@@ -55,7 +55,7 @@ export default function MyProductsPage() {
                   alt={product.name}
                   width={64}
                   height={64}
-                  className="h-16 w-16 rounded-md border object-cover"
+                  className="h-16 w-16 rounded-md border object-cover aspect-square"
                 />
                 <div className="flex-1">
                   <h3 className="font-semibold">{product.name}</h3>
