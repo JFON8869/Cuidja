@@ -161,7 +161,13 @@ export default function ProductDetailPage() {
                     }).format(product.price)}
                   </p>
                 </div>
-                {hasOptions ? (
+                 {isService ? (
+                   <Button size="lg" className="w-full" asChild>
+                     <Link href={`/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`}>
+                        Solicitar Serviço
+                     </Link>
+                   </Button>
+                 ) : hasOptions ? (
                    <ProductOptionsSheet product={product} onAddToCart={handleWithOptionsAddToCart}>
                       <Button size="lg" className="w-full">
                         Comprar
@@ -173,7 +179,7 @@ export default function ProductDetailPage() {
                     className="w-full"
                     onClick={() => handleSimpleAddToCart(product)}
                   >
-                    {isService ? 'Contratar Serviço' : 'Adicionar ao Carrinho'}
+                   Adicionar ao Carrinho
                   </Button>
                 )}
               </CardContent>

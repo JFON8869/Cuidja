@@ -40,9 +40,13 @@ export function ProductCard({ product }: ProductCardProps) {
   
   const isService = product.category === 'Serviços';
 
+  const href = isService 
+    ? `/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`
+    : `/produtos/${product.id}`;
+
 
   return (
-    <Link href={`/produtos/${product.id}`} className="group">
+    <Link href={href} className="group">
       <Card className="overflow-hidden h-full flex flex-col">
         <CardHeader className="p-0">
           <div className="aspect-w-1 aspect-h-1">
