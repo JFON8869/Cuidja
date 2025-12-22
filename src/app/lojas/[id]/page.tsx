@@ -70,8 +70,10 @@ export default function StorePage() {
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !id || isServiceFilterActive) return null;
+    
     let q = query(collection(firestore, 'products'), where('storeId', '==', id));
     
+    // Always filter by category if categoryName is present
     if (categoryName) {
       q = query(q, where('category', '==', categoryName));
     }
