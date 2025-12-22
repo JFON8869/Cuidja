@@ -75,6 +75,7 @@ export default function SellPage() {
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !store?.id) return null;
+    // This query now correctly filters by the storeId, adhering to security rules.
     return query(
       collection(firestore, 'orders'),
       where('storeId', '==', store.id)
