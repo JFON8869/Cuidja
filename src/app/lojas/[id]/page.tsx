@@ -4,7 +4,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, MessageSquare, Briefcase, Loader2 } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Briefcase, Loader2, Package, Wrench } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, DocumentData } from 'firebase/firestore';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { Separator } from '@/components/ui/separator';
 
 type ServiceWithId = WithId<Service>;
 type ProductWithId = WithId<Product>;
@@ -87,7 +88,8 @@ export default function StorePage() {
       )
   }
 
-  const isServiceStore = store?.category === 'Serviços';
+  const hasProducts = storeProducts && storeProducts.length > 0;
+  const hasServices = storeServices && storeServices.length > 0;
 
   const getServiceButton = (service: ServiceWithId) => {
     const hasFee = service.visitFee && service.visitFee > 0;
@@ -122,16 +124,30 @@ export default function StorePage() {
         </div>
         <div className="w-10"></div>
       </header>
-      <main className="flex-1 overflow-y-auto p-4">
-        {isServiceStore ? (
-             <div className="space-y-4">
-                <p className="text-center text-muted-foreground">Serviços oferecidos por {store?.name}.</p>
-                {areServicesLoading ? (
-                    <div className="flex justify-center items-center h-48">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                    </div>
-                ) : storeServices && storeServices.length > 0 ? (
-                    storeServices.map((service) => (
+      <main className="flex-1 overflow-y-auto p-4 space-y-6">
+        
+        {hasProducts && (
+            <section>
+                <h2 className="text-2xl font-headline mb-4 flex items-center gap-2">
+                    <Package className="h-6 w-6" />
+                    Produtos
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                    {storeProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                    ))}
+                </div>
+            </section>
+        )}
+
+        {hasServices && (
+             <section>
+                <h2 className="text-2xl font-headline mb-4 flex items-center gap-2">
+                    <Wrench className="h-6 w-6" />
+                    Serviços
+                </h2>
+                <div className="space-y-4">
+                    {storeServices.map((service) => (
                         <Card key={service.id} className="overflow-hidden">
                             <Image src={service.images[0].imageUrl} alt={service.name} width={400} height={200} className="w-full h-32 object-cover" />
                             <CardHeader>
@@ -149,27 +165,16 @@ export default function StorePage() {
                                {getServiceButton(service)}
                             </CardFooter>
                         </Card>
-                    ))
-                ) : (
-                   <div className="flex h-48 flex-col items-center justify-center text-center">
-                        <h2 className="text-2xl font-bold">Nenhum serviço encontrado</h2>
-                        <p className="text-muted-foreground">
-                        Este prestador ainda não anunciou serviços.
-                        </p>
-                    </div>
-                )}
-             </div>
-        ) : storeProducts && storeProducts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {storeProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <h2 className="text-2xl font-bold">Nenhum produto encontrado</h2>
+                    ))}
+                </div>
+            </section>
+        )}
+        
+        {!hasProducts && !hasServices && (
+           <div className="flex h-full flex-col items-center justify-center text-center">
+            <h2 className="text-2xl font-bold">Nenhum item encontrado</h2>
             <p className="text-muted-foreground">
-              Esta loja ainda não tem produtos cadastrados.
+              Esta loja ainda não tem produtos ou serviços cadastrados.
             </p>
           </div>
         )}
