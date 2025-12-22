@@ -18,6 +18,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoreCard } from '@/components/store/StoreCard';
 import { useEffect, useState, useMemo } from 'react';
+import { mockCategories } from '@/lib/data';
 
 interface StoreDocument {
   id: string;
@@ -34,14 +35,21 @@ export default function CategoryPage() {
   const [stores, setStores] = useState<StoreDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Decode URI component and format for display
+  // Find the category object from mockCategories based on the slug.
+  const category = useMemo(
+    () => mockCategories.find((cat) => cat.slug === slug),
+    [slug]
+  );
+  
+  // Use the name from the found category object, or format from slug as a fallback.
   const categoryName = useMemo(() => {
-    if (!slug) return 'Categoria';
+    if (category) {
+      return category.name;
+    }
+    // Fallback logic in case category is not in mockCategories
     const decodedSlug = decodeURIComponent(slug).replace(/-/g, ' ');
-    // Capitalize first letter of each word for multi-word categories like "Faça Feira" -> "Faça Feira"
-    // And for single words "restaurantes" -> "Restaurantes"
     return decodedSlug.replace(/\b\w/g, (l) => l.toUpperCase());
-  }, [slug]);
+  }, [slug, category]);
 
   useEffect(() => {
     if (slug === 'servicos') {

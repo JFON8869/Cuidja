@@ -12,10 +12,10 @@ import {
   Package,
   Wrench,
 } from 'lucide-react';
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { type Service, type Product } from '@/lib/data';
+import { type Service, type Product, mockCategories } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -42,14 +42,10 @@ interface StoreDocument {
   userId: string;
 }
 
-// Helper to format slugs back to category names (e.g., "faca-feira" -> "Faça-Feira")
-function formatCategoryFromSlug(slug: string): string {
-  if (!slug) return '';
-  return slug
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
+
+// Find the category object from mockCategories based on the slug.
+const getCategoryBySlug = (slug: string) => mockCategories.find((cat) => cat.slug === slug);
+
 
 export default function StorePage() {
   const params = useParams();
@@ -57,8 +53,15 @@ export default function StorePage() {
   const searchParams = useSearchParams();
 
   const id = params.id as string;
-  const categoryFilter = searchParams.get('category');
-  const isServiceFilterActive = categoryFilter === 'servicos';
+  const categoryFilterSlug = searchParams.get('category');
+  
+  const category = useMemo(() => {
+    if (!categoryFilterSlug) return null;
+    return getCategoryBySlug(categoryFilterSlug)
+  }, [categoryFilterSlug]);
+
+  const categoryName = category?.name;
+  const isServiceFilterActive = categoryFilterSlug === 'servicos';
 
   const { firestore } = useFirebase();
 
@@ -71,7 +74,7 @@ export default function StorePage() {
     useDoc<StoreDocument>(storeRef);
   
   const servicesQuery = useMemoFirebase(() => {
-    if (!firestore || !id || !isServiceFilterActive) return null; // Only query if service filter is active
+    if (!firestore || !id || !isServiceFilterActive) return null;
     return query(
       collection(firestore, 'services'),
       where('providerId', '==', id)
@@ -79,15 +82,14 @@ export default function StorePage() {
   }, [firestore, id, isServiceFilterActive]);
 
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !id || isServiceFilterActive) return null; // Don't query if service filter is active
+    if (!firestore || !id || isServiceFilterActive) return null;
     let q = query(collection(firestore, 'products'), where('storeId', '==', id));
     
-    if (categoryFilter) {
-      const formattedCategory = formatCategoryFromSlug(categoryFilter);
-      q = query(q, where('category', '==', formattedCategory));
+    if (categoryName) {
+      q = query(q, where('category', '==', categoryName));
     }
     return q;
-  }, [firestore, id, categoryFilter, isServiceFilterActive]);
+  }, [firestore, id, categoryName, isServiceFilterActive]);
 
   const { data: storeProducts, isLoading: areProductsLoading } =
     useCollection<ProductWithId>(productsQuery);
@@ -193,6 +195,8 @@ export default function StorePage() {
             </div>
           </section>
         )}
+
+        {hasProducts && hasServices && <Separator />}
 
         {hasServices && (
           <section>
