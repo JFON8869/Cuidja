@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { ArrowLeft, Bell, Package, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Bell, Package, ShoppingCart, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
@@ -10,6 +10,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
 import { getDocs } from 'firebase/firestore';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface Order extends WithId<any> {
   id: string;
@@ -26,6 +36,8 @@ export default function NotificationsPage() {
   const { firestore, user, isUserLoading } = useFirebase();
   const [storeId, setStoreId] = useState<string | null>(null);
   const [isStoreLoading, setStoreLoading] = useState(true);
+  const [showPermissionCard, setShowPermissionCard] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchStoreId() {
@@ -78,6 +90,21 @@ export default function NotificationsPage() {
 
   const isLoading = isUserLoading || isStoreLoading || buyerLoading || sellerLoading;
 
+  const handlePermissionRequest = (allow: boolean) => {
+    setShowPermissionCard(false);
+    if (allow) {
+        toast({
+            title: "Notificações Ativadas!",
+            description: "Você será avisado sobre novos pedidos e atualizações."
+        })
+    } else {
+         toast({
+            title: "Notificações não ativadas.",
+            description: "Você pode ativá-las depois nas configurações do seu perfil."
+        })
+    }
+  }
+
   const renderSkeleton = () => (
     <div className="p-4 space-y-4">
         {[...Array(4)].map((_, i) => (
@@ -103,7 +130,25 @@ export default function NotificationsPage() {
         <h1 className="text-xl font-headline mx-auto">Notificações</h1>
         <div className="w-10"></div>
       </header>
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-4">
+        {showPermissionCard && (
+             <Card className="mb-6 bg-primary/10 border-primary/20">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Info className="h-5 w-5 text-primary" />
+                        Ative as Notificações
+                    </CardTitle>
+                    <CardDescription>
+                        Receba alertas sonoros e pop-ups sobre seus pedidos em tempo real.
+                    </CardDescription>
+                </CardHeader>
+                <CardFooter className="flex gap-4">
+                    <Button className="flex-1" onClick={() => handlePermissionRequest(true)}>Ativar</Button>
+                    <Button variant="ghost" className="flex-1" onClick={() => handlePermissionRequest(false)}>Agora não</Button>
+                </CardFooter>
+            </Card>
+        )}
+
         {isLoading ? renderSkeleton() : (
             allNotifications && allNotifications.length > 0 ? (
                 <div className="divide-y">
