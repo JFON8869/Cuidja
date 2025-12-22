@@ -67,6 +67,16 @@ export default function StorePage() {
 
   const { data: store, isLoading: isLoadingStore } =
     useDoc<StoreDocument>(storeRef);
+
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore || !id || isServiceFilterActive) return null;
+    let q = query(collection(firestore, 'products'), where('storeId', '==', id));
+    
+    if (categoryName) {
+      q = query(q, where('category', '==', categoryName));
+    }
+    return q;
+  }, [firestore, id, categoryName, isServiceFilterActive]);
   
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !id || !isServiceFilterActive) return null;
@@ -76,16 +86,6 @@ export default function StorePage() {
     );
   }, [firestore, id, isServiceFilterActive]);
 
-  const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !id || isServiceFilterActive) return null;
-    let q = query(collection(firestore, 'products'), where('storeId', '==', id));
-    
-    // Only apply category filter if it's not the services category
-    if (categoryName && !isServiceFilterActive) {
-      q = query(q, where('category', '==', categoryName));
-    }
-    return q;
-  }, [firestore, id, categoryName, isServiceFilterActive]);
 
   const { data: storeProducts, isLoading: areProductsLoading } =
     useCollection<ProductWithId>(productsQuery);
@@ -244,4 +244,3 @@ export default function StorePage() {
     </div>
   );
 }
-
