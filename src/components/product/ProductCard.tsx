@@ -7,16 +7,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type Product, mockStores } from "@/lib/data";
+import { type Product, type Store as StoreData } from "@/lib/data";
 import { Store } from "lucide-react";
 import Link from "next/link";
+import { WithId } from "@/firebase/firestore/use-collection";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { useFirebase } from "@/firebase";
 
 interface ProductCardProps {
-  product: Product;
+  product: WithId<Product>;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const store = mockStores.find(s => s.id === product.storeId);
+  const { firestore } = useFirebase();
+  const [storeName, setStoreName] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchStoreName() {
+      if (!firestore || !product.storeId) return;
+      const storeRef = doc(firestore, 'stores', product.storeId);
+      const storeSnap = await getDoc(storeRef);
+      if (storeSnap.exists()) {
+        setStoreName(storeSnap.data().name);
+      }
+    }
+    fetchStoreName();
+  }, [firestore, product.storeId]);
+
 
   return (
     <Link href={`/produtos/${product.id}`} className="group">
@@ -45,10 +63,10 @@ export function ProductCard({ product }: ProductCardProps) {
               currency: "BRL",
             }).format(product.price)}
           </p>
-          {store && (
+          {storeName && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Store className="w-3 h-3"/>
-              <span>{store.name}</span>
+              <span>{storeName}</span>
             </div>
           )}
         </CardFooter>

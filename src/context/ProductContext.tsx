@@ -1,36 +1,30 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
-import { Product, mockProducts } from '@/lib/data';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { Product } from '@/lib/data';
+import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 
 interface ProductContextType {
-  products: Product[];
-  addProduct: (product: Product) => void;
-  removeProduct: (productId: string) => void;
-  updateProduct: (productId: string, updatedProduct: Product) => void;
+  products: WithId<Product>[];
+  isLoading: boolean;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export function ProductProvider({ children }: { children: React.ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const { firestore } = useFirebase();
 
-  const addProduct = (product: Product) => {
-    setProducts((prevProducts) => [product, ...prevProducts]);
-  };
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'products'));
+  }, [firestore]);
 
-  const removeProduct = (productId: string) => {
-    setProducts((prevProducts) => prevProducts.filter(p => p.id !== productId));
-  }
-
-  const updateProduct = (productId: string, updatedProduct: Product) => {
-    setProducts((prevProducts) => 
-      prevProducts.map(p => p.id === productId ? updatedProduct : p)
-    );
-  }
+  const { data: products, isLoading } = useCollection<Product>(productsQuery);
 
   return (
-    <ProductContext.Provider value={{ products, addProduct, removeProduct, updateProduct }}>
+    <ProductContext.Provider value={{ products: products || [], isLoading }}>
       {children}
     </ProductContext.Provider>
   );

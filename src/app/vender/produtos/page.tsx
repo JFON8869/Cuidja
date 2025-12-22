@@ -106,7 +106,7 @@ export default function MyProductsPage() {
           </Link>
         </Button>
       </header>
-      <main className="flex-1 space-y-4 p-4">
+      <main className="flex-1 space-y-4 overflow-y-auto p-4">
         {isLoading ? renderSkeleton() : 
         myProducts && myProducts.length > 0 ? (
           myProducts.map((product) => (
