@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -18,15 +19,37 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel';
 import { Card, CardContent } from '@/components/ui/card';
+import { WithId } from '@/firebase/firestore/use-collection';
+import { Product } from '@/lib/data';
 
 export default function Home() {
   const { products } = useProductContext();
+  const [recommendedProducts, setRecommendedProducts] = React.useState<WithId<Product>[]>([]);
 
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true })
   );
 
-  const recommendedProducts = products.slice(0, 5);
+  React.useEffect(() => {
+    // Initial shuffle
+    if (products.length > 0) {
+       const shuffled = [...products].sort(() => 0.5 - Math.random());
+       setRecommendedProducts(shuffled.slice(0, 5));
+    }
+
+    // Set up interval to shuffle every 10 seconds
+    const intervalId = setInterval(() => {
+      if (products.length > 0) {
+        const shuffled = [...products].sort(() => 0.5 - Math.random());
+        setRecommendedProducts(shuffled.slice(0, 5));
+      }
+    }, 10000); // 10 seconds
+
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [products]);
+
+
   const featuredProducts = products.slice(5);
 
   return (
