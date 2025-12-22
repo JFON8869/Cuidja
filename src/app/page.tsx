@@ -78,7 +78,7 @@ export default function Home() {
             <p className="mb-3 text-sm text-muted-foreground">
               Recomendações com base na sua atividade.
             </p>
-            <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
+            <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 hide-scrollbar">
               {recommendedProducts.map((product) => (
                 <div key={product.id} className="w-40 shrink-0">
                   <ProductCard product={product} />
