@@ -55,16 +55,8 @@ export default function Home() {
                   key={category.id}
                   className="flex flex-col items-center gap-2 text-center"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-card shadow-sm">
-                    <Image
-                      src={category.iconUrl}
-                      alt={category.name}
-                      width={48}
-                      height={48}
-                      className="object-contain"
-                      unoptimized // Adicionado para evitar otimização em SVGs ou PNGs remotos
-                      data-ai-hint={category.hint}
-                    />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-card text-primary shadow-sm">
+                    <category.Icon className="h-8 w-8" />
                   </div>
                   <span className="text-xs font-medium leading-tight text-muted-foreground">
                     {category.name}
@@ -103,5 +95,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
