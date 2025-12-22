@@ -56,8 +56,8 @@ export default function Home() {
                   key={category.id}
                   className="flex flex-col items-center gap-2 text-center"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-card shadow-sm">
-                    <category.Icon className={cn("h-8 w-8", category.color)} />
+                  <div className={cn("flex h-16 w-16 items-center justify-center rounded-xl border bg-card shadow-sm", category.color)}>
+                    <category.Icon className="h-8 w-8 text-white" />
                   </div>
                   <span className="text-xs font-medium leading-tight text-muted-foreground">
                     {category.name}
