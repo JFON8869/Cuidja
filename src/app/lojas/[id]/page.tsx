@@ -42,11 +42,6 @@ interface StoreDocument {
   userId: string;
 }
 
-
-// Find the category object from mockCategories based on the slug.
-const getCategoryBySlug = (slug: string) => mockCategories.find((cat) => cat.slug === slug);
-
-
 export default function StorePage() {
   const params = useParams();
   const router = useRouter();
@@ -54,10 +49,10 @@ export default function StorePage() {
 
   const id = params.id as string;
   const categoryFilterSlug = searchParams.get('category');
-  
+
   const category = useMemo(() => {
     if (!categoryFilterSlug) return null;
-    return getCategoryBySlug(categoryFilterSlug)
+    return mockCategories.find((cat) => cat.slug === categoryFilterSlug);
   }, [categoryFilterSlug]);
 
   const categoryName = category?.name;
@@ -85,7 +80,8 @@ export default function StorePage() {
     if (!firestore || !id || isServiceFilterActive) return null;
     let q = query(collection(firestore, 'products'), where('storeId', '==', id));
     
-    if (categoryName) {
+    // Only apply category filter if it's not the services category
+    if (categoryName && !isServiceFilterActive) {
       q = query(q, where('category', '==', categoryName));
     }
     return q;
@@ -100,7 +96,7 @@ export default function StorePage() {
   
   const hasProducts = storeProducts && storeProducts.length > 0;
   const hasServices = storeServices && storeServices.length > 0;
-  const pageTitle = store?.name || 'Loja';
+  const pageTitle = store?.name ? (categoryName ? `${store.name} - ${categoryName}` : store.name) : 'Loja';
 
   if (!store && !isLoadingStore) {
     return (
@@ -248,3 +244,4 @@ export default function StorePage() {
     </div>
   );
 }
+
