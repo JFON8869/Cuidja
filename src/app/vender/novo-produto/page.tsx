@@ -2,14 +2,10 @@
 
 import Link from 'next/link';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  ArrowLeft,
-  Upload,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Upload, X, PlusCircle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
@@ -35,18 +31,40 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { mockCategories } from '@/lib/data';
-import { type ImagePlaceholder } from '@/lib/placeholder-images';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const MAX_IMAGES = 3;
 
+const addonSchema = z.object({
+  name: z.string().min(1, 'Nome do complemento é obrigatório.'),
+  price: z.coerce.number().min(0, 'O preço não pode ser negativo.'),
+});
+
+const addonGroupSchema = z.object({
+  id: z.string().optional(), // For keying in React
+  title: z.string().min(1, 'Título do grupo é obrigatório.'),
+  type: z.enum(['single', 'multiple'], { required_error: 'Selecione o tipo.'}),
+  addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento.'),
+});
+
 const productSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
-  description: z.string().min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
+  description: z
+    .string()
+    .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
   price: z.coerce.number().positive('O preço deve ser um número positivo.'),
-  category: z.string({ required_error: 'Selecione uma categoria.' }).min(1, 'Selecione uma categoria.'),
-  images: z.array(z.any()).min(1, 'Pelo menos uma imagem é obrigatória.').max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
+  category: z
+    .string({ required_error: 'Selecione uma categoria.' })
+    .min(1, 'Selecione uma categoria.'),
+  images: z
+    .array(z.any())
+    .min(1, 'Pelo menos uma imagem é obrigatória.')
+    .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
+  addonGroups: z.array(addonGroupSchema).optional(),
 });
 
 export default function NewProductPage() {
@@ -74,7 +92,8 @@ export default function NewProductPage() {
         toast({
           variant: 'destructive',
           title: 'Nenhuma loja encontrada',
-          description: 'Você precisa criar uma loja antes de adicionar produtos.',
+          description:
+            'Você precisa criar uma loja antes de adicionar produtos.',
         });
         router.push('/vender/loja');
       }
@@ -91,7 +110,13 @@ export default function NewProductPage() {
       description: '',
       price: 0,
       images: [],
+      addonGroups: [],
     },
+  });
+
+  const { fields: addonGroups, append: appendAddonGroup, remove: removeAddonGroup } = useFieldArray({
+    control: form.control,
+    name: "addonGroups",
   });
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,8 +153,12 @@ export default function NewProductPage() {
 
   async function onSubmit(values: z.infer<typeof productSchema>) {
     if (!firestore || !user || !storeId) {
-        toast({ variant: "destructive", title: "Erro", description: "Não foi possível identificar a loja ou o usuário."});
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível identificar a loja ou o usuário.',
+      });
+      return;
     }
 
     // TODO: Implement actual image upload to Firebase Storage
@@ -139,53 +168,59 @@ export default function NewProductPage() {
       imageUrl: preview,
       imageHint: values.category.toLowerCase(),
     }));
+    
+    // Clean up addon group data
+    const finalAddonGroups = values.addonGroups?.map(group => ({
+        ...group,
+        id: group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7) // create a unique-ish ID
+    }))
 
     try {
-        const productsCollection = collection(firestore, 'products');
-        await addDoc(productsCollection, {
-            name: values.name,
-            description: values.description,
-            price: values.price,
-            category: values.category,
-            images: imageUrls,
-            storeId: storeId,
-            sellerId: user.uid, // Denormalize sellerId for security rules
-            createdAt: new Date().toISOString(),
-        });
-        
-        toast({
-          title: 'Produto anunciado!',
-          description: `O produto "${values.name}" foi cadastrado com sucesso.`,
-        });
-    
-        router.push('/vender/produtos');
+      const productsCollection = collection(firestore, 'products');
+      await addDoc(productsCollection, {
+        name: values.name,
+        description: values.description,
+        price: values.price,
+        category: values.category,
+        images: imageUrls,
+        storeId: storeId,
+        sellerId: user.uid, // Denormalize sellerId for security rules
+        addons: finalAddonGroups || [],
+        createdAt: new Date().toISOString(),
+      });
 
-    } catch(error) {
-        console.error("Error creating product:", error);
-        toast({
-            variant: "destructive",
-            title: "Erro ao criar produto",
-            description: "Não foi possível salvar o produto. Tente novamente."
-        });
+      toast({
+        title: 'Produto anunciado!',
+        description: `O produto "${values.name}" foi cadastrado com sucesso.`,
+      });
+
+      router.push('/vender/produtos');
+    } catch (error) {
+      console.error('Error creating product:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao criar produto',
+        description: 'Não foi possível salvar o produto. Tente novamente.',
+      });
     }
   }
-  
+
   if (isUserLoading || isStoreLoading) {
     return (
-         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-            <header className="flex items-center border-b p-4">
-                <Skeleton className="h-10 w-10" />
-                <Skeleton className="h-6 w-48 mx-auto" />
-                <div className="w-10"></div>
-            </header>
-            <main className="flex-1 p-4 space-y-6">
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-12 w-full" />
-            </main>
-        </div>
-    )
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+        <header className="flex items-center border-b p-4">
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="mx-auto h-6 w-48" />
+          <div className="w-10"></div>
+        </header>
+        <main className="flex-1 space-y-6 p-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -207,7 +242,9 @@ export default function NewProductPage() {
               name="images"
               render={() => (
                 <FormItem>
-                  <FormLabel>Fotos do Produto ({imagePreviews.length}/{MAX_IMAGES})</FormLabel>
+                  <FormLabel>
+                    Fotos do Produto ({imagePreviews.length}/{MAX_IMAGES})
+                  </FormLabel>
                   <FormControl>
                     <div className="grid grid-cols-3 gap-2">
                       {imagePreviews.map((src, index) => (
@@ -234,7 +271,7 @@ export default function NewProductPage() {
                           className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
                           onClick={() => fileInputRef.current?.click()}
                         >
-                           <input
+                          <input
                             type="file"
                             accept="image/*"
                             multiple
@@ -335,12 +372,155 @@ export default function NewProductPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting || isStoreLoading}>
-              {form.formState.isSubmitting ? "Anunciando..." : "Anunciar Produto"}
+
+            <Separator />
+            
+            {/* Addon Groups Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
+              {addonGroups.map((group, groupIndex) => (
+                <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Grupo de Complementos
+              </Button>
+            </div>
+
+
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={form.formState.isSubmitting || isStoreLoading}
+            >
+              {form.formState.isSubmitting
+                ? 'Anunciando...'
+                : 'Anunciar Produto'}
             </Button>
           </form>
         </Form>
       </main>
+    </div>
+  );
+}
+
+// Sub-component for managing an addon group
+function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, removeGroup: (index: number) => void}) {
+  const { control } = useFormContext<z.infer<typeof productSchema>>();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `addonGroups.${groupIndex}.addons`
+  });
+
+  return (
+    <div className="rounded-lg border p-4 space-y-4 relative">
+        <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-7 w-7 text-muted-foreground"
+            onClick={() => removeGroup(groupIndex)}
+        >
+            <X className="h-4 w-4" />
+        </Button>
+        
+        <FormField
+            control={control}
+            name={`addonGroups.${groupIndex}.title`}
+            render={({ field }) => (
+            <FormItem>
+                <FormLabel>Título do Grupo</FormLabel>
+                <FormControl>
+                <Input placeholder="Ex: Tamanho da Pizza" {...field} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
+        <FormField
+            control={control}
+            name={`addonGroups.${groupIndex}.type`}
+            render={({ field }) => (
+            <FormItem className="space-y-3">
+                <FormLabel>Tipo de Seleção</FormLabel>
+                <FormControl>
+                <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex items-center gap-4"
+                >
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                            <RadioGroupItem value="single" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Seleção Única</FormLabel>
+                    </FormItem>
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                            <RadioGroupItem value="multiple" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Múltipla Escolha</FormLabel>
+                    </FormItem>
+                </RadioGroup>
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
+
+        <div className="space-y-2">
+            <Label>Complementos</Label>
+            {fields.map((addon, addonIndex) => (
+                <div key={addon.id} className="flex items-center gap-2">
+                    <FormField
+                        control={control}
+                        name={`addonGroups.${groupIndex}.addons.${addonIndex}.name`}
+                        render={({ field }) => (
+                        <FormItem className="flex-1">
+                            <FormControl>
+                            <Input placeholder="Ex: Borda de Catupiry" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={control}
+                        name={`addonGroups.${groupIndex}.addons.${addonIndex}.price`}
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                                <div className="relative">
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                                    <Input type="number" step="0.01" className="pl-7 w-28" placeholder="Preço" {...field} />
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(addonIndex)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+            ))}
+             <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => append({ name: '', price: 0 })}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Complemento
+              </Button>
+        </div>
     </div>
   );
 }
