@@ -43,9 +43,15 @@ export interface Product {
   addons?: AddonGroup[];
 }
 
+export interface SelectedAddon {
+    name: string;
+    price: number;
+    quantity: number;
+}
+
 export interface CartItem extends Product {
     cartItemId?: string;
-    selectedAddons?: Addon[];
+    selectedAddons?: SelectedAddon[];
 }
 
 export interface Category {

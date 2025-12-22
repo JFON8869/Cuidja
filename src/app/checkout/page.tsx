@@ -31,6 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { SelectedAddon } from '@/lib/data';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -133,13 +134,13 @@ export default function CheckoutPage() {
         const orderData = {
             customerId: user.uid,
             storeId: storeId,
-            items: cart.map(item => ({ 
-              id: item.id, 
-              name: item.name, 
-              price: item.price, 
-              quantity: 1, // Assuming quantity is always 1 for now
-              selectedAddons: item.selectedAddons || []
-            })),
+            items: cart.map(item => {
+                const { selectedAddons, ...restOfItem } = item;
+                return { 
+                    ...restOfItem, // Spread the rest of the item properties
+                    selectedAddons: selectedAddons || []
+                };
+            }),
             totalAmount: total,
             status: 'Pendente',
             orderDate: new Date().toISOString(),
@@ -311,10 +312,19 @@ export default function CheckoutPage() {
               <Card>
                 <CardContent className="p-4 space-y-3">
                     {cart.map(item => (
-                        <div key={item.id} className="flex justify-between items-center text-sm">
-                            <span className="line-clamp-1 flex-1 pr-4">{item.name}</span>
+                        <div key={item.id} className="flex justify-between items-start text-sm">
+                            <div className="flex-1 pr-4">
+                                <span className="line-clamp-1">{item.name}</span>
+                                {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                    <ul className="text-xs text-muted-foreground mt-1">
+                                        {item.selectedAddons.map(addon => (
+                                            <li key={addon.name}>+ {addon.quantity}x {addon.name}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
                             <span className="text-muted-foreground">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price + (item.selectedAddons?.reduce((acc, a) => acc + (a.price * a.quantity), 0) || 0) )}
                             </span>
                         </div>
                     ))}

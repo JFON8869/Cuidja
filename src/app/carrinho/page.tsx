@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -48,7 +49,7 @@ export default function CartPage() {
                    {item.selectedAddons && item.selectedAddons.length > 0 && (
                     <ul className="text-xs text-muted-foreground mt-1">
                         {item.selectedAddons.map(addon => (
-                            <li key={addon.name}>+ {addon.name} ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addon.price)})</li>
+                            <li key={addon.name}>+ {addon.quantity}x {addon.name} ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addon.price)})</li>
                         ))}
                     </ul>
                    )}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -199,7 +200,7 @@ export default function ProductDetailPage() {
                     {item.selectedAddons && item.selectedAddons.length > 0 && (
                         <ul className="text-xs text-muted-foreground mt-1">
                             {item.selectedAddons.map(addon => (
-                                <li key={addon.name}>+ {addon.name}</li>
+                                <li key={addon.name}>+ {addon.quantity}x {addon.name}</li>
                             ))}
                         </ul>
                     )}

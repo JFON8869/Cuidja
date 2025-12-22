@@ -245,7 +245,7 @@
         },
         "selectedAddons": {
           "type": "array",
-          "items": { "$ref": "#/backend/entities/Addon" }
+          "items": { "$ref": "#/backend/entities/SelectedAddon" }
         }
       },
       "required": [
@@ -254,6 +254,17 @@
         "quantity",
         "price"
       ]
+    },
+    "SelectedAddon": {
+      "title": "SelectedAddon",
+      "type": "object",
+      "description": "A single add-on option for a product with quantity.",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "quantity": { "type": "number" }
+      },
+      "required": ["name", "price", "quantity"]
     }
   },
   "auth": {

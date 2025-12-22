@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -13,44 +14,60 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/CartContext';
-import { Product, Addon, AddonGroup } from '@/lib/data';
+import { Product, Addon, AddonGroup, SelectedAddon } from '@/lib/data';
+import { Minus, Plus } from 'lucide-react';
 
 interface ProductOptionsSheetProps {
   product: Product;
   onAddToCart: (product: Product) => void;
 }
 
+type SelectedOptionsState = Record<string, SelectedAddon[]>;
+
 export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsSheetProps) {
   const { addToCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, Addon[]>>({});
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsState>({});
 
   const handleSingleSelectChange = (group: AddonGroup, addonName: string) => {
     const selectedAddon = group.addons.find(a => a.name === addonName);
     setSelectedOptions(prev => ({
       ...prev,
-      [group.id]: selectedAddon ? [selectedAddon] : [],
+      [group.id]: selectedAddon ? [{ ...selectedAddon, quantity: 1 }] : [],
     }));
   };
 
-  const handleMultiSelectChange = (group: AddonGroup, addon: Addon, checked: boolean) => {
+  const handleQuantityChange = (group: AddonGroup, addon: Addon, change: 1 | -1) => {
     setSelectedOptions(prev => {
-      const currentGroupOptions = prev[group.id] || [];
-      if (checked) {
-        return { ...prev, [group.id]: [...currentGroupOptions, addon] };
-      } else {
-        return { ...prev, [group.id]: currentGroupOptions.filter(a => a.name !== addon.name) };
-      }
+        const newSelectedOptions = { ...prev };
+        let groupAddons = newSelectedOptions[group.id] || [];
+        const existingAddonIndex = groupAddons.findIndex(a => a.name === addon.name);
+
+        if (existingAddonIndex > -1) {
+            // Addon exists, update quantity
+            const newQuantity = groupAddons[existingAddonIndex].quantity + change;
+            if (newQuantity > 0) {
+                groupAddons[existingAddonIndex].quantity = newQuantity;
+            } else {
+                // Remove if quantity is 0 or less
+                groupAddons.splice(existingAddonIndex, 1);
+            }
+        } else if (change === 1) {
+            // Addon doesn't exist, add with quantity 1
+            groupAddons.push({ ...addon, quantity: 1 });
+        }
+        
+        newSelectedOptions[group.id] = groupAddons;
+        return newSelectedOptions;
     });
   };
 
   const total = useMemo(() => {
     const addonsTotal = Object.values(selectedOptions)
       .flat()
-      .reduce((acc, addon) => acc + addon.price, 0);
+      .reduce((acc, addon) => acc + (addon.price * addon.quantity), 0);
     return product.price + addonsTotal;
   }, [product.price, selectedOptions]);
   
@@ -60,6 +77,10 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
     onAddToCart(product);
     setIsOpen(false);
     setSelectedOptions({});
+  }
+  
+  const getAddonQuantity = (groupId: string, addonName: string) => {
+      return selectedOptions[groupId]?.find(a => a.name === addonName)?.quantity || 0;
   }
 
   return (
@@ -83,7 +104,7 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
               {group.type === 'single' ? (
                 <RadioGroup 
                     onValueChange={(value) => handleSingleSelectChange(group, value)}
-                    defaultValue={group.addons.find(a => a.price === 0)?.name}
+                    defaultValue={selectedOptions[group.id]?.[0]?.name || group.addons.find(a => a.price === 0)?.name}
                 >
                   {group.addons.map((addon) => (
                     <div key={addon.name} className="flex items-center justify-between">
@@ -101,22 +122,30 @@ export function ProductOptionsSheet({ product, onAddToCart }: ProductOptionsShee
                 </RadioGroup>
               ) : (
                 <div className="space-y-2">
-                    {group.addons.map((addon) => (
-                        <div key={addon.name} className="flex items-center justify-between">
-                           <Label htmlFor={`${group.id}-${addon.name}`} className="flex-1 font-normal cursor-pointer">
-                                {addon.name}
-                                {addon.price > 0 && (
-                                <span className="text-sm text-muted-foreground ml-2">
-                                    (+{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addon.price)})
-                                </span>
-                                )}
-                            </Label>
-                             <Checkbox 
-                                id={`${group.id}-${addon.name}`} 
-                                onCheckedChange={(checked) => handleMultiSelectChange(group, addon, !!checked)}
-                             />
-                        </div>
-                    ))}
+                    {group.addons.map((addon) => {
+                        const quantity = getAddonQuantity(group.id, addon.name);
+                        return (
+                             <div key={addon.name} className="flex items-center justify-between">
+                               <Label htmlFor={`${group.id}-${addon.name}`} className="flex-1 font-normal">
+                                    {addon.name}
+                                    {addon.price > 0 && (
+                                    <span className="text-sm text-muted-foreground ml-2">
+                                        (+{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addon.price)})
+                                    </span>
+                                    )}
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(group, addon, -1)} disabled={quantity === 0}>
+                                        <Minus className="h-4 w-4" />
+                                    </Button>
+                                    <span className="w-5 text-center font-bold">{quantity}</span>
+                                     <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(group, addon, 1)}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )
+                    })}
                 </div>
               )}
                <Separator className="mt-4" />

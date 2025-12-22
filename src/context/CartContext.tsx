@@ -1,11 +1,12 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CartItem, Addon, Product } from '@/lib/data';
+import { CartItem, SelectedAddon, Product } from '@/lib/data';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, selectedAddons?: Addon[]) => void;
+  addToCart: (product: Product, selectedAddons?: SelectedAddon[]) => void;
   removeFromCart: (cartItemId: string) => void;
   clearCart: () => void;
   total: number;
@@ -19,13 +20,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const newTotal = cart.reduce((acc, item) => {
-        const addonsTotal = item.selectedAddons?.reduce((addonAcc, addon) => addonAcc + addon.price, 0) || 0;
+        const addonsTotal = item.selectedAddons?.reduce((addonAcc, addon) => addonAcc + (addon.price * addon.quantity), 0) || 0;
         return acc + item.price + addonsTotal;
     }, 0);
     setTotal(newTotal);
   }, [cart]);
 
-  const addToCart = (product: Product, selectedAddons: Addon[] = []) => {
+  const addToCart = (product: Product, selectedAddons: SelectedAddon[] = []) => {
     const cartItemId = `${product.id}-${new Date().getTime()}`;
     const newItem: CartItem = { 
         ...product, 
