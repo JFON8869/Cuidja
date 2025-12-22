@@ -53,6 +53,7 @@ export default function StorePage() {
 
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !id) return null;
+    // The providerId for a service is the ID of the store.
     return query(
         collection(firestore, 'services'),
         where('providerId', '==', id)
@@ -139,6 +140,8 @@ export default function StorePage() {
                 </div>
             </section>
         )}
+
+        {hasProducts && hasServices && <Separator />}
 
         {hasServices && (
              <section>
