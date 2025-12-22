@@ -45,12 +45,12 @@ interface StoreDocument {
 
 // Helper to format slugs back to category names (e.g., "faca-feira" -> "Faça-Feira")
 function formatCategoryFromSlug(slug: string): string {
-    return slug
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+  if (!slug) return '';
+  return slug
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
-
 
 export default function StorePage() {
   const params = useParams();
@@ -59,7 +59,7 @@ export default function StorePage() {
 
   const id = params.id as string;
   const categoryFilter = searchParams.get('category');
-  const isServiceFilter = categoryFilter === 'servicos';
+  const isServiceFilterActive = categoryFilter === 'servicos';
 
   const { firestore } = useFirebase();
 
@@ -70,17 +70,8 @@ export default function StorePage() {
 
   const { data: store, isLoading: isLoadingStore } =
     useDoc<StoreDocument>(storeRef);
-
-  const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !id || isServiceFilter) return null;
-    let q = query(collection(firestore, 'products'), where('storeId', '==', id));
-    if (categoryFilter) {
-      const formattedCategory = formatCategoryFromSlug(categoryFilter);
-      q = query(q, where('category', '==', formattedCategory));
-    }
-    return q;
-  }, [firestore, id, categoryFilter, isServiceFilter]);
   
+  // Always query for services associated with the store/provider.
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !id) return null;
     return query(
@@ -89,12 +80,29 @@ export default function StorePage() {
     );
   }, [firestore, id]);
 
+  // Query for products, applying category filter if it's not a service filter.
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    let q = query(collection(firestore, 'products'), where('storeId', '==', id));
+    
+    // Only apply category filter to products if the filter is not 'servicos'
+    if (categoryFilter && !isServiceFilterActive) {
+      const formattedCategory = formatCategoryFromSlug(categoryFilter);
+      q = query(q, where('category', '==', formattedCategory));
+    }
+    return q;
+  }, [firestore, id, categoryFilter, isServiceFilterActive]);
+
   const { data: storeProducts, isLoading: areProductsLoading } =
     useCollection<ProductWithId>(productsQuery);
   const { data: storeServices, isLoading: areServicesLoading } =
     useCollection<ServiceWithId>(servicesQuery);
-
+    
   const isLoading = isLoadingStore || areProductsLoading || areServicesLoading;
+  
+  // Determine which items to display based on the filter
+  const displayedProducts = isServiceFilterActive ? [] : storeProducts;
+  const displayedServices = storeServices;
 
   if (!store && !isLoadingStore) {
     return (
@@ -116,16 +124,23 @@ export default function StorePage() {
         <header className="flex items-center border-b p-4">
           <Loader2 className="h-8 w-8 animate-spin" />
         </header>
+        <main className="flex-1 space-y-6 p-4">
+            <div className="flex items-center gap-4">
+                <div className="h-20 w-20 rounded-full bg-muted animate-pulse"></div>
+                <div className="h-6 w-40 bg-muted animate-pulse"></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="h-48 w-full bg-muted animate-pulse rounded-lg"></div>
+                <div className="h-48 w-full bg-muted animate-pulse rounded-lg"></div>
+            </div>
+        </main>
       </div>
     );
   }
 
-  const hasProducts = storeProducts && storeProducts.length > 0;
-  const hasServices = storeServices && storeServices.length > 0;
-  const pageTitle =
-    categoryFilter && store?.name
-      ? `${store.name} - ${formatCategoryFromSlug(categoryFilter)}`
-      : store?.name;
+  const hasProducts = displayedProducts && displayedProducts.length > 0;
+  const hasServices = displayedServices && displayedServices.length > 0;
+  const pageTitle = store?.name || 'Loja';
 
   const getServiceButton = (service: ServiceWithId) => {
     const hasFee = service.visitFee && service.visitFee > 0;
@@ -179,7 +194,7 @@ export default function StorePage() {
               Produtos
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              {storeProducts!.map((product) => (
+              {displayedProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
@@ -195,7 +210,7 @@ export default function StorePage() {
               Serviços
             </h2>
             <div className="space-y-4">
-              {storeServices!.map((service) => (
+              {displayedServices.map((service) => (
                 <Card key={service.id} className="overflow-hidden">
                   <Image
                     src={(service.images && service.images[0].imageUrl) || `https://picsum.photos/seed/${service.id}/400/200`}
@@ -217,7 +232,7 @@ export default function StorePage() {
                     )}
                   </CardHeader>
                   <CardContent>
-                    <CardDescription>{service.description}</CardDescription>
+                    <p className="text-sm text-muted-foreground">{service.description}</p>
                   </CardContent>
                   <CardFooter>{getServiceButton(service)}</CardFooter>
                 </Card>
@@ -230,7 +245,7 @@ export default function StorePage() {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <h2 className="text-2xl font-bold">Nenhum item encontrado</h2>
             <p className="text-muted-foreground">
-              Esta loja ainda não tem itens.
+              Esta loja ainda não tem itens para exibir.
             </p>
           </div>
         )}

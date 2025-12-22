@@ -2,17 +2,17 @@
 'use client';
 
 import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
-import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { StoreCard } from '@/components/store/StoreCard';
-import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Define a type for the store data coming from Firestore
 interface StoreDocument {
+  id: string;
   name: string;
   category: string;
   userId: string;
@@ -21,22 +21,51 @@ interface StoreDocument {
 
 export default function ServicesCategoryPage() {
   const { firestore } = useFirebase();
+  const [serviceProviders, setServiceProviders] = useState<StoreDocument[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Memoize the query to prevent re-renders. This query finds stores that offer services.
-  // A better approach would be a dedicated field e.g. `offersServices: true`
-  // For now, we query stores that have listed their primary category as 'Serviços'.
-  // This will also include stores that offer both products and services.
-  const servicesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, 'stores'),
-      where('category', '==', 'Serviços') // This might need adjustment based on the final data model
-    );
+  useEffect(() => {
+    async function fetchServiceProviders() {
+      if (!firestore) return;
+      setIsLoading(true);
+
+      try {
+        // 1. Find all unique providerIds from the 'services' collection
+        const servicesQuery = query(collection(firestore, 'services'));
+        const servicesSnapshot = await getDocs(servicesQuery);
+        const providerIds = [
+          ...new Set(servicesSnapshot.docs.map((doc) => doc.data().providerId)),
+        ];
+
+        if (providerIds.length === 0) {
+          setServiceProviders([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. Fetch the store documents for each unique providerId
+        const providerPromises = providerIds.map((id) =>
+          getDoc(doc(firestore, 'stores', id as string))
+        );
+        const providerDocs = await Promise.all(providerPromises);
+
+        const providers = providerDocs
+          .filter((doc) => doc.exists())
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as StoreDocument[];
+
+        setServiceProviders(providers);
+      } catch (error) {
+        console.error('Failed to fetch service providers:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchServiceProviders();
   }, [firestore]);
-
-  // Fetch the service providers from Firestore
-  const { data: serviceProviders, isLoading } =
-    useCollection<WithId<StoreDocument>>(servicesQuery);
   
   const renderSkeleton = () => (
     <div className="space-y-4">
@@ -75,7 +104,7 @@ export default function ServicesCategoryPage() {
                 store={{
                   id: store.id,
                   name: store.name,
-                  category: store.category,
+                  category: 'Serviços', // Set category explicitly for the link
                   logoUrl: store.logoUrl,
                 }}
               />
@@ -85,7 +114,7 @@ export default function ServicesCategoryPage() {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <h2 className="text-2xl font-bold">Nenhum prestador encontrado</h2>
             <p className="text-muted-foreground">
-              Não há prestadores de serviço nesta categoria no momento.
+              Não há prestadores de serviço cadastrados no momento.
             </p>
           </div>
         )}
