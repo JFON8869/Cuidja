@@ -5,16 +5,14 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft,
   Upload,
-  Calendar as CalendarIcon,
   X,
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,13 +26,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -43,117 +34,85 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { mockCategories } from '@/lib/data';
-import { useProductContext } from '@/context/ProductContext';
-import { type ImagePlaceholder } from '@/lib/placeholder-images';
+import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const MAX_IMAGES = 3;
 
-const productSchema = z
-  .object({
+const productSchema = z.object({
     name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
-    description: z
-      .string()
-      .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
+    description: z.string().min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
     price: z.coerce.number().positive('O preço deve ser um número positivo.'),
-    category: z
-      .string({ required_error: 'Selecione uma categoria.' })
-      .min(1, 'Selecione uma categoria.'),
-    availability: z.enum(['immediate', 'on_demand', 'scheduled']),
-    preparationTime: z.string().optional(),
-    availableFrom: z.date().optional(),
-    images: z
-      .array(z.any())
-      .min(1, 'Pelo menos uma imagem é obrigatória.')
-      .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
-  })
-  .refine(
-    (data) => {
-      if (data.availability === 'on_demand' && !data.preparationTime) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: 'O tempo de preparo é obrigatório para encomendas.',
-      path: ['preparationTime'],
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.availability === 'scheduled' && !data.availableFrom) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: 'A data de disponibilidade é obrigatória.',
-      path: ['availableFrom'],
-    }
-  );
+    category: z.string({ required_error: 'Selecione uma categoria.' }).min(1, 'Selecione uma categoria.'),
+    images: z.array(z.any()).min(1, 'Pelo menos uma imagem é obrigatória.').max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
+  });
 
 export default function EditProductPage() {
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
   const { id } = params;
-  const { products, updateProduct } = useProductContext();
-  
+  const { firestore, user } = useFirebase();
+
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [productName, setProductName] = React.useState('');
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  const productToEdit = React.useMemo(() => products.find(p => p.id === id), [id, products]);
-
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      availability: 'immediate',
-      preparationTime: '',
-      images: [],
-    },
   });
-  
-  React.useEffect(() => {
-    if (productToEdit) {
-      form.reset({
-        name: productToEdit.name,
-        description: productToEdit.description || '',
-        price: productToEdit.price,
-        category: productToEdit.category,
-        images: productToEdit.images,
-        // Set other fields based on product data if they exist
-        availability: 'immediate', // This should be based on actual product data if available
-      });
-      setImagePreviews(productToEdit.images.map(img => img.imageUrl));
-    }
-  }, [productToEdit, form]);
 
-  const availability = form.watch('availability');
+  React.useEffect(() => {
+    if (!firestore || !id || !user) return;
+    
+    const productRef = doc(firestore, 'products', id as string);
+    getDoc(productRef).then(docSnap => {
+        if (docSnap.exists()) {
+            const product = docSnap.data();
+            if (product.sellerId !== user.uid) {
+                toast({ variant: 'destructive', title: 'Acesso Negado', description: 'Você não tem permissão para editar este produto.' });
+                router.push('/vender');
+                return;
+            }
+
+            form.reset({
+                name: product.name,
+                description: product.description || '',
+                price: product.price,
+                category: product.category,
+                images: product.images,
+            });
+            setProductName(product.name);
+            setImagePreviews(product.images.map((img: { imageUrl: string }) => img.imageUrl));
+        } else {
+            toast({ variant: 'destructive', title: 'Produto não encontrado' });
+            router.push('/vender/produtos');
+        }
+    }).finally(() => setIsLoading(false));
+  }, [id, firestore, user, form, router, toast]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const currentImages = form.getValues('images');
-    const totalImages = currentImages.length + files.length;
+    const currentImages = form.getValues('images') || [];
+    const currentPreviews = imagePreviews;
+    const totalImages = currentPreviews.length + files.length;
 
     if (totalImages > MAX_IMAGES) {
       toast({
         variant: 'destructive',
         title: 'Limite de imagens excedido',
-        description: `Você só pode adicionar mais ${
-          MAX_IMAGES - currentImages.length
-        } imagens.`,
+        description: `Você só pode adicionar mais ${MAX_IMAGES - currentPreviews.length} imagens.`,
       });
       return;
     }
 
-    const newImageFiles = [...currentImages, ...files];
-    form.setValue('images', newImageFiles, { shouldValidate: true });
-
+    // Apenas para preview, os arquivos reais seriam tratados no upload
     const newImagePreviews = files.map((file) => URL.createObjectURL(file));
+    
+    // Armazena os arquivos para o RHF e os previews para a UI
+    form.setValue('images', [...currentImages, ...files], { shouldValidate: true });
     setImagePreviews((prev) => [...prev, ...newImagePreviews]);
   };
 
@@ -168,41 +127,40 @@ export default function EditProductPage() {
     setImagePreviews(currentPreviews);
   };
 
-  function onSubmit(values: z.infer<typeof productSchema>) {
-    if (!productToEdit) return;
+  async function onSubmit(values: z.infer<typeof productSchema>) {
+    if (!firestore || !id) return;
+    
+    // TODO: Implement image upload logic.
+    // This requires uploading new files and keeping old URLs.
+    // For now, we'll just update the text fields.
+    const productRef = doc(firestore, "products", id as string);
 
-    // This logic needs to differentiate between old URLs and new File objects if needed.
-    // For this mock, we just create new ImagePlaceholder objects.
-    const newImages: ImagePlaceholder[] = imagePreviews.map((preview, i) => {
-      const existingImage = productToEdit.images.find(img => img.imageUrl === preview);
-      return existingImage || {
-        id: `custom-${new Date().getTime()}-${i}`,
-        description: values.name,
-        imageUrl: preview,
-        imageHint: values.category.toLowerCase(),
-      }
-    });
+    try {
+        await updateDoc(productRef, {
+            name: values.name,
+            description: values.description,
+            price: values.price,
+            category: values.category,
+            // images: newImageUrls // This would be the new array of image URLs after upload
+        });
 
-    const updatedProduct = {
-      ...productToEdit,
-      name: values.name,
-      price: values.price,
-      description: values.description,
-      category: values.category,
-      images: newImages,
-    };
+        toast({
+          title: 'Produto atualizado!',
+          description: `O produto "${values.name}" foi atualizado com sucesso.`,
+        });
 
-    updateProduct(productToEdit.id, updatedProduct);
-
-    toast({
-      title: 'Produto atualizado!',
-      description: `O produto "${values.name}" foi atualizado com sucesso.`,
-    });
-
-    router.push('/vender/produtos');
+        router.push('/vender/produtos');
+    } catch (error) {
+        console.error("Error updating product: ", error);
+        toast({
+            variant: "destructive",
+            title: "Erro ao atualizar",
+            description: "Não foi possível salvar as alterações. Tente novamente."
+        })
+    }
   }
 
-  if (!productToEdit) {
+  if (isLoading) {
     return (
         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
             <header className="flex items-center border-b p-4">
@@ -228,7 +186,7 @@ export default function EditProductPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl truncate px-2">Editar: {productToEdit.name}</h1>
+        <h1 className="mx-auto font-headline text-xl truncate px-2">Editar: {productName}</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
@@ -348,7 +306,7 @@ export default function EditProductPage() {
                   <FormLabel>Categoria</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -368,119 +326,8 @@ export default function EditProductPage() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="availability"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Disponibilidade</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="immediate" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Pronta-entrega
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="on_demand" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Por Encomenda
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="scheduled" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Disponível a partir de
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {availability === 'on_demand' && (
-              <FormField
-                control={form.control}
-                name="preparationTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tempo de Preparo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: 3 dias úteis" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Informe o tempo necessário para produzir o item.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {availability === 'scheduled' && (
-              <FormField
-                control={form.control}
-                name="availableFrom"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data de Disponibilidade</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-full pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, 'PPP', { locale: ptBR })
-                            ) : (
-                              <span>Escolha uma data</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date(new Date().setHours(0, 0, 0, 0))
-                          }
-                          initialFocus
-                          locale={ptBR}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormDescription>
-                      O produto só aparecerá para os clientes a partir desta
-                      data.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
-              Salvar Alterações
+              {form.formState.isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </form>
         </Form>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -7,7 +8,11 @@ import {
   ShoppingBag,
   BarChart,
   Package,
+  Store,
+  Loader2,
 } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -19,6 +24,8 @@ import {
   Tooltip,
 } from 'recharts';
 import { useProductContext } from '@/context/ProductContext';
+import { useFirebase } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const salesData = [
   { name: 'Jan', sales: 65 },
@@ -31,10 +38,78 @@ const salesData = [
 
 export default function SellPage() {
   const { products } = useProductContext();
-  // This is a placeholder for the current seller's store ID.
-  // In a real app, this would come from the authenticated user's data.
-  const myStoreId = 'paodaterra';
-  const myProductsCount = products.filter(p => p.storeId === myStoreId).length;
+  const { user, firestore, isUserLoading } = useFirebase();
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [isStoreLoading, setStoreLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStore() {
+      if (!firestore || !user) {
+        if (!isUserLoading) {
+            setStoreLoading(false);
+        }
+        return;
+      }
+      setStoreLoading(true);
+      const storesRef = collection(firestore, 'stores');
+      const q = query(storesRef, where('userId', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setStoreId(querySnapshot.docs[0].id);
+      } else {
+        setStoreId(null); // Explicitly set to null if no store found
+      }
+      setStoreLoading(false);
+    }
+    fetchStore();
+  }, [user, firestore, isUserLoading]);
+
+  const myProductsCount = storeId
+    ? products.filter((p) => p.storeId === storeId).length
+    : 0;
+
+  if (isStoreLoading || isUserLoading) {
+    return (
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+        <header className="flex items-center border-b p-4">
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="mx-auto h-6 w-40" />
+          <div className="w-10"></div>
+        </header>
+        <main className="flex-1 space-y-6 p-4">
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
+
+  // If user is logged in but has no store
+  if (user && !storeId) {
+    return (
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+        <header className="flex items-center border-b p-4">
+           <Button variant="ghost" size="icon" asChild>
+            <Link href="/home">
+              <ArrowLeft />
+            </Link>
+          </Button>
+          <h1 className="mx-auto font-headline text-xl">Seja um Vendedor</h1>
+          <div className="w-10"></div>
+        </header>
+        <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
+            <Store className="h-20 w-20 text-muted-foreground mb-4"/>
+            <h2 className="text-2xl font-bold">Crie sua loja para começar</h2>
+            <p className="text-muted-foreground mb-6">O primeiro passo para vender seus produtos é criar sua loja. É rápido e fácil!</p>
+            <Button size="lg" asChild>
+                <Link href="/vender/loja">
+                    <PlusCircle className="mr-2"/>
+                    Criar Minha Loja
+                </Link>
+            </Button>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -44,8 +119,12 @@ export default function SellPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Área do Vendedor</h1>
-        <div className="w-10"></div>
+        <h1 className="mx-auto font-headline text-xl">Painel do Vendedor</h1>
+         <Button variant="ghost" size="icon" asChild>
+          <Link href="/vender/loja">
+            <Store />
+          </Link>
+        </Button>
       </header>
       <main className="flex-1 space-y-6 p-4">
         <Button size="lg" className="w-full" asChild>
@@ -56,7 +135,7 @@ export default function SellPage() {
         </Button>
         <div className="grid grid-cols-2 gap-4">
           <Link href="/vender/produtos">
-            <Card>
+            <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Meus Produtos
@@ -70,7 +149,7 @@ export default function SellPage() {
             </Card>
           </Link>
           <Link href="/vender/pedidos">
-            <Card>
+            <Card className="hover:bg-muted/50 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Vendas</CardTitle>
                 <ShoppingBag className="h-4 w-4 text-muted-foreground" />
@@ -106,14 +185,18 @@ export default function SellPage() {
                   axisLine={false}
                   tickFormatter={(value) => `${value}`}
                 />
-                 <Tooltip
+                <Tooltip
                   cursor={{ fill: 'hsl(var(--muted))' }}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--background))',
                     borderColor: 'hsl(var(--border))',
                   }}
                 />
-                <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="sales"
+                  fill="hsl(var(--primary))"
+                  radius={[4, 4, 0, 0]}
+                />
               </RechartsBarChart>
             </ResponsiveContainer>
           </CardContent>

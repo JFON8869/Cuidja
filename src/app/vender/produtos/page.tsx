@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash } from 'lucide-react';
+import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2 } from 'lucide-react';
+import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import React from 'react';
+
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,27 +14,82 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
-import { useProductContext } from '@/context/ProductContext';
 import { useToast } from '@/hooks/use-toast';
-import { mockStores } from '@/lib/data';
+import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useCollection, WithId } from '@/firebase/firestore/use-collection';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+
+interface Product extends WithId<any> {
+    name: string;
+    price: number;
+    images: { imageUrl: string }[];
+}
 
 export default function MyProductsPage() {
-  const { products, removeProduct } = useProductContext();
   const { toast } = useToast();
-  
-  // This is a placeholder for the current seller's store ID. 
-  // In a real app, this would come from the authenticated user's data.
-  const myStoreId = 'paodaterra';
-  const myProducts = products.filter(p => p.storeId === myStoreId);
+  const { user, firestore, isUserLoading } = useFirebase();
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
-  const handleDelete = (productId: string, productName: string) => {
-    removeProduct(productId);
-    toast({
-        variant: "destructive",
-        title: 'Produto excluído!',
-        description: `O produto "${productName}" foi removido.`,
-    })
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, 'products'),
+      where('sellerId', '==', user.uid)
+    );
+  }, [firestore, user]);
+
+  const { data: myProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
+  const isLoading = isUserLoading || areProductsLoading;
+
+  const handleDelete = async (productId: string, productName: string) => {
+    if (!firestore) return;
+    setIsDeleting(true);
+    try {
+        await deleteDoc(doc(firestore, "products", productId));
+        toast({
+            variant: "default",
+            title: 'Produto excluído!',
+            description: `O produto "${productName}" foi removido.`,
+        })
+    } catch(error) {
+        console.error("Error deleting product: ", error);
+        toast({
+            variant: "destructive",
+            title: 'Erro ao excluir',
+            description: `Não foi possível remover o produto. Tente novamente.`,
+        })
+    } finally {
+        setIsDeleting(false);
+    }
   }
+  
+  const renderSkeleton = () => (
+    [...Array(3)].map((_, i) => (
+        <Card key={i}>
+            <CardContent className="flex items-center gap-4 p-4">
+                <Skeleton className="h-16 w-16 rounded-md" />
+                <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-3 w-1/4" />
+                </div>
+                <Skeleton className="h-8 w-8" />
+            </CardContent>
+        </Card>
+    ))
+  );
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -49,12 +107,13 @@ export default function MyProductsPage() {
         </Button>
       </header>
       <main className="flex-1 space-y-4 p-4">
-        {myProducts.length > 0 ? (
+        {isLoading ? renderSkeleton() : 
+        myProducts && myProducts.length > 0 ? (
           myProducts.map((product) => (
             <Card key={product.id} className="overflow-hidden">
               <CardContent className="flex items-center gap-4 p-4">
                 <Image
-                  src={product.images[0].imageUrl}
+                  src={product.images[0]?.imageUrl || '/placeholder.png'}
                   alt={product.name}
                   width={64}
                   height={64}
@@ -68,30 +127,51 @@ export default function MyProductsPage() {
                       currency: 'BRL',
                     }).format(product.price)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Estoque: 10</p>
+                  {/* Placeholder for stock */}
+                  <p className="text-xs text-muted-foreground">Estoque: --</p>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/vender/produtos/editar/${product.id}`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                        className="text-destructive" 
+                <AlertDialog>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link href={`/vender/produtos/editar/${product.id}`}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </Link>
+                      </DropdownMenuItem>
+                       <AlertDialogTrigger asChild>
+                          <DropdownMenuItem className="text-destructive">
+                            <Trash className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                   <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Essa ação não pode ser desfeita. Isso excluirá permanentemente o produto "{product.name}".
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={isDeleting}
                         onClick={() => handleDelete(product.id, product.name)}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      Excluir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                         {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                         Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           ))

@@ -72,7 +72,7 @@ export default function SellerOrdersPage() {
   const { data: orders, isLoading: areOrdersLoading } =
     useCollection<Order>(ordersQuery);
 
-  const isLoading = isUserLoading || isStoreLoading || areOrdersLoading;
+  const isLoading = isUserLoading || isStoreLoading || (storeId && areOrdersLoading);
 
   const renderSkeleton = () => (
     <div className="space-y-4 p-4">
@@ -100,6 +100,9 @@ export default function SellerOrdersPage() {
       <p className="text-muted-foreground">
         Você precisa criar uma loja para ver suas vendas.
       </p>
+       <Button asChild className="mt-4">
+          <Link href="/vender/loja">Criar minha loja</Link>
+        </Button>
     </div>
   );
 
