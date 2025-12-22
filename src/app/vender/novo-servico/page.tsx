@@ -59,15 +59,6 @@ export default function NewServicePage() {
       const q = query(storesRef, where('userId', '==', user.uid));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
-        const storeData = querySnapshot.docs[0].data();
-        if (storeData.category !== 'Serviços') {
-           toast({
-            variant: 'destructive',
-            title: 'Acesso Negado',
-            description: 'Sua loja não é da categoria de serviços.',
-           });
-           router.push('/vender');
-        }
         setStoreId(querySnapshot.docs[0].id);
       } else {
         toast({
@@ -158,7 +149,7 @@ export default function NewServicePage() {
         description: `O serviço "${values.name}" foi cadastrado com sucesso.`,
       });
 
-      router.push('/vender/servicos');
+      router.push('/vender');
     } catch (error) {
       console.error('Error creating service:', error);
       toast({

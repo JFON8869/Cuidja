@@ -170,14 +170,12 @@ export default function SellPage() {
                 </Link>
             </Button>
             
-            {store?.category === 'Serviços' && (
-                <Button size="lg" variant="outline" className="w-full" asChild>
-                    <Link href={"/vender/novo-servico"}>
-                        <Wrench className="mr-2" />
-                        Anunciar Novo Serviço
-                    </Link>
-                </Button>
-            )}
+            <Button size="lg" variant="outline" className="w-full" asChild>
+                <Link href={"/vender/novo-servico"}>
+                    <Wrench className="mr-2" />
+                    Anunciar Novo Serviço
+                </Link>
+            </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
