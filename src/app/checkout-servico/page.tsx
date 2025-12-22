@@ -24,11 +24,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Service, mockServices } from '@/lib/data';
+import { Service } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 
 const serviceCheckoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -42,34 +43,17 @@ const serviceCheckoutSchema = z.object({
 export default function ServiceCheckoutPage() {
   const searchParams = useSearchParams();
   const serviceId = searchParams.get('serviceId');
+  const storeId = searchParams.get('storeId');
   const { toast } = useToast();
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
-  const [service, setService] = React.useState<Service | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    async function fetchService() {
-        if (!firestore || !serviceId) {
-            setIsLoading(false);
-            return;
-        };
-        // In a real app, fetch from Firestore. Using mock data here for simplicity.
-        const foundService = mockServices.find(s => s.id === serviceId);
-        if (foundService) {
-            setService(foundService);
-        } else {
-             toast({
-                variant: 'destructive',
-                title: 'Serviço não encontrado',
-            });
-            router.push('/categorias/servicos');
-        }
-        setIsLoading(false);
-    }
-    fetchService();
-  }, [firestore, serviceId, router, toast])
+  const serviceRef = useMemoFirebase(() => {
+    if (!firestore || !serviceId) return null;
+    return doc(firestore, 'services', serviceId);
+  }, [firestore, serviceId]);
 
+  const { data: service, isLoading: isLoadingService } = useDoc<WithId<Service>>(serviceRef);
 
   const form = useForm<z.infer<typeof serviceCheckoutSchema>>({
     resolver: zodResolver(serviceCheckoutSchema),
@@ -86,7 +70,7 @@ export default function ServiceCheckoutPage() {
   }, [user, form]);
   
   async function onSubmit(values: z.infer<typeof serviceCheckoutSchema>) {
-    if (!firestore || !user || !service) {
+    if (!firestore || !user || !service || !storeId) {
         toast({
             variant: 'destructive',
             title: 'Erro de autenticação ou serviço',
@@ -108,7 +92,7 @@ export default function ServiceCheckoutPage() {
 
         const orderData: any = {
             userId: user.uid,
-            storeId: service.providerId,
+            storeId: storeId,
             serviceId: service.id,
             totalAmount: service.visitFee || 0,
             status: 'Pendente',
@@ -140,7 +124,9 @@ export default function ServiceCheckoutPage() {
     }
   }
   
-  if (isLoading || isUserLoading) {
+  const isLoading = isLoadingService || isUserLoading;
+
+  if (isLoading) {
     return (
         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
             <header className="flex items-center border-b p-4">
