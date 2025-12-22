@@ -1,3 +1,112 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "vegetables",
+      "description": "A basket of fresh vegetables",
+      "imageUrl": "https://images.unsplash.com/photo-1471193945509-9ad0617afabf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzY2MzUzMjk0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fresh vegetables"
+    },
+    {
+      "id": "fruits",
+      "description": "A selection of colorful fruits",
+      "imageUrl": "https://images.unsplash.com/photo-1580052614034-c55d20bfee3b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZnJlc2glMjBmcnVpdHxlbnwwfHx8fDE3NjY0MDU4MDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fresh fruit"
+    },
+    {
+      "id": "bread",
+      "description": "Artisanal bread on a wooden board",
+      "imageUrl": "https://images.unsplash.com/photo-1760888548712-6a4e1f79eb60?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhcnRpc2FuYWwlMjBicmVhZHxlbnwwfHx8fDE3NjYzNzk5MjB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "artisanal bread"
+    },
+    {
+      "id": "honey",
+      "description": "A jar of local honey",
+      "imageUrl": "https://images.unsplash.com/photo-1471943311424-646960669fbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxob25leSUyMGphcnxlbnwwfHx8fDE3NjYzNDY0OTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "honey jar"
+    },
+    {
+      "id": "pottery",
+      "description": "Handmade pottery",
+      "imageUrl": "https://images.unsplash.com/photo-1629380321696-99d97eaa492a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxoYW5kbWFkZSUyMHBvdHRlcnl8ZW58MHx8fHwxNzY2MzcyNTkyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handmade pottery"
+    },
+    {
+      "id": "textiles",
+      "description": "Woven textiles and fabrics",
+      "imageUrl": "https://images.unsplash.com/photo-1761517099349-3536c67a198b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b3ZlbiUyMHRleHRpbGVzfGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woven textiles"
+    },
+    {
+      "id": "cheese",
+      "description": "A block of artisanal cheese",
+      "imageUrl": "https://images.unsplash.com/photo-1695606452862-eee123cec588?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhcnRpc2FuYWwlMjBjaGVlc2V8ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "artisanal cheese"
+    },
+    {
+      "id": "jam",
+      "description": "Homemade fruit jam in a jar",
+      "imageUrl": "https://images.unsplash.com/photo-1636417872083-bdbda422c2d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcnVpdCUyMGphbXxlbnwwfHx8fDE3NjY0MTEyODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fruit jam"
+    },
+    {
+      "id": "tomatoes",
+      "description": "Fresh ripe tomatoes",
+      "imageUrl": "https://images.unsplash.com/photo-1700064165267-8fa68ef07167?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmcmVzaCUyMHRvbWF0b2VzfGVufDB8fHx8MTc2NjM4NTM4NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fresh tomatoes"
+    },
+    {
+      "id": "carrots",
+      "description": "A bunch of organic carrots",
+      "imageUrl": "https://images.unsplash.com/photo-1639086495429-d60e72c53c81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxvcmdhbmljJTIwY2Fycm90c3xlbnwwfHx8fDE3NjYzMzg1MTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "organic carrots"
+    },
+    {
+      "id": "lettuce",
+      "description": "A head of fresh lettuce",
+      "imageUrl": "https://images.unsplash.com/photo-1645713595882-b6133d586fd0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmcmVzaCUyMGxldHR1Y2V8ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fresh lettuce"
+    },
+    {
+      "id": "pottery-craft",
+      "description": "A person making pottery",
+      "imageUrl": "https://images.unsplash.com/photo-1695740639466-7baecca4224d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtYWtpbmclMjBwb3R0ZXJ5fGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "making pottery"
+    },
+    {
+      "id": "woodworking",
+      "description": "A woodworker carving a piece of wood",
+      "imageUrl": "https://images.unsplash.com/photo-1745426864195-237dbe20ebf2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx3b29kd29ya2luZyUyMGNyYWZ0fGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woodworking craft"
+    },
+    {
+      "id": "category-vegetables",
+      "description": "vegetable icon",
+      "imageUrl": "https://images.unsplash.com/photo-1622886421899-f6d9dfc878bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx2ZWdldGFibGUlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vegetable icon"
+    },
+    {
+      "id": "category-fruits",
+      "description": "fruit icon",
+      "imageUrl": "https://images.unsplash.com/photo-1573066778058-03dbee2c5a0c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmcnVpdCUyMGljb258ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fruit icon"
+    },
+    {
+      "id": "category-bakery",
+      "description": "bakery icon",
+      "imageUrl": "https://images.unsplash.com/photo-1756137949439-40b2d3cf71ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiYWtlcnklMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bakery icon"
+    },
+    {
+      "id": "category-crafts",
+      "description": "crafts icon",
+      "imageUrl": "https://images.unsplash.com/photo-1694878981866-b1cb8303d53e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjcmFmdHMlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "crafts icon"
+    },
+    {
+      "id": "category-services",
+      "description": "services icon",
+      "imageUrl": "https://images.unsplash.com/photo-1740174459699-487aec1f7bc5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dG9vbHMlMjBpY29ufGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tools icon"
+    }
+  ]
 }
