@@ -45,7 +45,7 @@ export const handleGoogleSignIn = async (
     toast({
       title: 'Login com Google realizado com sucesso!',
     });
-    router.push('/perfil');
+    router.push('/home');
   } catch (error) {
     console.error('Google Sign-In Error:', error);
     toast({

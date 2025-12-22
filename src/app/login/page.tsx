@@ -63,7 +63,7 @@ export default function LoginPage() {
         toast({
           title: 'Login realizado com sucesso!',
         });
-        router.push('/perfil');
+        router.push('/home');
       })
       .catch((error) => {
         console.error(error);
