@@ -21,10 +21,10 @@ import { ptBR } from 'date-fns/locale';
 interface Order extends WithId<any> {
   id: string;
   orderDate: string;
-  productIds: string[];
+  items: any[]; // Changed from productIds
   status: string;
   totalAmount: number;
-  buyerHasUnreadMessages?: boolean;
+  buyerHasUnread?: boolean; // Changed from buyerHasUnreadMessages
 }
 
 export default function OrdersPage() {
@@ -106,7 +106,7 @@ export default function OrdersPage() {
                           )}
                         </CardDescription>
                       </div>
-                       {order.buyerHasUnreadMessages && (
+                       {order.buyerHasUnread && (
                         <div className="relative">
                           <Bell className="h-5 w-5 text-accent" />
                           <span className="absolute -right-1 -top-1 flex h-3 w-3">
@@ -118,7 +118,7 @@ export default function OrdersPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <p>Itens: {order.productIds.length > 0 ? order.productIds.length : '1 Serviço'}</p>
+                    <p>Itens: {order.items.length}</p>
                     <p className="text-muted-foreground">
                       Status:{' '}
                       <span className="font-semibold text-accent">

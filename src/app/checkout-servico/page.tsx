@@ -31,13 +31,13 @@ import { Service } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 
+// Schema for a new collection: "serviceRequests"
 const serviceCheckoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
   phone: z.string().min(10, 'Telefone é obrigatório.'),
   address: z.string().min(5, 'Endereço é obrigatório.'),
   city: z.string().min(3, 'Cidade é obrigatória.'),
   zip: z.string().min(8, 'CEP é obrigatório.'),
-  paymentMethod: z.enum(['card', 'pix']).optional(),
   message: z.string().optional(),
 });
 
@@ -68,14 +68,6 @@ export default function ServiceCheckoutPage() {
       message: '',
     },
   });
-  
-  const hasFee = service?.visitFee && service.visitFee > 0;
-  if (hasFee) {
-     serviceCheckoutSchema.extend({
-         paymentMethod: z.enum(['card', 'pix'], { required_error: 'Selecione um método de pagamento.'})
-     })
-  }
-
 
   React.useEffect(() => {
     if (user?.displayName) {
@@ -98,49 +90,38 @@ export default function ServiceCheckoutPage() {
     }
     
     try {
-        const ordersCollection = collection(firestore, 'orders');
+        // Using a new collection for service requests to keep it separate from product orders
+        const serviceRequestsCollection = collection(firestore, 'serviceRequests');
         
-        const initialMessage = values.message ? [{
-            senderId: user.uid,
-            text: values.message,
-            timestamp: new Date().toISOString(),
-            isRead: false,
-        }] : [];
-
-        const orderData: any = {
-            customerId: user.uid,
+        const requestData = {
+            requesterId: user.uid,
+            providerId: service.sellerId, // The actual user ID of the seller
             storeId: storeId,
             serviceId: service.id,
-            productIds: [], // Explicitly set productIds to empty for services
-            totalAmount: service.visitFee || 0,
-            status: 'Pendente',
-            orderDate: new Date().toISOString(),
-            shippingAddress: {
+            serviceName: service.name,
+            requesterInfo: {
                 name: values.name,
+                phone: values.phone,
                 address: values.address,
                 city: values.city,
                 zip: values.zip,
             },
-            phone: values.phone,
-            paymentMethod: values.paymentMethod,
-            category: 'Serviços',
-            isUrgent: false, // Services don't use the urgent flag for now
-            messages: initialMessage,
-            lastMessageTimestamp: initialMessage.length > 0 ? new Date().toISOString() : null,
-            buyerHasUnreadMessages: false,
-            sellerHasUnreadMessages: initialMessage.length > 0,
+            message: values.message || '',
+            status: 'Pendente', // Initial status
+            requestDate: new Date().toISOString(),
         }
         
-        const docRef = await addDoc(ordersCollection, orderData);
+        const docRef = await addDoc(serviceRequestsCollection, requestData);
 
         toast({
             title: 'Solicitação Enviada!',
             description: 'Seu pedido de serviço foi enviado. O prestador entrará em contato.',
         });
         
-        router.push(`/pedidos/${docRef.id}`);
+        // Redirect to a confirmation or a "my service requests" page (future)
+        router.push(`/home`);
     } catch(error) {
-        console.error("Error creating service order: ", error);
+        console.error("Error creating service request: ", error);
         toast({
             variant: 'destructive',
             title: 'Uh oh! Algo deu errado.',
@@ -178,6 +159,8 @@ export default function ServiceCheckoutPage() {
         </div>
     )
   }
+  
+  const hasFee = service?.visitFee && service.visitFee > 0;
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -315,53 +298,6 @@ export default function ServiceCheckoutPage() {
               </div>
             </section>
 
-            {hasFee && (
-                <>
-                <Separator />
-                <section>
-                    <h2 className="mb-3 font-headline text-lg">Pagamento da Taxa</h2>
-                    <FormField
-                    control={form.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormControl>
-                            <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="grid grid-cols-2 gap-4"
-                            >
-                            <FormItem>
-                                <FormControl>
-                                <RadioGroupItem value="card" id="card" className="sr-only" />
-                                </FormControl>
-                                <Label htmlFor="card" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
-                                    <CreditCard className="mb-3 h-6 w-6" />
-                                    Cartão
-                                </Label>
-                            </FormItem>
-                            <FormItem>
-                                <FormControl>
-                                <RadioGroupItem
-                                    value="pix"
-                                    id="pix"
-                                    className="sr-only"
-                                />
-                                </FormControl>
-                                <Label htmlFor="pix" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
-                                    <Landmark className="mb-3 h-6 w-6" />
-                                    PIX
-                                </Label>
-                            </FormItem>
-                            </RadioGroup>
-                        </FormControl>
-                        <FormMessage className="pt-2" />
-                        </FormItem>
-                    )}
-                    />
-                </section>
-                </>
-            )}
           </form>
         </Form>
       </main>
@@ -373,10 +309,9 @@ export default function ServiceCheckoutPage() {
           onClick={form.handleSubmit(onSubmit)}
           disabled={form.formState.isSubmitting || isLoading}
         >
-          {form.formState.isSubmitting ? 'Enviando...' : hasFee ? 'Pagar e Solicitar' : 'Enviar Solicitação'}
+          {form.formState.isSubmitting ? 'Enviando...' : 'Enviar Solicitação'}
         </Button>
       </footer>
     </div>
   );
 }
-

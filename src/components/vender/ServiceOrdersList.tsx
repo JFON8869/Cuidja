@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { Wrench, Bell, Siren } from 'lucide-react';
@@ -25,69 +26,46 @@ import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-interface Order extends WithId<any> {
+// This component is now for a separate collection: serviceRequests
+interface ServiceRequest {
   id: string;
-  orderDate: string;
-  serviceId: string;
+  requestDate: string;
+  serviceName: string;
   status: string;
-  totalAmount: number; // This would be the visit fee, if any
-  sellerHasUnreadMessages?: boolean;
+  providerHasUnread?: boolean;
 }
 
 export function ServiceOrdersList() {
   const { firestore, user, isUserLoading } = useFirebase();
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const [isStoreLoading, setStoreLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchStoreId() {
-      if (!firestore || !user) {
-        setStoreLoading(false);
-        return;
-      }
-      setStoreLoading(true);
-      const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setStoreId(querySnapshot.docs[0].id);
-      }
-      setStoreLoading(false);
-    }
-    fetchStoreId();
+  
+  const requestsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    // Querying the new collection based on the provider's user ID
+    return query(
+      collection(firestore, 'serviceRequests'),
+      where('providerId', '==', user.uid),
+      orderBy('requestDate', 'desc')
+    );
   }, [firestore, user]);
 
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !storeId) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('storeId', '==', storeId),
-      where('category', '==', 'Serviços'),
-      orderBy('orderDate', 'desc')
-    );
-  }, [firestore, storeId]);
-
-  const { data: orders, isLoading: areOrdersLoading } = useCollection<Order>(
-    ordersQuery
+  const { data: requests, isLoading: areRequestsLoading } = useCollection<ServiceRequest>(
+    requestsQuery
   );
 
-  const isLoading = isUserLoading || isStoreLoading || (storeId && areOrdersLoading);
+  const isLoading = isUserLoading || areRequestsLoading;
   
   const renderSkeleton = () => (
     <div className="space-y-4 p-4">
       {[...Array(2)].map((_, i) => (
         <Card key={i}>
           <CardHeader>
-            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-6 w-3/f_ll" />
             <Skeleton className="h-4 w-1/2" />
           </CardHeader>
           <CardContent>
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-1/4 mt-2" />
           </CardContent>
-          <CardFooter>
-            <Skeleton className="h-6 w-1/4" />
-          </CardFooter>
         </Card>
       ))}
     </div>
@@ -99,26 +77,27 @@ export function ServiceOrdersList() {
 
   return (
     <div className="h-full">
-      {orders && orders.length > 0 ? (
+      {requests && requests.length > 0 ? (
         <div className="space-y-4 p-4">
-          {orders.map((order) => (
-            <Link key={order.id} href={`/pedidos/${order.id}`} passHref>
+          {requests.map((request) => (
+            // The link should go to a new page for service request details
+            <Link key={request.id} href={`/vender/solicitacoes/${request.id}`} passHref>
               <Card className="cursor-pointer transition-colors hover:bg-muted/50">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-lg">
-                        Solicitação #{order.id.substring(0, 7)}
+                        Solicitação #{request.id.substring(0, 7)}
                       </CardTitle>
                       <CardDescription>
                         {format(
-                          new Date(order.orderDate),
+                          new Date(request.requestDate),
                           "dd 'de' MMMM 'de' yyyy, 'às' HH:mm",
                           { locale: ptBR }
                         )}
                       </CardDescription>
                     </div>
-                    {order.sellerHasUnreadMessages && (
+                    {request.providerHasUnread && (
                       <div className="relative">
                         <Bell className="h-5 w-5 text-accent" />
                         <span className="absolute -right-1 -top-1 flex h-3 w-3">
@@ -130,22 +109,14 @@ export function ServiceOrdersList() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
+                   <p className="font-semibold">{request.serviceName}</p>
                    <p className="text-muted-foreground">
                     Status:{' '}
                     <span className="font-semibold text-accent">
-                      {order.status}
+                      {request.status}
                     </span>
                   </p>
                 </CardContent>
-                 <CardFooter className="flex items-center justify-between font-bold">
-                  <span>{order.totalAmount > 0 ? 'Taxa' : 'Contato'}</span>
-                  <span>
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    }).format(order.totalAmount)}
-                  </span>
-                </CardFooter>
               </Card>
             </Link>
           ))}

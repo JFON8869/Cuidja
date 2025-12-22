@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { ShoppingBag, Bell, Siren } from 'lucide-react';
@@ -28,10 +29,10 @@ import { cn } from '@/lib/utils';
 interface Order extends WithId<any> {
   id: string;
   orderDate: string;
-  productIds: string[];
+  items: any[];
   status: string;
   totalAmount: number;
-  sellerHasUnreadMessages?: boolean;
+  sellerHasUnread?: boolean;
   isUrgent?: boolean;
 }
 
@@ -63,8 +64,6 @@ export function ProductOrdersList() {
     return query(
       collection(firestore, 'orders'),
       where('storeId', '==', storeId),
-      where('category', '!=', 'Serviços'),
-      orderBy('category'),
       orderBy('orderDate', 'desc')
     );
   }, [firestore, storeId]);
@@ -159,7 +158,7 @@ export function ProductOrdersList() {
                         )}
                       </CardDescription>
                     </div>
-                    {order.sellerHasUnreadMessages && (
+                    {order.sellerHasUnread && (
                       <div className="relative">
                         <Bell className="h-5 w-5 text-accent" />
                         <span className="absolute -right-1 -top-1 flex h-3 w-3">
@@ -171,7 +170,7 @@ export function ProductOrdersList() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  <p>Itens: {order.productIds.length}</p>
+                  <p>Itens: {order.items.length}</p>
                   <p className="text-muted-foreground">
                     Status:{' '}
                     <span className="font-semibold text-accent">

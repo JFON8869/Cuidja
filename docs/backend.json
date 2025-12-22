@@ -153,12 +153,13 @@
       "properties": {
         "id": { "type": "string" },
         "providerId": { "type": "string" },
+        "sellerId": { "type": "string"},
         "name": { "type": "string" },
         "description": { "type": "string" },
         "category": { "enum": ["Serviços"] },
         "visitFee": { "type": "number", "description": "Optional fee for technical visit or initial contact." }
       },
-      "required": ["id", "providerId", "name", "description", "category"]
+      "required": ["id", "providerId", "name", "description", "category", "sellerId"]
     },
     "AddonGroup": {
       "title": "AddonGroup",
@@ -189,43 +190,36 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents an order placed on the Mercado Local Cuidja platform.",
+      "description": "Represents a product order placed on the platform.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Order entity."
+          "type": "string"
         },
         "customerId": {
-          "type": "string",
-          "description": "Reference to User (Customer). (Relationship: User 1:N Order)"
+          "type": "string"
         },
-        "serviceId": {
-          "type": "string",
-          "description": "Reference to a Service, if the order is for a service."
+        "storeId": {
+            "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/backend/entities/OrderItem"
+          }
         },
         "orderDate": {
           "type": "string",
-          "description": "Date when the order was placed.",
           "format": "date-time"
         },
         "totalAmount": {
-          "type": "number",
-          "description": "Total amount of the order."
+          "type": "number"
         },
         "status": {
           "type": "string",
-          "description": "Status of the order (e.g., 'Pending', 'Shipped', 'Delivered')."
+          "enum": ["Pendente", "Confirmado", "Em Preparo", "Saiu para Entrega", "Entregue", "Cancelado"]
         },
         "isUrgent": {
-          "type": "boolean",
-          "description": "Indicates if the order is marked as urgent by the customer."
-        },
-        "messages": {
-          "type": "array",
-          "description": "Chat messages between customer and seller.",
-          "items": {
-            "$ref": "#/backend/entities/Message"
-          }
+          "type": "boolean"
         },
         "shippingAddress": {
             "$ref": "#/backend/entities/Address"
@@ -233,28 +227,41 @@
         "phone": {
             "type": "string"
         },
-        "sellerHasUnreadMessages": { "type": "boolean" },
-        "buyerHasUnreadMessages": { "type": "boolean" }
+        "sellerHasUnread": { "type": "boolean" },
+        "buyerHasUnread": { "type": "boolean" }
       },
       "required": [
         "id",
         "customerId",
+        "storeId",
+        "items",
         "orderDate",
         "totalAmount",
-        "status"
+        "status",
+        "shippingAddress"
       ]
     },
-    "Message": {
-      "title": "Message",
-      "type": "object",
-      "description": "A chat message within an order.",
-      "properties": {
-        "senderId": { "type": "string" },
-        "text": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "isRead": { "type": "boolean" }
-      },
-      "required": ["senderId", "text", "timestamp", "isRead"]
+    "ServiceRequest": {
+        "title": "Service Request",
+        "type": "object",
+        "description": "Represents a customer's request for a service.",
+        "properties": {
+            "id": { "type": "string" },
+            "requesterId": { "type": "string" },
+            "providerId": { "type": "string" },
+            "storeId": { "type": "string" },
+            "serviceId": { "type": "string" },
+            "serviceName": { "type": "string"},
+            "requesterInfo": {
+                "$ref": "#/backend/entities/Address"
+            },
+            "message": { "type": "string" },
+            "status": { "type": "string", "enum": ["Pendente", "Contatado", "Agendado", "Concluído", "Cancelado"] },
+            "requestDate": { "type": "string", "format": "date-time" },
+            "providerHasUnread": { "type": "boolean" },
+            "requesterHasUnread": { "type": "boolean" }
+        },
+        "required": ["id", "requesterId", "providerId", "storeId", "serviceId", "status", "requestDate"]
     },
     "OrderItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -263,24 +270,16 @@
       "description": "Represents an item within an order.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the OrderItem entity."
+          "type": "string"
         },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to Order. (Relationship: Order 1:N OrderItem)"
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to Product. (Relationship: Product 1:N OrderItem)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "Quantity of the product in the order item."
+        "name": {
+            "type": "string"
         },
         "price": {
-          "type": "number",
-          "description": "Price of the product at the time of the order."
+          "type": "number"
+        },
+        "quantity": {
+          "type": "number"
         },
         "selectedAddons": {
           "type": "array",
@@ -289,51 +288,9 @@
       },
       "required": [
         "id",
-        "orderId",
-        "productId",
+        "name",
         "quantity",
         "price"
-      ]
-    },
-    "Payment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Payment",
-      "type": "object",
-      "description": "Represents a payment transaction.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Payment entity."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to Order. (Relationship: Order 1:1 Payment)"
-        },
-        "paymentDate": {
-          "type": "string",
-          "description": "Date when the payment was made.",
-          "format": "date-time"
-        },
-        "paymentMethod": {
-          "type": "string",
-          "description": "Method of payment (e.g., 'Credit Card', 'PayPal')."
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount paid."
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of the payment (e.g., 'Completed', 'Failed')."
-        }
-      },
-      "required": [
-        "id",
-        "orderId",
-        "paymentDate",
-        "paymentMethod",
-        "amount",
-        "status"
       ]
     }
   },
@@ -376,26 +333,6 @@
         }
       },
       {
-        "path": "users/{userId}/products/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Stores products listed by a specific user (seller). Security is based on path-based ownership (userId).",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user (seller)."
-            },
-            {
-              "name": "productId",
-              "description": "The unique identifier for the product."
-            }
-          ]
-        }
-      },
-      {
         "path": "products/{productId}",
         "definition": {
           "entityName": "Product",
@@ -421,33 +358,13 @@
         }
       },
       {
-        "path": "users/{userId}/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Stores orders placed by a specific user (customer). Security is based on path-based ownership (userId).",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user (customer)."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            }
-          ]
-        }
-      },
-      {
         "path": "orders/{orderId}",
         "definition": {
           "entityName": "Order",
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores all orders placed on the platform.",
+          "description": "Stores all product orders placed on the platform.",
           "params": [
             {
               "name": "orderId",
@@ -457,44 +374,15 @@
         }
       },
       {
-        "path": "orders/{orderId}/orderItems/{orderItemId}",
+        "path": "serviceRequests/{requestId}",
         "definition": {
-          "entityName": "OrderItem",
-          "schema": {
-            "$ref": "#/backend/entities/OrderItem"
-          },
-          "description": "Stores items within a specific order.",
-          "params": [
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            },
-            {
-              "name": "orderItemId",
-              "description": "The unique identifier for the order item."
-            }
-          ]
-        }
-      },
-      {
-        "path": "orders/{orderId}/payment",
-        "definition": {
-          "entityName": "Payment",
-          "schema": {
-            "$ref": "#/backend/entities/Payment"
-          },
-          "description": "Stores payment information for a specific order.",
-          "params": [
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            }
-          ]
+          "entityName": "ServiceRequest",
+          "schema": { "$ref": "#/backend/entities/ServiceRequest" },
+          "description": "Stores all service requests placed on the platform.",
+          "params": [{ "name": "requestId", "description": "The unique identifier for the service request." }]
         }
       }
     ],
-    "reasoning": "Considerando os requisitos do aplicativo Mercado Local Cuidja, a seguinte estrutura do Firestore foi projetada para garantir segurança, escalabilidade e facilidade de manutenção, priorizando a independência da autorização e o uso de padrões consistentes.\n\n*   **users/{userId}**: Armazena informações do usuário. A segurança é baseada no ID do usuário (path-based ownership), garantindo que apenas o usuário autenticado possa acessar seus próprios dados. Isso garante que as operações sejam atômicas.\n*   **users/{userId}/products/{productId}**: Para cada usuário (vendedor), armazena os produtos que eles listaram. Isso facilita a criação de regras de segurança onde um usuário só pode criar, ler, atualizar ou excluir seus próprios produtos.\n*   **products/{productId}**: Armazena todos os produtos disponíveis na plataforma. Isso permite consultas eficientes em todos os produtos, sem a necessidade de percorrer coleções de subdocumentos do usuário. Inclui o campo `sellerId` para referência ao vendedor.\n*   **users/{userId}/orders/{orderId}**: Armazena os pedidos feitos por um usuário. A segurança é baseada no ID do usuário, garantindo que apenas o usuário autenticado possa acessar seus próprios pedidos.\n*   **orders/{orderId}**: Armazena todos os pedidos feitos na plataforma, facilitando a administração e análise. Inclui o campo `customerId` para referência ao cliente.\n*   **orders/{orderId}/orderItems/{orderItemId}**: Armazena os itens dentro de um pedido específico. Isso permite consultas eficientes para itens de pedido específicos.\n*   **orders/{orderId}/payment**: Armazena informações de pagamento para um pedido específico. Isso mantém as informações de pagamento segregadas e fáceis de gerenciar.\n\n**Independência de Autorização (Denormalização):**\nPara manter a independência da autorização, o campo `sellerId` é denormalizado na coleção `products`. Isso permite que as regras de segurança na coleção `products` verifiquem se o usuário autenticado é o proprietário do produto sem a necessidade de chamadas `get()` para o documento do usuário. Para cada produto a `sellerId` é o `userId`.\n\n**QAPs (Consultas Seguras):**\nA estrutura suporta consultas seguras (`list` operations) através de:\n\n*   **Segregação Estrutural**: Dados com diferentes necessidades de acesso são armazenados em coleções separadas. Por exemplo, informações de usuários privados são armazenadas em `users/{userId}`, enquanto produtos visíveis publicamente são armazenados em `products/{productId}`.\n*   **Modelagem de Acesso Consistente**: O uso de path-based ownership para dados privados e uma coleção separada para dados visíveis publicamente garante que as regras de segurança possam ser escritas de forma clara e concisa.\n\nEssa estrutura garante que as regras de segurança sejam simples, robustas e fáceis de depurar, priorizando a independência da autorização e o uso de padrões consistentes para modelagem de acesso."
+    "reasoning": "A estrutura foi simplificada para separar claramente Pedidos de Produtos de Solicitações de Serviço. A coleção `orders` agora lida exclusivamente com transações de produtos, contendo `items` e `shippingAddress`. Uma nova coleção `serviceRequests` foi criada para gerenciar solicitações de serviço, com campos como `requesterId`, `providerId`, e `requesterInfo`. Essa separação remove a complexidade e a ambiguidade, tornando os fluxos de dados mais claros e as regras de segurança mais simples de implementar para cada tipo de transação."
   }
 }
-
-    

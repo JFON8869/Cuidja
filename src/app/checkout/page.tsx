@@ -2,12 +2,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, Landmark, MessageSquare, Siren, Truck } from 'lucide-react';
+import { ArrowLeft, CreditCard, Landmark, Siren, Truck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,14 +25,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
-import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { Label } from '@/components/ui/label';
-import { useProductContext } from '@/context/ProductContext';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { Textarea } from '@/components/ui/textarea';
-import { useEffect, useState, useMemo } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { useEffect, useMemo, useState } from 'react';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -43,7 +40,6 @@ const checkoutSchema = z.object({
   paymentMethod: z.enum(['card', 'pix'], {
     required_error: 'Selecione um método de pagamento.',
   }),
-  message: z.string().optional(),
   isUrgent: z.boolean().default(false),
 });
 
@@ -53,38 +49,14 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { firestore, user } = useFirebase();
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const [isLoadingStore, setIsLoadingStore] = useState(true);
 
-  // This assumes all items in cart are from the same seller for simplicity.
   const firstProductInCart = cart.length > 0 ? cart[0] : null;
-  const productStoreId = firstProductInCart?.storeId;
-
+  const storeId = firstProductInCart?.storeId;
+  
   const urgentCategories = useMemo(() => ['Gás e Água', 'Farmácias'], []);
   const isUrgentCategory = useMemo(() => {
     return cart.some(item => urgentCategories.includes(item.category));
   }, [cart, urgentCategories]);
-
-
-  useEffect(() => {
-    async function fetchStore() {
-        if (!firestore || !productStoreId) {
-            setIsLoadingStore(false);
-            return;
-        };
-        // This is not ideal, in a real app we'd get the storeId from the product directly
-        // or have a more efficient way to query.
-        // For this mock, we assume the storeId from the product is the doc ID in 'stores' collection.
-        // But since we don't have a direct 'stores' collection with docs matching storeId, we will query by name
-        // This logic is flawed and depends on mock data structure.
-        
-        // Let's assume product.storeId IS the document ID for the store for simplicity.
-        setStoreId(productStoreId);
-        setIsLoadingStore(false);
-    }
-    fetchStore();
-  }, [firestore, productStoreId])
-
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -94,7 +66,6 @@ export default function CheckoutPage() {
       address: '',
       city: '',
       zip: '',
-      message: '',
       isUrgent: isUrgentCategory,
     },
   });
@@ -125,17 +96,16 @@ export default function CheckoutPage() {
     try {
         const ordersCollection = collection(firestore, 'orders');
         
-        const initialMessage = (isUrgentCategory && values.message) ? [{
-            senderId: user.uid,
-            text: values.message,
-            timestamp: new Date().toISOString(),
-            isRead: false,
-        }] : [];
-
-        const orderData: any = {
+        const orderData = {
             customerId: user.uid,
             storeId: storeId,
-            productIds: cart.map(item => item.id),
+            items: cart.map(item => ({ 
+              id: item.id, 
+              name: item.name, 
+              price: item.price, 
+              quantity: 1, // Assuming quantity is always 1 for now
+              selectedAddons: item.selectedAddons || []
+            })),
             totalAmount: total,
             status: 'Pendente',
             orderDate: new Date().toISOString(),
@@ -147,16 +117,11 @@ export default function CheckoutPage() {
             },
             phone: values.phone,
             paymentMethod: values.paymentMethod,
-            category: firstProductInCart?.category, // Store category for later checks
             isUrgent: values.isUrgent,
-        }
-
-        if (isUrgentCategory) {
-            orderData.messages = initialMessage;
-            orderData.lastMessageTimestamp = initialMessage.length > 0 ? new Date().toISOString() : null;
-            orderData.buyerHasUnreadMessages = false;
-            orderData.sellerHasUnreadMessages = initialMessage.length > 0;
-        }
+            // For seller notification system
+            sellerHasUnread: true,
+            buyerHasUnread: false,
+        };
         
         await addDoc(ordersCollection, orderData);
 
@@ -278,57 +243,32 @@ export default function CheckoutPage() {
               </div>
             </section>
             
-            {isUrgentCategory && (
-                <>
-                <Separator />
-                <section className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="isUrgent"
-                    render={({ field }) => (
-                      <FormItem className={cn("flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm", field.value && "border-destructive bg-destructive/10")}>
-                        <div className="space-y-0.5">
-                          <FormLabel className="flex items-center gap-2">
-                             <Siren className={cn("h-5 w-5", field.value && "text-destructive")}/>
-                             Pedido Urgente
-                          </FormLabel>
-                          <FormDescription>
-                            Prioridade máxima para o vendedor.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <div>
-                    <h2 className="mb-2 flex items-center gap-2 font-headline text-lg">
-                        <MessageSquare className="h-5 w-5" />
-                        Mensagem (Opcional)
-                    </h2>
-                    <FormField
-                        control={form.control}
-                        name="message"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                            <Textarea
-                                placeholder="Deixe uma observação, como ponto de referência ou detalhes."
-                                {...field}
-                            />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+            <Separator />
+            <FormField
+              control={form.control}
+              name="isUrgent"
+              render={({ field }) => (
+                <FormItem className={cn("flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm", field.value && "border-destructive bg-destructive/10", !isUrgentCategory && 'hidden')}>
+                  <div className="space-y-0.5">
+                    <FormLabel className="flex items-center gap-2">
+                        <Siren className={cn("h-5 w-5", field.value && "text-destructive")}/>
+                        Pedido Urgente
+                    </FormLabel>
+                    <FormDescription>
+                      Prioridade máxima para o vendedor.
+                    </FormDescription>
                   </div>
-                </section>
-                </>
-            )}
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={!isUrgentCategory}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
 
             <Separator />
 
@@ -408,7 +348,7 @@ export default function CheckoutPage() {
           size="lg"
           className="w-full"
           onClick={form.handleSubmit(onSubmit)}
-          disabled={form.formState.isSubmitting || isLoadingStore || !storeId}
+          disabled={form.formState.isSubmitting}
         >
           {form.formState.isSubmitting ? 'Finalizando...' : 'Finalizar Pedido'}
         </Button>
@@ -416,5 +356,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
