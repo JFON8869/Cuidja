@@ -100,7 +100,7 @@ export default function Home() {
                   <CarouselItem key={banner.id}>
                     <Link href={banner.link}>
                       <Card className="overflow-hidden">
-                        <CardContent className="relative aspect-[16/9] p-0">
+                        <CardContent className="relative aspect-[21/9] p-0">
                           <Image
                             src={banner.image.imageUrl}
                             alt={banner.title}

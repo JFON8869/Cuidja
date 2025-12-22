@@ -26,7 +26,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AppProviders>
             <div className="gradient-background fixed inset-0 -z-10" />
-            <div className="pb-16">
+            <div className="pb-12">
               {children}
             </div>
             <BottomNav />
