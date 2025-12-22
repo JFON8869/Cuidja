@@ -8,7 +8,7 @@ import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { getDocs } from 'firebase/firestore';
 import {
   Card,
@@ -34,60 +34,20 @@ interface Order extends WithId<any> {
 
 export default function NotificationsPage() {
   const { firestore, user, isUserLoading } = useFirebase();
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const [isStoreLoading, setStoreLoading] = useState(true);
   const [showPermissionCard, setShowPermissionCard] = useState(true);
 
-  useEffect(() => {
-    async function fetchStoreId() {
-      if (!firestore || !user) {
-        setStoreLoading(false);
-        return;
-      }
-      setStoreLoading(true);
-      const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setStoreId(querySnapshot.docs[0].id);
-      }
-      setStoreLoading(false);
-    }
-    if (!isUserLoading) {
-      fetchStoreId();
-    }
-  }, [firestore, user, isUserLoading]);
-
-  // Notifications for the user as a buyer
-  const buyerNotificationsQuery = useMemoFirebase(() => {
+  const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'orders'),
-      where('customerId', '==', user.uid),
       where('buyerHasUnread', '==', true),
+      where('customerId', '==', user.uid),
       orderBy('orderDate', 'desc')
     );
   }, [firestore, user]);
 
-  // Notifications for the user as a seller
-  const sellerNotificationsQuery = useMemoFirebase(() => {
-    if (!firestore || !storeId) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('storeId', '==', storeId),
-      where('sellerHasUnread', '==', true),
-      orderBy('orderDate', 'desc')
-    );
-  }, [firestore, storeId]);
-
-  const { data: buyerNotifications, isLoading: buyerLoading } = useCollection<Order>(buyerNotificationsQuery);
-  const { data: sellerNotifications, isLoading: sellerLoading } = useCollection<Order>(sellerNotificationsQuery);
-
-  const allNotifications = [...(buyerNotifications || []), ...(sellerNotifications || [])].sort(
-    (a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
-  );
-
-  const isLoading = isUserLoading || isStoreLoading || buyerLoading || sellerLoading;
+  const { data: notifications, isLoading: notificationsLoading } = useCollection<Order>(notificationsQuery);
+  const isLoading = isUserLoading || notificationsLoading;
 
   const handlePermissionRequest = (allow: boolean) => {
     setShowPermissionCard(false);
@@ -143,20 +103,20 @@ export default function NotificationsPage() {
         )}
 
         {isLoading ? renderSkeleton() : (
-            allNotifications && allNotifications.length > 0 ? (
+            notifications && notifications.length > 0 ? (
                 <div className="divide-y">
-                    {allNotifications.map(notification => (
+                    {notifications.map(notification => (
                         <Link href={`/pedidos/${notification.id}`} key={notification.id} className="flex items-start gap-4 p-4 hover:bg-muted/50 transition-colors">
                             <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                                {notification.sellerHasUnread ? (
-                                    <ShoppingCart className="h-5 w-5 text-primary" />
-                                ) : (
+                                {notification.customerId === user?.uid ? (
                                     <Package className="h-5 w-5 text-primary" />
+                                ) : (
+                                    <ShoppingCart className="h-5 w-5 text-primary" />
                                 )}
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm">
-                                    {notification.sellerHasUnread ? (
+                                    {notification.customerId !== user?.uid ? (
                                         <>
                                             Você tem um novo pedido! <span className="font-bold">#{notification.id.substring(0,7)}</span>.
                                         </>
