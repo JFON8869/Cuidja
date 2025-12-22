@@ -4,14 +4,20 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, MessageSquare, Briefcase } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Briefcase, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useProductContext } from '@/context/ProductContext';
-import { mockStores, mockServices, Service } from '@/lib/data';
+import { mockStores, Service } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { useCollection, WithId } from '@/firebase/firestore/use-collection';
+
+// Add WithId to the Service type for Firestore documents
+type ServiceWithId = WithId<Service>;
 
 export default function StorePage() {
   const params = useParams();
@@ -19,11 +25,21 @@ export default function StorePage() {
   const id = params.id as string;
 
   const { products } = useProductContext();
+  const { firestore } = useFirebase();
 
   const store = mockStores.find((s) => s.id === id);
   const storeProducts = products.filter((product) => product.storeId === id);
-  // This should be fetched from Firestore in a real app
-  const storeServices = mockServices.filter((service) => service.providerId === id);
+
+  // Fetch services from Firestore
+  const servicesQuery = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    return query(
+        collection(firestore, 'services'),
+        where('providerId', '==', id)
+    );
+  }, [firestore, id]);
+
+  const { data: storeServices, isLoading: areServicesLoading } = useCollection<ServiceWithId>(servicesQuery);
 
   if (!store) {
     return (
@@ -78,25 +94,38 @@ export default function StorePage() {
         {isServiceStore ? (
              <div className="space-y-4">
                 <p className="text-center text-muted-foreground">Serviços oferecidos por {store.name}.</p>
-                {storeServices.map((service) => (
-                    <Card key={service.id} className="overflow-hidden">
-                        <Image src={service.images[0].imageUrl} alt={service.name} width={400} height={200} className="w-full h-32 object-cover" />
-                        <CardHeader>
-                            <CardTitle>{service.name}</CardTitle>
-                            {service.visitFee && service.visitFee > 0 && (
-                                <CardDescription className="text-lg font-bold text-primary pt-1">
-                                    Taxa de visita: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.visitFee)}
-                                </CardDescription>
-                            )}
-                        </CardHeader>
-                        <CardContent>
-                            <CardDescription>{service.description}</CardDescription>
-                        </CardContent>
-                        <CardFooter>
-                           {getServiceButton(service)}
-                        </CardFooter>
-                    </Card>
-                ))}
+                {areServicesLoading ? (
+                    <div className="flex justify-center items-center h-48">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : storeServices && storeServices.length > 0 ? (
+                    storeServices.map((service) => (
+                        <Card key={service.id} className="overflow-hidden">
+                            <Image src={service.images[0].imageUrl} alt={service.name} width={400} height={200} className="w-full h-32 object-cover" />
+                            <CardHeader>
+                                <CardTitle>{service.name}</CardTitle>
+                                {service.visitFee && service.visitFee > 0 && (
+                                    <CardDescription className="text-lg font-bold text-primary pt-1">
+                                        Taxa de visita: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.visitFee)}
+                                    </CardDescription>
+                                )}
+                            </CardHeader>
+                            <CardContent>
+                                <CardDescription>{service.description}</CardDescription>
+                            </CardContent>
+                            <CardFooter>
+                               {getServiceButton(service)}
+                            </CardFooter>
+                        </Card>
+                    ))
+                ) : (
+                   <div className="flex h-48 flex-col items-center justify-center text-center">
+                        <h2 className="text-2xl font-bold">Nenhum serviço encontrado</h2>
+                        <p className="text-muted-foreground">
+                        Este prestador ainda não anunciou serviços.
+                        </p>
+                    </div>
+                )}
              </div>
         ) : storeProducts.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">

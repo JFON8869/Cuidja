@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -26,7 +27,7 @@ import {
 } from 'recharts';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 
 const salesData = [
   { name: 'Jan', sales: 65 },
@@ -73,9 +74,22 @@ export default function SellPage() {
     );
   }, [firestore, user]);
 
+  const servicesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, 'services'),
+        where('sellerId', '==', user.uid)
+    );
+  }, [firestore, user]);
 
   const { data: myProducts, isLoading: productsLoading } = useCollection(productsQuery);
+  const { data: myServices, isLoading: servicesLoading } = useCollection(servicesQuery);
+
   const myProductsCount = myProducts?.length ?? 0;
+  const myServicesCount = myServices?.length ?? 0;
+  
+  const isServiceProvider = store?.category === 'Serviços';
+
 
   if (isStoreLoading || isUserLoading) {
     return (
