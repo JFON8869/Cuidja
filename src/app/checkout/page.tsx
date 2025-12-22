@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,7 @@ import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 const checkoutSchema = z.object({
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
                 };
             }),
             totalAmount: total,
-            status: 'Pendente',
+            status: 'Aguardando Pagamento', // Initial status
             orderDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
@@ -157,15 +157,16 @@ export default function CheckoutPage() {
             buyerHasUnread: false,
         };
         
-        await addDoc(ordersCollection, orderData);
+        const docRef = await addDoc(ordersCollection, orderData);
 
         toast({
-            title: 'Pedido Recebido!',
-            description: 'Sua compra foi finalizada com sucesso. Obrigado!',
+            title: 'Redirecionando para o pagamento...',
+            description: 'Seu pedido foi criado. Agora vamos para a etapa de pagamento.',
         });
         
         clearCart();
-        router.push('/pedidos');
+        router.push(`/pagamento?orderId=${docRef.id}`);
+
     } catch(error) {
         console.error("Error placing order: ", error);
         toast({
@@ -393,7 +394,7 @@ export default function CheckoutPage() {
           onClick={form.handleSubmit(onSubmit)}
           disabled={form.formState.isSubmitting}
         >
-          {form.formState.isSubmitting ? 'Finalizando...' : 'Finalizar Pedido'}
+          {form.formState.isSubmitting ? 'Criando pedido...' : 'Ir para Pagamento'}
         </Button>
       </footer>
     </div>

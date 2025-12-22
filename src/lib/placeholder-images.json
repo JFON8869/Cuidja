@@ -39,7 +39,7 @@
     {
       "id": "cheese",
       "description": "A block of artisanal cheese",
-      "imageUrl": "https://images.unsplash.com/photo-1695606452862-eee123cec588?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhcnRpc2FuYWwlMjBjaGVlc2V8ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1695606452862-eee123cec588?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhcnRpc2FuYWwlMjBjaGVlc2V8ZW58MHx8fHwxNzY2NDExMjg5fDA&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "artisanal cheese"
     },
     {
@@ -81,7 +81,7 @@
     {
       "id": "woodworking",
       "description": "A woodworker carving a piece of wood",
-      "imageUrl": "https://images.unsplash.com/photo-1745426864195-237dbe20ebf2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx3b29kd29ya2luZyUyMGNyYWZ0fGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1745426864195-237dbe20ebf2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx3b29kd29ya2luZyUyMGNyYWZ0fGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "woodworking craft"
     },
     {
@@ -93,13 +93,13 @@
     {
       "id": "banner-crafts",
       "description": "A banner displaying various handmade crafts.",
-      "imageUrl": "https://images.unsplash.com/photo-1576884812399-2a9c390145c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzEzfDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA&ixlib-rb-4.0.3&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1576884812399-2a9c390145c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzEzfDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA&ixlib=rb-4.0.3&q=80&w=1080",
       "imageHint": "handmade crafts"
     },
     {
       "id": "banner-bread-cheese",
       "description": "A banner featuring artisanal bread and cheese.",
-      "imageUrl": "https://images.unsplash.com/photo-1559598467-f8b76c8155d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzEzfDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA&ixlib-rb-4.0.3&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1559598467-f8b76c8155d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzEzfDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA&ixlib=rb-4.0.3&q=80&w=1080",
       "imageHint": "bread cheese"
     },
     {
@@ -233,6 +233,12 @@
       "description": "Logo for a music teacher.",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/guitar-logo.png",
       "imageHint": "guitar logo"
+    },
+    {
+      "id": "qr-code-pix",
+      "description": "A sample QR code for PIX payments.",
+      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/qr-code.png",
+      "imageHint": "qr code"
     }
   ]
 }
