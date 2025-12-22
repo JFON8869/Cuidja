@@ -83,12 +83,11 @@ export default function SellPage() {
       );
   }, [firestore, user, isServiceProvider]);
 
-  const { data: myProducts } = useCollection(productsQuery);
-  const { data: myServices } = useCollection(servicesQuery);
+  const { data: myProducts, isLoading: productsLoading } = useCollection(productsQuery);
+  const { data: myServices, isLoading: servicesLoading } = useCollection(servicesQuery);
 
-  const myProductsCount = myProducts?.length || 0;
-  const myServicesCount = myServices?.length || 0;
-
+  const myProductsCount = myProducts?.length ?? 0;
+  const myServicesCount = myServices?.length ?? 0;
 
   if (isStoreLoading || isUserLoading) {
     return (
@@ -130,7 +129,6 @@ export default function SellPage() {
     );
   }
 
-  // If user is logged in but has no store
   if (user && !store) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -191,7 +189,7 @@ export default function SellPage() {
                     <Wrench className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{myServicesCount}</div>
+                    <div className="text-2xl font-bold">{servicesLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : myServicesCount}</div>
                     <p className="text-xs text-muted-foreground">Serviços ativos</p>
                   </CardContent>
                 </Card>
@@ -206,7 +204,7 @@ export default function SellPage() {
                     <Package className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{myProductsCount}</div>
+                    <div className="text-2xl font-bold">{productsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : myProductsCount}</div>
                     <p className="text-xs text-muted-foreground">Produtos ativos</p>
                 </CardContent>
                 </Card>
