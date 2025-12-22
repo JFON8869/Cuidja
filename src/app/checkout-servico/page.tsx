@@ -109,6 +109,8 @@ export default function ServiceCheckoutPage() {
             message: values.message || '',
             status: 'Pendente', // Initial status
             requestDate: new Date().toISOString(),
+            providerHasUnread: true,
+            requesterHasUnread: false
         }
         
         const docRef = await addDoc(serviceRequestsCollection, requestData);

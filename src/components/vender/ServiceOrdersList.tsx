@@ -37,22 +37,41 @@ interface ServiceRequest {
 
 export function ServiceOrdersList() {
   const { firestore, user, isUserLoading } = useFirebase();
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [isStoreLoading, setStoreLoading] = useState(true);
+
+   useEffect(() => {
+    async function fetchStoreId() {
+      if (!firestore || !user) {
+        setStoreLoading(false);
+        return;
+      }
+      setStoreLoading(true);
+      const storesRef = collection(firestore, 'stores');
+      const q = query(storesRef, where('userId', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setStoreId(querySnapshot.docs[0].id);
+      }
+      setStoreLoading(false);
+    }
+    fetchStoreId();
+  }, [firestore, user]);
   
   const requestsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // Querying the new collection based on the provider's user ID
+    if (!firestore || !user || !storeId) return null;
     return query(
       collection(firestore, 'serviceRequests'),
-      where('providerId', '==', user.uid),
+      where('storeId', '==', storeId),
       orderBy('requestDate', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore, user, storeId]);
 
   const { data: requests, isLoading: areRequestsLoading } = useCollection<ServiceRequest>(
     requestsQuery
   );
 
-  const isLoading = isUserLoading || areRequestsLoading;
+  const isLoading = isUserLoading || areRequestsLoading || isStoreLoading;
   
   const renderSkeleton = () => (
     <div className="space-y-4 p-4">
