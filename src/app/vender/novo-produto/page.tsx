@@ -7,14 +7,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Upload, Calendar as CalendarIcon, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import {
   Form,
   FormControl,
@@ -45,7 +44,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { mockCategories } from '@/lib/data';
 import { useProductContext } from '@/context/ProductContext';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -53,7 +51,7 @@ const productSchema = z.object({
     .string()
     .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
   price: z.coerce.number().positive('O preço deve ser um número positivo.'),
-  category: z.string().min(1, 'Selecione uma categoria.'),
+  category: z.string({ required_error: "Selecione uma categoria."}).min(1, 'Selecione uma categoria.'),
   availability: z.enum(['immediate', 'on_demand', 'scheduled']),
   preparationTime: z.string().optional(),
   availableFrom: z.date().optional(),
@@ -89,7 +87,6 @@ export default function NewProductPage() {
       name: '',
       description: '',
       price: 0,
-      category: '',
       availability: 'immediate',
       preparationTime: '',
     },
@@ -117,6 +114,7 @@ export default function NewProductPage() {
         seller: 'Meu Negócio', // Mock seller
         imageId: 'custom',
         description: values.description,
+        category: values.category,
         image: {
             id: 'custom',
             description: values.name,
@@ -151,7 +149,7 @@ export default function NewProductPage() {
             <FormField
               control={form.control}
               name="image"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Fotos do Produto</FormLabel>
                    <FormControl>

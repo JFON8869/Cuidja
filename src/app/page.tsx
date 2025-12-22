@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
+import { handleGoogleSignIn } from '@/lib/auth-actions';
 
 export default function WelcomePage() {
   const { auth } = useFirebase();
@@ -16,26 +15,9 @@ export default function WelcomePage() {
   const { toast } = useToast();
   const [isGoogleLoading, setGoogleLoading] = useState(false);
 
-  const handleGoogleSignIn = async () => {
+  const onGoogleSignIn = async () => {
     if (!auth) return;
-    setGoogleLoading(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      toast({
-        title: 'Login com Google realizado com sucesso!',
-      });
-      router.push('/perfil');
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Falha no login com Google',
-        description: 'Não foi possível fazer login com o Google. Tente novamente.',
-      });
-    } finally {
-      setGoogleLoading(false);
-    }
+    await handleGoogleSignIn(auth, router, toast, setGoogleLoading);
   };
 
   return (
@@ -50,7 +32,7 @@ export default function WelcomePage() {
       </div>
 
       <div className="absolute bottom-16 w-full max-w-xs space-y-4">
-        <Button onClick={handleGoogleSignIn} size="lg" className="w-full" disabled={isGoogleLoading}>
+        <Button onClick={onGoogleSignIn} size="lg" className="w-full" disabled={isGoogleLoading}>
           {isGoogleLoading ? 'Entrando...' : 'Entrar com Google'}
         </Button>
         <Button asChild size="lg" variant="outline" className="w-full">

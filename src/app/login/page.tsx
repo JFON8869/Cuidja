@@ -8,8 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -25,14 +23,13 @@ import {
 } from '@/components/ui/form';
 import { useFirebase } from '@/firebase';
 import { FirebaseError } from 'firebase/app';
-import { Separator } from '@/components/ui/separator';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { handleGoogleSignIn } from '@/lib/auth-actions';
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -88,26 +85,9 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleSignIn = async () => {
+  const onGoogleSignIn = async () => {
     if (!auth) return;
-    setGoogleLoading(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      toast({
-        title: 'Login com Google realizado com sucesso!',
-      });
-      router.push('/perfil');
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Falha no login com Google',
-        description: 'Não foi possível fazer login com o Google.',
-      });
-    } finally {
-      setGoogleLoading(false);
-    }
+    await handleGoogleSignIn(auth, router, toast, setGoogleLoading);
   };
 
 
@@ -125,7 +105,7 @@ export default function LoginPage() {
             <CardContent className="space-y-6">
               <Button
                 variant="outline"
-                onClick={handleGoogleSignIn}
+                onClick={onGoogleSignIn}
                 disabled={isGoogleLoading}
                 className="w-full"
               >
