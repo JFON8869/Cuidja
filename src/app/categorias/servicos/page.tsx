@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface StoreDocument {
   id: string;
   name: string;
-  category: string;
   userId: string;
   logoUrl?: string;
 }
@@ -101,12 +100,8 @@ export default function ServicesCategoryPage() {
             {serviceProviders.map((store) => (
               <StoreCard
                 key={store.id}
-                store={{
-                  id: store.id,
-                  name: store.name,
-                  category: 'Serviços', // Set category explicitly for the link
-                  logoUrl: store.logoUrl,
-                }}
+                store={store}
+                categoryName="Serviços"
               />
             ))}
           </div>
