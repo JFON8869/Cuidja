@@ -25,7 +25,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
-import { Service } from '@/lib/data';
+import { Product as Service, SelectedAddon } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 
@@ -49,7 +49,7 @@ export default function ServiceCheckoutPage() {
 
   const serviceRef = useMemoFirebase(() => {
     if (!firestore || !serviceId) return null;
-    return doc(firestore, 'services', serviceId);
+    return doc(firestore, 'products', serviceId);
   }, [firestore, serviceId]);
   
   const userDocRef = useMemoFirebase(() => {
@@ -180,7 +180,7 @@ export default function ServiceCheckoutPage() {
     )
   }
   
-  const hasFee = service?.visitFee && service.visitFee > 0;
+  const hasFee = service?.price && service.price > 0;
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -207,7 +207,7 @@ export default function ServiceCheckoutPage() {
                      <div className="flex justify-between items-center font-bold text-lg">
                         <span>{hasFee ? 'Taxa de Visita/Contato' : 'Custo do Contato'}</span>
                         <span>
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.visitFee || 0)}
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price || 0)}
                         </span>
                      </div>
                 </CardContent>
