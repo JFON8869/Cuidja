@@ -92,7 +92,7 @@ body {
   }
   
   .cuidja-logo-text {
-    background: linear-gradient(180deg, #F4D9B3 16.35%, #E5821F 62.02%);
+    background: linear-gradient(90deg, #F9A825 0%, #00BCD4 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
