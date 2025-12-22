@@ -27,6 +27,7 @@ import { FirebaseError } from 'firebase/app';
 
 const signupSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
+  phone: z.string().min(10, 'O telefone é obrigatório.'),
   email: z.string().email('E-mail inválido.'),
   password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres.'),
   terms: z.boolean().default(false).refine(val => val === true, {
@@ -46,6 +47,7 @@ export default function SignupPage() {
       name: '',
       email: '',
       password: '',
+      phone: '',
       terms: false,
     },
   });
@@ -66,6 +68,7 @@ export default function SignupPage() {
       await setDoc(doc(firestore, "users", user.uid), {
         name: values.name,
         email: values.email,
+        phone: values.phone,
         addresses: [], // Initialize with an empty addresses array
       });
 
@@ -109,6 +112,19 @@ export default function SignupPage() {
                 <FormLabel>Nome</FormLabel>
                 <FormControl>
                   <Input placeholder="Seu nome completo" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone</FormLabel>
+                <FormControl>
+                  <Input placeholder="(00) 90000-0000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -3,17 +3,16 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, CreditCard, Landmark, MessageSquare, Briefcase, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Briefcase, MapPin } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
-import React from 'react';
+import { collection, addDoc, doc } from 'firebase/firestore';
+import React, { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import {
   Form,
@@ -25,13 +24,11 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Service } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 
-// Schema for a new collection: "serviceRequests"
 const serviceCheckoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
   phone: z.string().min(10, 'Telefone é obrigatório.'),
@@ -54,29 +51,52 @@ export default function ServiceCheckoutPage() {
     if (!firestore || !serviceId) return null;
     return doc(firestore, 'services', serviceId);
   }, [firestore, serviceId]);
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
 
   const { data: service, isLoading: isLoadingService } = useDoc<WithId<Service>>(serviceRef);
+  const { data: userData, isLoading: isLoadingUserDoc } = useDoc(userDocRef);
 
   const form = useForm<z.infer<typeof serviceCheckoutSchema>>({
     resolver: zodResolver(serviceCheckoutSchema),
     defaultValues: {
-      name: user?.displayName || '',
-      phone: user?.phoneNumber || '',
+      name: '',
+      phone: '',
       address: '',
       city: '',
       zip: '',
       message: '',
     },
   });
+  
+  useEffect(() => {
+    // Pre-fill form when user data is loaded
+    if (userData) {
+      const defaultAddress = userData.addresses && userData.addresses.length > 0 ? userData.addresses[0] : null;
+      form.reset({
+        name: userData.name || '',
+        phone: userData.phone || '',
+        address: defaultAddress ? `${defaultAddress.street}, ${defaultAddress.number}` : '',
+        city: defaultAddress?.city || '',
+        zip: defaultAddress?.zip || '',
+        message: form.getValues('message'),
+      });
+    } else if (user) {
+      // Fallback to basic user info if firestore data is not available yet
+      form.reset({
+        name: user.displayName || '',
+        phone: user.phoneNumber || '',
+        address: '',
+        city: '',
+        zip: '',
+        message: form.getValues('message'),
+      });
+    }
+  }, [userData, user, form]);
 
-  React.useEffect(() => {
-    if (user?.displayName) {
-        form.setValue('name', user.displayName);
-    }
-     if (user?.phoneNumber) {
-        form.setValue('phone', user.phoneNumber);
-    }
-  }, [user, form]);
   
   async function onSubmit(values: z.infer<typeof serviceCheckoutSchema>) {
     if (!firestore || !user || !service || !storeId) {
@@ -90,7 +110,6 @@ export default function ServiceCheckoutPage() {
     }
     
     try {
-        // Using a new collection for service requests to keep it separate from product orders
         const serviceRequestsCollection = collection(firestore, 'serviceRequests');
         
         const requestData = {
@@ -120,7 +139,6 @@ export default function ServiceCheckoutPage() {
             description: 'Seu pedido de serviço foi enviado. O prestador entrará em contato.',
         });
         
-        // Redirect to a confirmation or a "my service requests" page (future)
         router.push(`/home`);
     } catch(error) {
         console.error("Error creating service request: ", error);
@@ -132,7 +150,7 @@ export default function ServiceCheckoutPage() {
     }
   }
   
-  const isLoading = isLoadingService || isUserLoading;
+  const isLoading = isLoadingService || isUserLoading || isLoadingUserDoc;
 
   if (isLoading) {
     return (

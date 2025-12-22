@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,11 +25,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
+import { useDoc } from '@/firebase/firestore/use-doc';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -43,12 +44,18 @@ const checkoutSchema = z.object({
   isUrgent: z.boolean().default(false),
 });
 
-
 export default function CheckoutPage() {
   const { cart, total, clearCart } = useCart();
   const { toast } = useToast();
   const router = useRouter();
   const { firestore, user } = useFirebase();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData } = useDoc(userDocRef);
 
   const firstProductInCart = cart.length > 0 ? cart[0] : null;
   const storeId = firstProductInCart?.storeId;
@@ -61,8 +68,8 @@ export default function CheckoutPage() {
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      name: user?.displayName || '',
-      phone: user?.phoneNumber || '',
+      name: '',
+      phone: '',
       address: '',
       city: '',
       zip: '',
@@ -70,6 +77,33 @@ export default function CheckoutPage() {
     },
   });
   
+  useEffect(() => {
+    // Pre-fill form when user data is loaded
+    if (userData) {
+      const defaultAddress = userData.addresses && userData.addresses.length > 0 ? userData.addresses[0] : null;
+      form.reset({
+        name: userData.name || '',
+        phone: userData.phone || '',
+        address: defaultAddress ? `${defaultAddress.street}, ${defaultAddress.number}` : '',
+        city: defaultAddress?.city || '',
+        zip: defaultAddress?.zip || '',
+        paymentMethod: form.getValues('paymentMethod'),
+        isUrgent: form.getValues('isUrgent'),
+      });
+    } else if (user) {
+      // Fallback to basic user info if firestore data is not available yet
+       form.reset({
+        name: user.displayName || '',
+        phone: user.phoneNumber || '',
+        address: '',
+        city: '',
+        zip: '',
+        paymentMethod: form.getValues('paymentMethod'),
+        isUrgent: form.getValues('isUrgent'),
+       });
+    }
+  }, [userData, user, form]);
+
   useEffect(() => {
     form.setValue('isUrgent', isUrgentCategory);
   }, [isUrgentCategory, form])
