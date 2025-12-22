@@ -56,11 +56,12 @@ export default function StorePage() {
   const { data: store, isLoading: isLoadingStore } =
     useDoc<StoreDocument>(storeRef);
 
-  const productsQuery = useMemoFirebase(() => {
+  const storeProductsQuery = useMemoFirebase(() => {
     if (!firestore || !id) return null;
     
     let q = query(collection(firestore, 'products'), where('storeId', '==', id));
     
+    // If a category is specified in the URL, filter by it.
     if (categoryName) {
       q = query(q, where('category', '==', categoryName));
     }
@@ -68,15 +69,16 @@ export default function StorePage() {
   }, [firestore, id, categoryName]);
   
   const { data: storeProducts, isLoading: areProductsLoading } =
-    useCollection<ProductWithId>(productsQuery);
+    useCollection<ProductWithId>(storeProductsQuery);
     
   const isLoading = isLoadingStore || areProductsLoading;
   
-  const hasProducts = storeProducts && storeProducts.length > 0;
   const pageTitle = store?.name ? (categoryName ? `${store.name} - ${categoryName}` : store.name) : 'Loja';
   
   const products = useMemo(() => storeProducts?.filter(p => p.category !== 'Serviços') || [], [storeProducts]);
   const services = useMemo(() => storeProducts?.filter(p => p.category === 'Serviços') || [], [storeProducts]);
+  
+  const hasAnyItems = storeProducts && storeProducts.length > 0;
 
   if (!store && !isLoadingStore) {
     return (
@@ -158,11 +160,11 @@ export default function StorePage() {
           </section>
         )}
 
-        {!hasProducts && (
+        {!hasAnyItems && (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <h2 className="text-2xl font-bold">Nenhum item encontrado</h2>
             <p className="text-muted-foreground">
-              Esta loja ainda não tem itens para exibir nesta categoria.
+              Esta loja ainda não tem itens para exibir{categoryName ? ` na categoria ${categoryName}` : ''}.
             </p>
           </div>
         )}
