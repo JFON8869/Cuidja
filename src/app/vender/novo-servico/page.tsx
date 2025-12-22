@@ -37,7 +37,12 @@ const serviceSchema = z.object({
     .array(z.any())
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
-  visitFee: z.coerce.number().min(0, 'A taxa não pode ser negativa.').optional(),
+  visitFee: z.coerce.number()
+    .min(0, 'A taxa não pode ser negativa.')
+    .optional()
+    .refine(val => !val || val === 0 || val >= 10, {
+      message: "A taxa de visita deve ser de no mínimo R$ 10,00 ou R$ 0,00 para contato gratuito."
+    })
 });
 
 export default function NewServicePage() {
