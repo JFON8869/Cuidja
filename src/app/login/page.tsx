@@ -91,23 +91,24 @@ export default function LoginPage() {
 
   const setupRecaptcha = () => {
     if (!auth) return;
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        'recaptcha-container',
-        {
-          size: 'invisible',
-          callback: () => {
-            // reCAPTCHA solved, allow signInWithPhoneNumber.
-          },
-        }
-      );
+    // Cleanup previous verifier if it exists
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
     }
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      'recaptcha-container',
+      {
+        size: 'invisible',
+        callback: () => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        },
+      }
+    );
   };
 
   useEffect(() => {
-    // This effect should only run once on the client
-    if (typeof window !== 'undefined') {
+    if (auth && typeof window !== 'undefined') {
       setupRecaptcha();
     }
   }, [auth]);
@@ -169,13 +170,16 @@ export default function LoginPage() {
     if (!auth || !window.recaptchaVerifier) return;
     setIsPhoneLoading(true);
     try {
+      const sanitizedPhone = values.phone.replace(/\D/g, '');
+      const formattedPhone = `+55${sanitizedPhone}`;
+      
       const result = await signInWithPhoneNumber(
         auth,
-        values.phone,
+        formattedPhone,
         window.recaptchaVerifier
       );
       setConfirmationResult(result);
-      setPhone(values.phone);
+      setPhone(formattedPhone);
       toast({
         title: 'Código enviado!',
         description: `Enviamos um código para ${values.phone}`,
@@ -188,6 +192,8 @@ export default function LoginPage() {
         description:
           'Não foi possível enviar o código. Verifique o número e tente novamente.',
       });
+       // Reset reCAPTCHA on error
+       setupRecaptcha();
     } finally {
       setIsPhoneLoading(false);
     }
@@ -343,7 +349,7 @@ export default function LoginPage() {
                     className="space-y-4"
                   >
                      <p className="text-sm text-center text-muted-foreground">
-                        Enviamos um código para {phone}.
+                        Enviamos um código para {phoneForm.getValues('phone')}.
                     </p>
                     <FormField
                       control={codeForm.control}
@@ -361,7 +367,10 @@ export default function LoginPage() {
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? 'Verificando...' : 'Verificar e Entrar'}
                     </Button>
-                     <Button variant="link" size="sm" onClick={() => setConfirmationResult(null)} className="w-full">
+                     <Button variant="link" size="sm" onClick={() => {
+                        setConfirmationResult(null);
+                        setupRecaptcha(); // Reset recaptcha for new number
+                     }} className="w-full">
                         Usar outro número
                     </Button>
                   </form>
@@ -381,4 +390,3 @@ export default function LoginPage() {
     </div>
   );
 }
-    
