@@ -8,7 +8,6 @@ import {
   Heart,
   User,
   ShoppingCart,
-  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
@@ -17,7 +16,6 @@ const navItems = [
   { href: '/home', label: 'Início', icon: Home },
   { href: '/vender', label: 'Vender', icon: PlusCircle },
   { href: '/carrinho', label: 'Carrinho', icon: ShoppingCart },
-  { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/perfil', label: 'Perfil', icon: User, auth: true },
 ];
 
@@ -35,7 +33,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-1/2 z-10 h-12 w-full max-w-sm -translate-x-1/2 border-t bg-card">
       <div className="flex h-full items-center justify-around">
         {navItems.map(({ href, label, icon: Icon, auth: requiresAuth }) => {
-          const isActive = pathname === href;
+          const isActive = pathname.startsWith(href) && href !== '/home' || pathname === href;
           const finalHref = requiresAuth && !user ? '/login' : href;
 
           if (isUserLoading && requiresAuth) {

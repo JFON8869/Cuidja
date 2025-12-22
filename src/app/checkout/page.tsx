@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, Landmark, Truck } from 'lucide-react';
+import { ArrowLeft, CreditCard, Landmark, MessageSquare, Truck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, doc } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Label } from '@/components/ui/label';
 import { useProductContext } from '@/context/ProductContext';
-import { useCollection, WithId } from '@/firebase/firestore/use-collection';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { Textarea } from '@/components/ui/textarea';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -36,6 +37,7 @@ const checkoutSchema = z.object({
   paymentMethod: z.enum(['card', 'pix'], {
     required_error: 'Selecione um método de pagamento.',
   }),
+  message: z.string().optional(),
 });
 
 interface Store {
@@ -58,6 +60,7 @@ export default function CheckoutPage() {
 
   const storesQuery = useMemoFirebase(() => {
     if (!firestore || !sellerName) return null;
+    // This is inefficient if there are many stores. A better approach would be a direct query.
     return collection(firestore, 'stores');
   }, [firestore, sellerName]);
 
@@ -77,6 +80,7 @@ export default function CheckoutPage() {
       address: '',
       city: '',
       zip: '',
+      message: '',
     },
   });
 
@@ -101,12 +105,20 @@ export default function CheckoutPage() {
     
     try {
         const ordersCollection = collection(firestore, 'orders');
+        
+        const initialMessage = values.message ? [{
+            senderId: user.uid,
+            text: values.message,
+            timestamp: new Date().toISOString(),
+            isRead: false,
+        }] : [];
+        
         await addDoc(ordersCollection, {
             userId: user.uid,
             storeId: storeId,
             productIds: cart.map(item => item.id),
             totalAmount: total,
-            status: 'Pending',
+            status: 'Pendente',
             orderDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
@@ -115,6 +127,10 @@ export default function CheckoutPage() {
                 zip: values.zip,
             },
             paymentMethod: values.paymentMethod,
+            messages: initialMessage,
+            lastMessageTimestamp: initialMessage.length > 0 ? new Date().toISOString() : null,
+            buyerHasUnreadMessages: false, // Vendedor acabou de enviar
+            sellerHasUnreadMessages: initialMessage.length > 0, // Comprador enviou, então o vendedor tem mensagens não lidas
         });
 
         toast({
@@ -222,6 +238,30 @@ export default function CheckoutPage() {
               </div>
             </section>
             
+            <Separator />
+            
+            <section>
+              <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
+                <MessageSquare className="h-5 w-5" />
+                Mensagem para o Vendedor (Opcional)
+              </h2>
+              <FormField
+                control={form.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Deixe uma observação sobre seu pedido, como ponto de referência ou detalhes do produto."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </section>
+
             <Separator />
 
             <section>

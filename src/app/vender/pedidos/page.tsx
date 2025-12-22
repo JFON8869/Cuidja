@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import {
@@ -8,7 +8,6 @@ import {
   query,
   where,
   orderBy,
-  doc,
   getDocs,
 } from 'firebase/firestore';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
@@ -31,12 +30,7 @@ interface Order extends WithId<any> {
   productIds: string[];
   status: string;
   totalAmount: number;
-}
-
-interface Store extends WithId<any> {
-  id: string;
-  userId: string;
-  name: string;
+  sellerHasUnreadMessages?: boolean;
 }
 
 export default function SellerOrdersPage() {
@@ -75,10 +69,11 @@ export default function SellerOrdersPage() {
     );
   }, [firestore, storeId]);
 
-  const { data: orders, isLoading: areOrdersLoading } = useCollection<Order>(ordersQuery);
+  const { data: orders, isLoading: areOrdersLoading } =
+    useCollection<Order>(ordersQuery);
 
   const isLoading = isUserLoading || isStoreLoading || areOrdersLoading;
-  
+
   const renderSkeleton = () => (
     <div className="space-y-4 p-4">
       {[...Array(3)].map((_, i) => (
@@ -100,13 +95,13 @@ export default function SellerOrdersPage() {
   );
 
   const renderNoStore = () => (
-     <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+    <div className="flex h-full flex-col items-center justify-center p-4 text-center">
       <h2 className="text-2xl font-bold">Nenhuma loja encontrada</h2>
       <p className="text-muted-foreground">
         Você precisa criar uma loja para ver suas vendas.
       </p>
     </div>
-  )
+  );
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -135,38 +130,57 @@ export default function SellerOrdersPage() {
             </Button>
           </div>
         ) : !storeId && !isStoreLoading ? (
-            renderNoStore()
-        ): orders && orders.length > 0 ? (
+          renderNoStore()
+        ) : orders && orders.length > 0 ? (
           <div className="space-y-4 p-4">
             {orders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    Pedido #{order.id.substring(0, 7)}
-                  </CardTitle>
-                  <CardDescription>
-                    {format(new Date(order.orderDate), "dd 'de' MMMM 'de' yyyy, 'às' HH:mm", { locale: ptBR })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <p>Itens: {order.productIds.length}</p>
-                  <p className="text-muted-foreground">
-                    Status:{' '}
-                    <span className="font-semibold text-accent">
-                      {order.status}
+              <Link key={order.id} href={`/pedidos/${order.id}`} passHref>
+                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">
+                          Pedido #{order.id.substring(0, 7)}
+                        </CardTitle>
+                        <CardDescription>
+                          {format(
+                            new Date(order.orderDate),
+                            "dd 'de' MMMM 'de' yyyy, 'às' HH:mm",
+                            { locale: ptBR }
+                          )}
+                        </CardDescription>
+                      </div>
+                       {order.sellerHasUnreadMessages && (
+                        <div className="relative">
+                          <Bell className="h-5 w-5 text-accent" />
+                          <span className="absolute -right-1 -top-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <p>Itens: {order.productIds.length}</p>
+                    <p className="text-muted-foreground">
+                      Status:{' '}
+                      <span className="font-semibold text-accent">
+                        {order.status}
+                      </span>
+                    </p>
+                  </CardContent>
+                  <CardFooter className="flex items-center justify-between font-bold">
+                    <span>Total</span>
+                    <span>
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(order.totalAmount)}
                     </span>
-                  </p>
-                </CardContent>
-                <CardFooter className="flex justify-between items-center font-bold">
-                  <span>Total</span>
-                  <span>
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    }).format(order.totalAmount)}
-                  </span>
-                </CardFooter>
-              </Card>
+                  </CardFooter>
+                </Card>
+              </Link>
             ))}
           </div>
         ) : (

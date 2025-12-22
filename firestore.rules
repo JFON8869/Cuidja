@@ -1,19 +1,19 @@
 /**
  * Core Philosophy: This ruleset enforces a user-centric and role-based security model for a marketplace application.
  * The core principle is that users own and control their personal data, sellers own and control their stores and products,
- * and transactional data (orders, chats) is accessible only to the involved participants (buyer and seller).
+ * and transactional data (orders) is accessible only to the involved participants (buyer and seller).
  *
- * Data Structure: The data is organized into flat, top-level collections (users, stores, products, orders, chats, reviews).
- * This structure simplifies rule logic. Authorization is handled by denormalizing ownership information (like `userId`, `storeId`,
- * `buyerId`, `sellerId`) directly onto the documents being secured.
+ * Data Structure: The data is organized into flat, top-level collections (users, stores, products, orders, reviews).
+ * This structure simplifies rule logic. Authorization is handled by denormalizing ownership information (like `userId`, `storeId`) 
+ * directly onto the documents being secured.
  *
  * Key Security Decisions:
  * - Default Deny: All access is denied by default, and permissions are granted explicitly.
  * - User Data Privacy: A user's profile document is private and can only be read or modified by that specific user. User listing is disabled.
  * - Public Listings: Store profiles and product catalogs are publicly readable to allow browsing by any user (including unauthenticated ones),
  *   but write operations are strictly limited to the authenticated owners.
- * - Transactional Privacy: Orders and chats are private. Access is restricted to the specific buyer and seller involved in that transaction.
- *   Open listing of orders and chats is disabled to prevent data leakage.
+ * - Transactional Privacy: Orders are private. Access is restricted to the specific buyer and seller involved in that transaction.
+ *   Open listing of orders is disabled to prevent data leakage.
  * - Denormalization for Authorization: Ownership is determined by `userId` fields on documents. To secure products and orders, which are
  *   linked to a store, a `get()` call is used to fetch the store's `userId`. This is a necessary trade-off when the owner's UID is not
  *   denormalized onto every single sub-document.
@@ -86,36 +86,25 @@ service cloud.firestore {
     /**
      * @description Rules for the orders collection, accessible only by participants.
      * @path /orders/{orderId}
-     * @allow The buyer (auth.uid matches order.userId) can (get) their order. The seller (auth.uid owns order.storeId) can (update) the order status.
+     * @allow The buyer (auth.uid matches order.userId) or the seller (auth.uid owns order.storeId) can (get) the order. 
      * @deny An uninvolved user cannot (get) an order. Open listing of all orders via (list) is denied.
      * @principle Implements a "Shared Access (Closed Collaborators)" pattern. Data is private to the specific buyer and seller involved in the transaction.
      */
     match /orders/{orderId} {
-      allow get: if isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId);
-      allow list: if false;
+      function isOrderParticipant() {
+        return isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId);
+      }
+      
+      allow get: if isOrderParticipant();
+      allow list: if false; // Users should only query for their own orders, not list all.
       allow create: if isOwner(request.resource.data.userId);
-      allow update: if isStoreOwner(resource.data.storeId) && isExistingDoc() && request.resource.data.userId == resource.data.userId;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Rules for chat conversations between a buyer and a seller.
-     * @path /chats/{chatId}
-     * @allow A user who is either the buyer (chat.buyerId) or the seller (chat.sellerId) can (get) or (update) the chat.
-     * @deny An uninvolved user cannot read a chat. Open listing of all chats via (list) is denied.
-     * @principle Implements a "Shared Access (Closed Collaborators)" pattern, ensuring conversations are private to the two participants.
-     */
-    match /chats/{chatId} {
-      function isChatParticipant() {
-        return isSignedIn() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
-      }
-      function isChatParticipantOnCreate() {
-        return isSignedIn() && (request.auth.uid == request.resource.data.buyerId || request.auth.uid == request.resource.data.sellerId);
-      }
-      allow get: if isChatParticipant();
-      allow list: if false;
-      allow create: if isChatParticipantOnCreate();
-      allow update: if isChatParticipant() && isExistingDoc() && request.resource.data.buyerId == resource.data.buyerId && request.resource.data.sellerId == resource.data.sellerId;
+      // Allow participant to add messages.
+      allow update: if isOrderParticipant() &&
+                      // Ensure core data is immutable
+                      request.resource.data.userId == resource.data.userId &&
+                      request.resource.data.storeId == resource.data.storeId &&
+                      request.resource.data.productIds == resource.data.productIds &&
+                      request.resource.data.totalAmount == resource.data.totalAmount;
       allow delete: if false;
     }
 

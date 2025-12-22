@@ -182,6 +182,20 @@
             "city": {"type": "string"},
             "zip": {"type": "string"}
           }
+        },
+         "messages": {
+          "type": "array",
+          "description": "Chat messages between buyer and seller for this order.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "senderId": { "type": "string" },
+              "text": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "isRead": { "type": "boolean" }
+            },
+            "required": ["senderId", "text", "timestamp"]
+          }
         }
       },
       "required": [
@@ -193,45 +207,6 @@
         "status",
         "totalAmount",
         "shippingAddress"
-      ]
-    },
-    "Chat": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Chat",
-      "type": "object",
-      "description": "Represents a chat conversation between a buyer and a seller.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the chat entity."
-        },
-        "buyerId": {
-          "type": "string",
-          "description": "Reference to User (Buyer). (Relationship: User 1:N Chat)"
-        },
-        "sellerId": {
-          "type": "string",
-          "description": "Reference to User (Seller). (Relationship: User 1:N Chat)"
-        },
-        "messages": {
-          "type": "array",
-          "description": "Array of messages in the chat.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Timestamp of the last message in the chat.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "buyerId",
-        "sellerId",
-        "messages",
-        "timestamp"
       ]
     },
     "Review": {
@@ -354,22 +329,6 @@
         }
       },
       {
-        "path": "/chats/{chatId}",
-        "definition": {
-          "entityName": "Chat",
-          "schema": {
-            "$ref": "#/backend/entities/Chat"
-          },
-          "description": "Stores chat conversations between buyers and sellers. 'buyerId' and 'sellerId' are used for authorization.",
-          "params": [
-            {
-              "name": "chatId",
-              "description": "The unique identifier of the chat."
-            }
-          ]
-        }
-      },
-      {
         "path": "/reviews/{reviewId}",
         "definition": {
           "entityName": "Review",
@@ -386,6 +345,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support a marketplace application connecting local producers, artisans, and service providers with consumers. It emphasizes authorization independence through denormalization, structural segregation for security, and consistent access modeling.  The structure prioritizes DBAC (Database-Based Access Control) using only `request.auth.uid` for authorization.  Authorization Independence is achieved primarily through denormalization of membership and ownership data into subcollections or related documents, avoiding `get()` calls in security rules. QAPs (Rules Are Not Filters) are supported by segregating data based on access requirements, preventing the need to filter data based on authorization rules. For collaborative access scenarios, the 'members' map pattern will be leveraged.\n\nSpecifically:\n\n*   **Users**: Stores user profiles and distinguishes between buyers and sellers.\n*   **Stores**: Stores store profiles, linked to seller users.\n*   **Products**: Stores product listings, linked to stores.\n*   **Orders**: Stores order information, linking buyers, sellers (via Store), and products.\n*   **Chats**: Stores chat conversations between buyers and sellers.\n*   **Reviews**: Stores product and seller reviews.\n\n**Authorization Independence:** The `members` map pattern in collaborative collections will include the `userId` and their role, removing the need to fetch parent document data. For example, within a store's products collection, the `storeId` is denormalized into each product document, enabling rules to validate product access without reading the store document.  Orders will contain both `userId` and `storeId`, to facilitate order access rules without needing to read user or store documents.\n\n**Structural Segregation:** User-specific data (e.g., user profiles, stores owned by a user) are placed under `/users/{userId}` or `/stores/{storeId}` to easily implement user-based access control. Publicly accessible data (if any in future evolutions) would be stored in separate collections with open read access.\n\n**QAPs Support:**  Because private data is segregated under user-specific paths (e.g., `/users/{userId}/orders`), listing operations only return data accessible to the authenticated user, avoiding filtering in rules.\n\n**Invariants:** Timestamps will be stored as server timestamps, ownership will be enforced through `userId` fields, and denormalized data will be kept consistent using Cloud Functions triggers."
+    "reasoning": "The Firestore data structure is designed to support a marketplace application connecting local producers, artisans, and service providers with consumers. It emphasizes authorization independence through denormalization, structural segregation for security, and consistent access modeling.  The structure prioritizes DBAC (Database-Based Access Control) using only `request.auth.uid` for authorization.  Authorization Independence is achieved primarily through denormalization of membership and ownership data into subcollections or related documents, avoiding `get()` calls in security rules. QAPs (Rules Are Not Filters) are supported by segregating data based on access requirements, preventing the need to filter data based on authorization rules. For collaborative access scenarios, the 'members' map pattern will be leveraged.\n\nSpecifically:\n\n*   **Users**: Stores user profiles and distinguishes between buyers and sellers.\n*   **Stores**: Stores store profiles, linked to seller users.\n*   **Products**: Stores product listings, linked to stores.\n*   **Orders**: Stores order information, linking buyers, sellers (via Store), and products. Includes messages specific to an order.\n*   **Reviews**: Stores product and seller reviews.\n\n**Authorization Independence:** The `members` map pattern in collaborative collections will include the `userId` and their role, removing the need to fetch parent document data. For example, within a store's products collection, the `storeId` is denormalized into each product document, enabling rules to validate product access without reading the store document.  Orders will contain both `userId` and `storeId`, to facilitate order access rules without needing to read user or store documents.\n\n**Structural Segregation:** User-specific data (e.g., user profiles, stores owned by a user) are placed under `/users/{userId}` or `/stores/{storeId}` to easily implement user-based access control. Publicly accessible data (if any in future evolutions) would be stored in separate collections with open read access.\n\n**QAPs Support:**  Because private data is segregated under user-specific paths (e.g., `/users/{userId}/orders`), listing operations only return data accessible to the authenticated user, avoiding filtering in rules.\n\n**Invariants:** Timestamps will be stored as server timestamps, ownership will be enforced through `userId` fields, and denormalized data will be kept consistent using Cloud Functions triggers."
   }
 }
