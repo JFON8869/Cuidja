@@ -8,16 +8,15 @@ import {
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { useToast } from '@/hooks/use-toast';
-import { initializeFirebase } from '@/firebase';
 
 export const handleGoogleSignIn = async (
+  auth: Auth,
   router: AppRouterInstance,
   toast: ReturnType<typeof useToast>['toast'],
   setGoogleLoading: Dispatch<SetStateAction<boolean>>
 ) => {
   setGoogleLoading(true);
   try {
-    const { auth } = initializeFirebase();
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
     toast({

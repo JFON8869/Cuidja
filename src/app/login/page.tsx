@@ -89,7 +89,8 @@ export default function LoginPage() {
   }
 
   const onGoogleSignIn = async () => {
-    await handleGoogleSignIn(router, toast, setGoogleLoading);
+    if (!auth) return;
+    await handleGoogleSignIn(auth, router, toast, setGoogleLoading);
   };
 
 
