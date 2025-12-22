@@ -2,9 +2,8 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Frown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Frown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { mockCategories } from '@/lib/data';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 import { collection, query, where } from 'firebase/firestore';
@@ -24,20 +23,21 @@ export default function CategoryPage() {
   const { firestore } = useFirebase();
   const router = useRouter();
 
-  const category = mockCategories.find((cat) => cat.slug === slug);
-  
+  // Decode URI component and capitalize for display
+  const categoryName = slug ? decodeURIComponent(slug).replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Categoria';
+
   if (slug === 'servicos') {
     router.replace('/categorias/servicos');
     return null;
   }
 
   const storesQuery = useMemoFirebase(() => {
-    if (!firestore || !category) return null;
+    if (!firestore || !categoryName) return null;
     return query(
       collection(firestore, 'stores'),
-      where('category', '==', category.name)
+      where('category', '==', categoryName)
     );
-  }, [firestore, category]);
+  }, [firestore, categoryName]);
 
   const { data: stores, isLoading } = useCollection<WithId<StoreDocument>>(storesQuery);
   
@@ -64,7 +64,7 @@ export default function CategoryPage() {
           </Link>
         </Button>
         <h1 className="mx-auto font-headline text-xl">
-          {category?.name || 'Categoria'}
+          {categoryName}
         </h1>
         <div className="w-10"></div>
       </header>
