@@ -41,7 +41,6 @@ export default function WelcomePage() {
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent p-6 text-center shadow-2xl">
       <div className="flex flex-col items-center justify-center">
-        <Image src="/logo-symbol.svg" alt="Cuidja Symbol" width={100} height={100} className="mb-4" />
         <h1 className="cuidja-logo-text font-logo text-8xl leading-tight">
           Cuidja
         </h1>
