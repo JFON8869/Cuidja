@@ -6,7 +6,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage';
-import { useFirebase } from '@/firebase';
+import { getApp } from 'firebase/app'; // Importar getApp
 
 /**
  * Uploads a file to Firebase Storage and returns its public URL.
@@ -20,8 +20,9 @@ export const uploadFile = async (
   path: string
 ): Promise<string> => {
   // We can't use the useFirebase hook here directly as this is not a component.
-  // Instead, we assume the app is initialized and get the storage instance.
-  const storage = getStorage();
+  // Instead, we get the initialized app instance first.
+  const app = getApp();
+  const storage = getStorage(app);
 
   // Create a unique file name to avoid overwrites
   const fileName = `${path}/${new Date().getTime()}-${file.name}`;
