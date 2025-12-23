@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Trash2, PlusCircle } from 'lucide-react';
 import {
   collection,
   addDoc,
@@ -45,6 +45,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
 
+
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
   description: z.string().optional(),
@@ -53,14 +54,15 @@ const productSchema = z.object({
   availability: z.enum(['available', 'on_demand', 'unavailable']),
 });
 
+
 type ProductFormValues = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
   productId?: string;
 }
 
-// Function to update the store's categories list based on its products
 const updateUserStoreCategories = async (firestore: any, storeId: string) => {
+  if (!firestore || !storeId) return;
   const productsRef = collection(firestore, 'products');
   const q = query(
     productsRef,
@@ -70,7 +72,6 @@ const updateUserStoreCategories = async (firestore: any, storeId: string) => {
 
   try {
     const querySnapshot = await getDocs(q);
-    // Using a Set to get unique category names
     const categories = new Set(
       querySnapshot.docs.map((doc) => doc.data().category)
     );
@@ -80,8 +81,7 @@ const updateUserStoreCategories = async (firestore: any, storeId: string) => {
       categories: Array.from(categories),
     });
   } catch (error) {
-    console.error("Failed to update store categories:", error);
-    // Optionally throw the error to be caught by the calling function
+    console.error('Failed to update store categories:', error);
     throw error;
   }
 };
@@ -186,43 +186,44 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
 
     const uid = auth.currentUser.uid;
+    if (!uid) {
+        toast.error('Não foi possível verificar sua identidade. Faça login novamente.');
+        return;
+    }
+
     setIsSubmitting(true);
     let success = false;
 
-    const dataToSave = {
-      name: values.name,
-      description: values.description || '',
-      price: Number(values.price),
-      category: values.category,
-      availability: values.availability,
-      storeId: store.id,
-      sellerId: uid,
-      type: 'PRODUCT' as const,
-      createdAt: serverTimestamp(),
-      addons: [], // Ensure addons is an empty array
-    };
-    
     try {
-      if (isEditing && productId) {
-        const docRef = doc(firestore, 'products', productId);
-        await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
-      } else {
-        await addDoc(collection(firestore, 'products'), dataToSave);
-      }
+        const dataToSave = {
+            ...values,
+            description: values.description || '',
+            price: Number(values.price),
+            storeId: store.id,
+            sellerId: uid,
+            type: 'PRODUCT' as const,
+            addons: [], 
+        };
 
-      await updateUserStoreCategories(firestore, store.id);
-      success = true;
+        if (isEditing && productId) {
+            const docRef = doc(firestore, 'products', productId);
+            await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
+        } else {
+            await addDoc(collection(firestore, 'products'), { ...dataToSave, createdAt: serverTimestamp() });
+        }
+
+        await updateUserStoreCategories(firestore, store.id);
+        success = true;
 
     } catch (error) {
-      console.error('Error saving product:', error);
-      toast.error('Não foi possível salvar o produto. Tente novamente.');
+        console.error('Error saving product:', error);
+        toast.error('Não foi possível salvar o produto. Tente novamente.');
     } finally {
-      setIsSubmitting(false);
-      if (success) {
-        toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
-        router.push('/vender/produtos');
-        router.refresh();
-      }
+        setIsSubmitting(false);
+        if (success) {
+            toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
+            router.push('/vender/produtos');
+        }
     }
   }
 

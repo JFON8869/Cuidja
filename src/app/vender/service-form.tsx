@@ -107,31 +107,33 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
     }
 
     const uid = auth.currentUser.uid;
+     if (!uid) {
+        toast.error('Não foi possível verificar sua identidade. Faça login novamente.');
+        return;
+    }
+
     setIsSubmitting(true);
     let success = false;
     
     try {
       const dataToSave = {
-        name: values.name,
+        ...values,
         description: values.description || '',
         price: Number(values.price),
-        attendanceType: values.attendanceType,
         storeId: store.id,
         sellerId: uid,
         type: 'SERVICE' as const,
         category: 'Serviços',
         availability: 'on_demand' as const,
-        createdAt: serverTimestamp(),
       };
 
       if (isEditing && serviceId) {
         const docRef = doc(firestore, 'products', serviceId);
         await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
       } else {
-        await addDoc(collection(firestore, 'products'), dataToSave);
+        await addDoc(collection(firestore, 'products'), { ...dataToSave, createdAt: serverTimestamp() });
       }
 
-      // Ensure the 'Serviços' category is present in the store's category list
       const storeRef = doc(firestore, 'stores', store.id);
       await updateDoc(storeRef, {
           categories: arrayUnion('Serviços')
@@ -144,10 +146,9 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
       toast.error('Não foi possível salvar o serviço. Tente novamente.');
     } finally {
       setIsSubmitting(false);
-      if (success) {
+       if (success) {
         toast.success(isEditing ? 'Serviço atualizado com sucesso!' : 'Serviço publicado com sucesso!');
         router.push('/vender/servicos');
-        router.refresh();
       }
     }
   }
@@ -261,9 +262,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {isSubmitting
-                ? 'Publicando...'
-                : isEditing
+              {isEditing
                 ? 'Salvar Alterações'
                 : 'Publicar Serviço'}
             </Button>

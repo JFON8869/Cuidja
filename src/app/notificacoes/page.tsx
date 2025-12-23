@@ -14,7 +14,7 @@ import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 interface BaseOrder extends WithId<any> {
   id: string;
-  orderDate: string; // Unified date field
+  orderDate: string; 
   status: string;
   sellerHasUnread?: boolean;
   buyerHasUnread?: boolean;
@@ -48,34 +48,35 @@ export default function NotificationsPage() {
     }
     setIsLoading(true);
     try {
+        // Fetch stores owned by the user to identify seller-side notifications
         const storesRef = collection(firestore, 'stores');
         const storeQuery = query(storesRef, where('userId', '==', user.uid));
         const storeSnapshot = await getDocs(storeQuery);
         const ownedStoreIds = storeSnapshot.docs.map(doc => doc.id);
-        
+
         const ordersRef = collection(firestore, 'orders');
+        const buyerNotifications: Notification[] = [];
+        const sellerNotifications: Notification[] = [];
 
-        const userIsBuyer = where('customerId', '==', user.uid);
-        const userIsSeller = ownedStoreIds.length > 0 ? where('storeId', 'in', ownedStoreIds) : null;
+        // 1. Get notifications where the user is the buyer
+        const buyerQuery = query(ordersRef, where('customerId', '==', user.uid), where('buyerHasUnread', '==', true), orderBy('orderDate', 'desc'));
+        const buyerSnapshot = await getDocs(buyerQuery);
+        buyerSnapshot.forEach(doc => {
+            buyerNotifications.push({ id: doc.id, ...doc.data() } as Notification);
+        });
 
-        const finalConditions = [userIsBuyer];
-        if (userIsSeller) {
-            finalConditions.push(userIsSeller);
-        }
-
-        const notificationsQuery = query(ordersRef, or(...finalConditions), orderBy('orderDate', 'desc'));
-
-        const querySnapshot = await getDocs(notificationsQuery);
-
-        const allNotifications = querySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Notification))
-            .filter(notification => {
-                const isSellerNotification = ownedStoreIds.includes(notification.storeId);
-                if (isSellerNotification) {
-                    return notification.sellerHasUnread;
-                }
-                return notification.buyerHasUnread;
+        // 2. Get notifications where the user is the seller
+        if (ownedStoreIds.length > 0) {
+            const sellerQuery = query(ordersRef, where('storeId', 'in', ownedStoreIds), where('sellerHasUnread', '==', true), orderBy('orderDate', 'desc'));
+            const sellerSnapshot = await getDocs(sellerQuery);
+            sellerSnapshot.forEach(doc => {
+                sellerNotifications.push({ id: doc.id, ...doc.data() } as Notification);
             });
+        }
+        
+        // 3. Combine and sort all notifications
+        const allNotifications = [...buyerNotifications, ...sellerNotifications];
+        allNotifications.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
 
         setNotifications(allNotifications);
 

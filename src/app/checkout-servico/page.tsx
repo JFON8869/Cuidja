@@ -25,8 +25,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { Product } from '@/lib/data';
 
 const serviceRequestSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -40,27 +41,13 @@ function ServiceCheckoutPage() {
   const searchParams = useSearchParams();
   const serviceId = searchParams.get('serviceId');
   const storeId = searchParams.get('storeId');
-  const [sellerId, setSellerId] = useState<string | null>(null);
 
   const serviceRef = useMemoFirebase(() => {
     if (!firestore || !serviceId) return null;
     return doc(firestore, 'products', serviceId);
   }, [firestore, serviceId]);
   
-  const { data: service, isLoading: isServiceLoading } = useDoc(serviceRef);
-
-  useEffect(() => {
-      const fetchSellerId = async () => {
-          if (!firestore || !storeId) return;
-          const storeRef = doc(firestore, 'stores', storeId);
-          const storeSnap = await getDoc(storeRef);
-          if (storeSnap.exists()) {
-              setSellerId(storeSnap.data().userId);
-          }
-      };
-      fetchSellerId();
-  }, [firestore, storeId]);
-
+  const { data: service, isLoading: isServiceLoading } = useDoc<Product>(serviceRef);
 
   const form = useForm<z.infer<typeof serviceRequestSchema>>({
     resolver: zodResolver(serviceRequestSchema),
@@ -82,8 +69,9 @@ function ServiceCheckoutPage() {
   }, [user, form]);
 
   async function onSubmit(values: z.infer<typeof serviceRequestSchema>) {
-    if (!firestore || !user || !service || !storeId || !sellerId) {
-      toast.error('Não foi possível enviar a solicitação. Faltam informações.');
+    // Critical: Ensure all required IDs are present before proceeding.
+    if (!firestore || !user || !service || !service.sellerId || !storeId) {
+      toast.error('Não foi possível enviar a solicitação. Faltam informações essenciais (serviço, vendedor ou loja).');
       return;
     }
 
@@ -91,7 +79,7 @@ function ServiceCheckoutPage() {
       const docRef = await addDoc(collection(firestore, 'orders'), {
         orderType: 'SERVICE_REQUEST',
         customerId: user.uid,
-        sellerId: sellerId,
+        sellerId: service.sellerId, // Directly use sellerId from the service document
         storeId: storeId,
         serviceId: service.id,
         serviceName: service.name,
@@ -115,7 +103,7 @@ function ServiceCheckoutPage() {
 
       toast.success('Solicitação enviada com sucesso!');
       router.push(`/pedidos/${docRef.id}`);
-    } catch (error) {
+    } catch (error) => {
       console.error('Error creating service request: ', error);
       toast.error('Não foi possível enviar a solicitação. Tente novamente.');
     }

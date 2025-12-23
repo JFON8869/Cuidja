@@ -44,8 +44,9 @@ export function ProductCard({ product }: ProductCardProps) {
   
   const isService = product.type === 'SERVICE';
 
+  // Ensure storeId is available before constructing the link for services
   const href = isService 
-    ? `/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`
+    ? (product.storeId ? `/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}` : '#')
     : `/produtos/${product.id}`;
 
   const image: ImagePlaceholder | undefined = product.images?.[0];
