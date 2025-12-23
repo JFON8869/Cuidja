@@ -55,10 +55,12 @@ export default function Home() {
 
   const recommendedProducts = React.useMemo(() => {
     if (products.length === 0) return [];
+    // Simple shuffle for variety
     const shuffled = [...products].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 5);
   }, [products]);
 
+  // Use the rest of the products for the featured section
   const featuredProducts = products.slice(5, 15);
 
   return (
@@ -103,7 +105,7 @@ export default function Home() {
                   <div
                     className={cn(
                       'flex h-16 w-16 items-center justify-center rounded-xl border bg-card shadow-sm',
-                      'bg-green-500'
+                      'bg-green-500' // Example color, can be dynamic
                     )}
                   >
                     <category.Icon className="h-8 w-8 text-white" />
