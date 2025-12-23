@@ -36,6 +36,7 @@ interface Product extends WithId<any> {
     name: string;
     price: number;
     images: { imageUrl: string }[];
+    category: string;
 }
 
 export default function MyProductsPage() {
@@ -48,7 +49,8 @@ export default function MyProductsPage() {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'products'),
-      where('sellerId', '==', user.uid)
+      where('sellerId', '==', user.uid),
+      where('category', '!=', 'Serviços') // Exclude services
     );
   }, [firestore, user]);
 
@@ -142,7 +144,8 @@ export default function MyProductsPage() {
                       </DropdownMenuItem>
                        <DropdownMenuItem 
                         className="text-destructive"
-                        onSelect={() => {
+                        onSelect={(e) => {
+                            e.preventDefault();
                             setProductToDelete({ id: product.id, name: product.name });
                             setIsAlertOpen(true);
                         }}

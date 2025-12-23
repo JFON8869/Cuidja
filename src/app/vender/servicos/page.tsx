@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2, Wrench } from 'lucide-react';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Product } from '@/lib/data';
 
@@ -39,6 +37,8 @@ interface Service extends WithId<Product> {}
 export default function MyServicesPage() {
   const { user, firestore, isUserLoading } = useFirebase();
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isAlertOpen, setIsAlertOpen] = React.useState(false);
+  const [serviceToDelete, setServiceToDelete] = React.useState<{id: string, name: string} | null>(null);
 
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -52,18 +52,19 @@ export default function MyServicesPage() {
   const { data: myServices, isLoading: areServicesLoading } = useCollection<Service>(servicesQuery);
   const isLoading = isUserLoading || areServicesLoading;
 
-  const handleDelete = async (serviceId: string, serviceName: string) => {
-    if (!firestore) return;
+  const handleDelete = async () => {
+    if (!firestore || !serviceToDelete) return;
     setIsDeleting(true);
     try {
-        await deleteDoc(doc(firestore, "products", serviceId));
-        toast.success(`O serviço "${serviceName}" foi removido.`);
-        // NOTE: No need to router.push, the page will re-render via useCollection
+        await deleteDoc(doc(firestore, "products", serviceToDelete.id));
+        toast.success(`O serviço "${serviceToDelete.name}" foi removido.`);
     } catch(error) {
         console.error("Error deleting service: ", error);
         toast.error(`Não foi possível remover o serviço. Tente novamente.`);
     } finally {
         setIsDeleting(false);
+        setIsAlertOpen(false);
+        setServiceToDelete(null);
     }
   }
   
@@ -116,48 +117,32 @@ export default function MyServicesPage() {
                     {`Taxa de contato: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}`}
                   </p>
                 </div>
-                <AlertDialog>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/vender/produtos/editar/${service.id}`}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href={`/vender/produtos/editar/${service.id}`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Link>
+                    </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onSelect={(e) => {
+                            e.preventDefault();
+                            setServiceToDelete({ id: service.id, name: service.name });
+                            setIsAlertOpen(true);
+                        }}
+                       >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Excluir
                       </DropdownMenuItem>
-                       <AlertDialogTrigger asChild>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                   <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Essa ação não pode ser desfeita. Isso excluirá permanentemente o serviço "{service.name}".
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        disabled={isDeleting}
-                        onClick={() => handleDelete(service.id, service.name)}
-                        className="bg-destructive hover:bg-destructive/90"
-                      >
-                         {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                         Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardContent>
             </Card>
           ))
@@ -177,8 +162,27 @@ export default function MyServicesPage() {
           </div>
         )}
       </main>
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. Isso excluirá permanentemente o serviço "{serviceToDelete?.name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting} onClick={() => setServiceToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-    
