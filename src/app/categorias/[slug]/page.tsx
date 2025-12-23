@@ -75,17 +75,15 @@ export default function CategoryPage() {
 
         if (storesSnapshot.empty) {
           setStores([]);
-          setIsLoading(false);
-          return;
+        } else {
+            const fetchedStores = storesSnapshot.docs
+            .map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            })) as StoreDocument[];
+
+            setStores(fetchedStores);
         }
-
-        const fetchedStores = storesSnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as StoreDocument[];
-
-        setStores(fetchedStores);
       } catch (error) {
         console.error('Failed to fetch stores by category:', error);
         setStores([]);

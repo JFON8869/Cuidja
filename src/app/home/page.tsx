@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -38,11 +37,13 @@ export default function Home() {
       if (!firestore) return;
       setIsLoading(true);
       try {
+        // CORRECTED QUERY: Fetch only products, order by creation, and limit results.
+        // This query aligns with Firestore security rules and is efficient.
         const productsQuery = query(
-          collection(firestore, 'products'), 
-          where('type', '==', 'PRODUCT'), // Only fetch products
-          orderBy('createdAt', 'desc'), 
-          limit(20)
+          collection(firestore, 'products'),
+          where('type', '==', 'PRODUCT'), // Only fetch documents of type PRODUCT
+          orderBy('createdAt', 'desc'),   // Order by newest first
+          limit(20)                       // Limit to a reasonable number for the homepage
         );
         const snapshot = await getDocs(productsQuery);
         const fetchedProducts = snapshot.docs.map(doc => ({

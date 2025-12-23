@@ -41,17 +41,15 @@ export default function ServicesCategoryPage() {
 
         if (storesSnapshot.empty) {
           setServiceProviders([]);
-          setIsLoading(false);
-          return;
+        } else {
+            const providers = storesSnapshot.docs
+            .map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            })) as StoreDocument[];
+
+            setServiceProviders(providers);
         }
-
-        const providers = storesSnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as StoreDocument[];
-
-        setServiceProviders(providers);
       } catch (error) {
         console.error('Failed to fetch service providers:', error);
       } finally {
