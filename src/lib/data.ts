@@ -113,4 +113,11 @@ export const mockBanners: Banner[] = [
     image: findImage('banner-bread-cheese'),
     link: '/home', // Link to a general "popular" page or anchor
   },
+  {
+    id: 'banner-4',
+    title: 'Profissionais Locais',
+    subtitle: 'Encontre o serviço que precisa.',
+    image: findImage('banner-services'),
+    link: '/categorias/servicos',
+  },
 ];
