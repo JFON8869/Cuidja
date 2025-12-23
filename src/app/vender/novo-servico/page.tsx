@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,6 +33,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { CreateStorePrompt } from '@/components/vender/CreateStorePrompt';
 
 const serviceSchema = z.object({
   name: z.string().min(3, 'O nome do serviço é obrigatório.'),
@@ -44,10 +45,8 @@ const serviceSchema = z.object({
 type ServiceFormValues = z.infer<typeof serviceSchema>;
 
 function NewServicePage() {
-  const { user, firestore, isUserLoading } = useFirebase();
+  const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const storeId = searchParams.get('storeId');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ServiceFormValues>({
@@ -59,20 +58,23 @@ function NewServicePage() {
     },
   });
 
-  if (!isUserLoading && !user) {
-    router.push('/login?redirect=/vender');
-    return null;
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login?redirect=/vender');
+    }
+  }, [isUserLoading, user, router]);
+
+  if (isUserLoading || isStoreLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
-  if (!storeId) {
-    toast.error('ID da loja é necessário para criar um anúncio.');
-    router.push('/vender');
-    return null;
+  if (!store) {
+    return <CreateStorePrompt />;
   }
 
   async function onSubmit(values: ServiceFormValues) {
-    if (!firestore || !user) {
-      toast.error('Erro de autenticação. Faça login novamente.');
+    if (!firestore || !user || !store) {
+      toast.error('Erro de autenticação ou loja não encontrada. Faça login novamente.');
       return;
     }
     
@@ -86,7 +88,7 @@ function NewServicePage() {
 
         await addDoc(collection(firestore, 'products'), {
             ...values,
-            storeId: storeId,
+            storeId: store.id,
             sellerId: user.uid,
             type: 'SERVICE',
             category: 'Serviços', // Legacy category for services
@@ -109,7 +111,7 @@ function NewServicePage() {
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/vender/novo-anuncio?storeId=${storeId}`}>
+          <Link href="/vender/novo-anuncio">
             <ArrowLeft />
           </Link>
         </Button>

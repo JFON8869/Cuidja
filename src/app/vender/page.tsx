@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -11,8 +10,8 @@ import {
   ChevronRight,
   Info,
   Wrench,
+  Loader2,
 } from 'lucide-react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 
 import { useFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -24,43 +23,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CreateStorePrompt } from '@/components/vender/CreateStorePrompt';
 
 export default function VenderPage() {
-  const { user, firestore, isUserLoading } = useFirebase();
+  const { user, isUserLoading, store, isStoreLoading } = useFirebase();
   const router = useRouter();
-  const [store, setStore] = useState<WithId<Store> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isUserLoading) return;
-    if (!user) {
-      router.push('/login?redirect=/vender');
-      return;
-    }
+  if (isUserLoading || isStoreLoading) {
+    return <VenderSkeleton />;
+  }
 
-    const fetchUserStore = async () => {
-      if (!firestore) return;
-      setIsLoading(true);
-      const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid));
-      
-      try {
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const storeDoc = querySnapshot.docs[0];
-          setStore({ id: storeDoc.id, ...storeDoc.data() } as WithId<Store>);
-        } else {
-          setStore(null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user's store:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserStore();
-  }, [user, firestore, isUserLoading, router]);
-
-  if (isLoading || isUserLoading) {
+  if (!user) {
+    router.push('/login?redirect=/vender');
     return <VenderSkeleton />;
   }
 
@@ -78,11 +49,8 @@ function VenderSkeleton() {
                 <Skeleton className="h-7 w-32" />
             </header>
             <main className="flex-1 p-4 space-y-6">
-                <Skeleton className="h-40 w-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
+                <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
             </main>
         </div>
@@ -92,7 +60,7 @@ function VenderSkeleton() {
 function SellerDashboard({ store }: { store: WithId<Store> }) {
 
     const menuItems = [
-        { href: `/vender/novo-anuncio?storeId=${store.id}`, label: 'Criar Novo Anúncio', icon: PlusCircle },
+        { href: `/vender/novo-anuncio`, label: 'Criar Novo Anúncio', icon: PlusCircle },
         { href: '/vender/produtos', label: 'Gerenciar Produtos', icon: Package },
         { href: '/vender/servicos', label: 'Gerenciar Serviços', icon: Wrench },
         { href: `/vender/loja`, label: 'Editar Dados da Loja', icon: StoreIcon },

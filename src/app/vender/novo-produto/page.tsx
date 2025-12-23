@@ -76,7 +76,7 @@ const productSchema = z.object({
 type ProductFormValues = z.infer<typeof productSchema>;
 
 function NewProductPage() {
-  const { user, firestore, isUserLoading, store } = useFirebase();
+  const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -106,6 +106,13 @@ function NewProductPage() {
     name: 'addonGroups',
   });
 
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login?redirect=/vender');
+    }
+  }, [isUserLoading, user, router]);
+
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -130,21 +137,16 @@ function NewProductPage() {
     }
   };
   
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login?redirect=/vender');
-    }
-  }, [isUserLoading, user, router]);
+  if (isUserLoading || isStoreLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  }
 
-
-  if (!isUserLoading && !store) {
+  if (!store) {
     return <CreateStorePrompt />;
   }
-  
-  const storeId = store?.id;
 
   async function onSubmit(values: ProductFormValues) {
-    if (!firestore || !user || !storeId) {
+    if (!firestore || !user || !store) {
       toast.error('É necessário ter uma loja para criar um anúncio.');
       return;
     }
@@ -163,6 +165,7 @@ function NewProductPage() {
 
         if (newImageObjects.length === 0) {
             form.setError('images', { type: 'manual', message: 'Adicione pelo menos uma imagem.' });
+            setIsSubmitting(false);
             return;
         }
 
@@ -176,7 +179,7 @@ function NewProductPage() {
             price: Number(values.price),
             images: newImageObjects,
             addonGroups: addonGroups || [],
-            storeId: storeId,
+            storeId: store.id,
             sellerId: user.uid,
             type: 'PRODUCT',
             createdAt: serverTimestamp(),
@@ -196,7 +199,7 @@ function NewProductPage() {
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/vender/novo-anuncio`}>
+          <Link href="/vender/novo-anuncio">
             <ArrowLeft />
           </Link>
         </Button>

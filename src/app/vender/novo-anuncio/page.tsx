@@ -2,37 +2,39 @@
 
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Package, Wrench, ChevronRight, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'react-hot-toast';
+import { useFirebase } from '@/firebase';
 
 
 function NewAdPage() {
-    const searchParams = useSearchParams();
     const router = useRouter();
-    const storeId = searchParams.get('storeId');
+    const { store } = useFirebase();
 
-    if (!storeId) {
-        toast.error("ID da loja não encontrado. Voltando ao painel.");
+    if (!store) {
+        // This should theoretically not happen if the user gets to this page
+        // as the main /vender page should have redirected. But as a safeguard:
         router.push('/vender');
-        return null;
+        return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     }
+
+    const storeId = store.id;
     
     const options = [
         {
             title: "Anunciar um Produto",
             description: "Para itens físicos como comidas, artesanato, etc.",
             icon: Package,
-            href: `/vender/novo-produto?storeId=${storeId}`
+            href: `/vender/novo-produto` // No longer need storeId in query param
         },
         {
             title: "Oferecer um Serviço",
             description: "Para trabalhos como aulas, consertos, consultoria, etc.",
             icon: Wrench,
-            href: `/vender/novo-servico?storeId=${storeId}`
+            href: `/vender/novo-servico` // No longer need storeId in query param
         }
     ]
 
