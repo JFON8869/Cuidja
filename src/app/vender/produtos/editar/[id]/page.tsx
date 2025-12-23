@@ -6,7 +6,7 @@ import * as React from 'react';
 import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Upload, X, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, X, PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -37,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { uploadFile } from '@/lib/storage';
 
 const MAX_IMAGES = 3;
 
@@ -52,16 +53,13 @@ const addonGroupSchema = z.object({
   addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento.'),
 });
 
-// Zod schema for an image that is already uploaded (an object with imageUrl)
 const existingImageSchema = z.object({
     imageUrl: z.string(),
     imageHint: z.string(),
 });
 
-// Zod schema for a new image file
 const newImageSchema = z.any().refine(val => val instanceof File, "Deve ser um arquivo de imagem.");
 
-// Union schema to accept either type
 const imageSchema = z.union([existingImageSchema, newImageSchema]);
 
 
@@ -160,47 +158,52 @@ export default function EditProductPage() {
   };
   
   async function onSubmit(values: FormValues) {
-    if (!firestore || !id) return;
+    if (!firestore || !id || !user) return;
     
+    const isSubmitting = form.formState.isSubmitting;
+    if (isSubmitting) return;
+
     const productRef = doc(firestore, 'products', id as string);
     
-    // Process images: keep existing ones, "upload" new ones
-    const finalImages: ImagePlaceholder[] = [];
-    for (const img of values.images) {
-      if (img instanceof File) {
-        // This is a placeholder for real file upload.
-        // In a real app, you would upload the file and get a URL.
-        finalImages.push({
-          imageUrl: URL.createObjectURL(img), // Using blob URL for instant preview
-          imageHint: values.category.toLowerCase(),
-        });
-      } else {
-        // This is an existing image object, keep it
-        finalImages.push(img as ImagePlaceholder);
-      }
-    }
-
-    const finalAddonGroups = values.addonGroups?.map(group => ({
-        ...group,
-        id: group.id || group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
-    }));
-
     try {
-      await updateDoc(productRef, {
-        name: values.name,
-        description: values.description,
-        price: values.price,
-        category: values.category,
-        addons: finalAddonGroups || [],
-        images: finalImages,
-        availability: values.availability,
-      });
+        toast.loading('Verificando e enviando imagens...');
+        
+        const uploadPromises: Promise<ImagePlaceholder>[] = values.images.map(async (img) => {
+          if (img instanceof File) {
+            const imageUrl = await uploadFile(img, `products/${id}`);
+            return {
+              imageUrl: imageUrl,
+              imageHint: values.category.toLowerCase(),
+            };
+          }
+          return img as ImagePlaceholder;
+        });
 
-      toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
-      router.push('/vender/produtos');
+        const finalImages = await Promise.all(uploadPromises);
+
+        const finalAddonGroups = values.addonGroups?.map(group => ({
+            ...group,
+            id: group.id || group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+        }));
+
+        await updateDoc(productRef, {
+            name: values.name,
+            description: values.description,
+            price: values.price,
+            category: values.category,
+            addons: finalAddonGroups || [],
+            images: finalImages,
+            availability: values.availability,
+        });
+
+        toast.dismiss();
+        toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
+        router.push('/vender/produtos');
+
     } catch (error) {
-      console.error('Error updating product: ', error);
-      toast.error('Não foi possível salvar as alterações. Tente novamente.');
+        console.error('Error updating product: ', error);
+        toast.dismiss();
+        toast.error('Não foi possível salvar as alterações. Tente novamente.');
     }
   }
 
@@ -438,7 +441,7 @@ export default function EditProductPage() {
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting
-                ? 'Salvando...'
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
                 : 'Salvar Alterações'}
             </Button>
           </form>
@@ -562,6 +565,3 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
-    
-
-    

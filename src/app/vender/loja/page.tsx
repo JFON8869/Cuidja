@@ -36,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { OperatingHoursForm } from '@/components/vender/OperatingHoursForm';
 import { Separator } from '@/components/ui/separator';
 import { Store } from '@/lib/data';
+import { uploadFile } from '@/lib/storage';
 
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja deve ter pelo menos 3 caracteres.'),
@@ -82,6 +83,7 @@ export default function StoreManagementPage() {
         });
         if (storeData.logoUrl) {
           setLogoPreview(storeData.logoUrl);
+          form.setValue('logo', storeData.logoUrl);
         }
       }
       setIsLoading(false);
@@ -111,44 +113,43 @@ export default function StoreManagementPage() {
       return;
     }
 
-    // TODO: Implement actual image upload to Firebase Storage
-    // This would return a URL to be saved in Firestore.
-    // For now, we'll use a placeholder or the existing URL.
+    form.formState.isSubmitting;
     let logoUrl = store?.logoUrl || null;
-    if (values.logo && typeof values.logo !== 'string') {
-      // This is a new file, we should upload it.
-      // As we don't have upload logic, we will just use the blob url for now.
-      // In a real app: logoUrl = await uploadFile(values.logo);
-      logoUrl = logoPreview;
-    } else if (!logoPreview) {
-      logoUrl = null;
-    }
 
     try {
-      if (isEditing && store) {
-        // Update existing store
-        const storeRef = doc(firestore, 'stores', store.id);
-        await updateDoc(storeRef, {
-          name: values.name,
-          logoUrl: logoUrl,
-        });
-        toast.success('Loja atualizada com sucesso!');
-      } else {
-        // Create new store
-        const storesCollection = collection(firestore, 'stores');
-        await addDoc(storesCollection, {
-          name: values.name,
-          logoUrl: logoUrl,
-          userId: user.uid,
-          createdAt: new Date().toISOString(),
-        });
-        toast.success('Loja criada com sucesso!');
-      }
-      router.push('/vender');
-      router.refresh(); // Refresh page to get new store data
+        if (values.logo && values.logo instanceof File) {
+            toast.loading('Enviando logo...');
+            logoUrl = await uploadFile(values.logo, `stores/${user.uid}/logos`);
+            toast.dismiss();
+        } else if (!values.logo) {
+            logoUrl = null;
+        }
+
+        const storeData = {
+            name: values.name,
+            logoUrl: logoUrl,
+            userId: user.uid,
+        };
+
+        if (isEditing && store) {
+            const storeRef = doc(firestore, 'stores', store.id);
+            await updateDoc(storeRef, storeData);
+            toast.success('Loja atualizada com sucesso!');
+        } else {
+            const docRef = await addDoc(collection(firestore, 'stores'), {
+              ...storeData,
+              createdAt: new Date().toISOString(),
+            });
+            toast.success('Loja criada com sucesso!');
+            // After creation, redirect to the same page but now in "edit" mode
+            router.replace(`/vender/loja?id=${docRef.id}`);
+        }
+        router.refresh(); 
+
     } catch (error) {
-      console.error('Error saving store:', error);
-      toast.error('Não foi possível salvar os dados da loja. Tente novamente.');
+        console.error('Error saving store:', error);
+        toast.dismiss();
+        toast.error('Não foi possível salvar os dados da loja. Tente novamente.');
     }
   }
 

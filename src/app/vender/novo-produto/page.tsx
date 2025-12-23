@@ -6,7 +6,7 @@ import * as React from 'react';
 import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Upload, X, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, X, PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
@@ -37,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { uploadFile } from '@/lib/storage';
 
 const MAX_IMAGES = 3;
 
@@ -154,40 +155,47 @@ export default function NewProductPage() {
       return;
     }
 
-    // TODO: Implement actual image upload to Firebase Storage
-    // For now, we are using the local blob URLs which is not persistent.
-    const imageUrls = imagePreviews.map((preview) => ({
-      // This is not a real upload, just a placeholder structure
-      imageUrl: preview,
-      imageHint: values.category.toLowerCase(),
-    }));
-    
-    // Clean up addon group data, only for non-services
-    const finalAddonGroups = isService ? [] : values.addonGroups?.map(group => ({
-        ...group,
-        id: group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7) // create a unique-ish ID
-    }))
+    const isSubmitting = form.formState.isSubmitting;
+    if (isSubmitting) return;
 
     try {
-      const productsCollection = collection(firestore, 'products');
-      await addDoc(productsCollection, {
+      toast.loading('Enviando imagens e cadastrando item...');
+      const imageUrls = await Promise.all(
+        values.images.map((file: File) => 
+          uploadFile(file, `products/${storeId}`)
+        )
+      );
+
+      const finalImageObjects = imageUrls.map(url => ({
+        imageUrl: url,
+        imageHint: values.category.toLowerCase(),
+      }));
+      
+      const finalAddonGroups = isService ? [] : values.addonGroups?.map(group => ({
+          ...group,
+          id: group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+      }));
+
+      await addDoc(collection(firestore, 'products'), {
         name: values.name,
         description: values.description,
         price: values.price,
         category: values.category,
-        images: imageUrls,
+        images: finalImageObjects,
         storeId: storeId,
-        sellerId: user.uid, // Denormalize sellerId for security rules
+        sellerId: user.uid,
         addons: finalAddonGroups || [],
         availability: values.availability,
         createdAt: new Date().toISOString(),
       });
-
+      
+      toast.dismiss();
       toast.success(`O item "${values.name}" foi cadastrado com sucesso.`);
-
       router.push('/vender/produtos');
+
     } catch (error) {
       console.error('Error creating product:', error);
+      toast.dismiss();
       toast.error('Não foi possível salvar o item. Tente novamente.');
     }
   }
@@ -415,7 +423,7 @@ export default function NewProductPage() {
               disabled={form.formState.isSubmitting || isStoreLoading || !selectedCategory}
             >
               {form.formState.isSubmitting
-                ? 'Anunciando...'
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Anunciando...</>
                 : `Anunciar ${isService ? 'Serviço' : 'Produto'}`}
             </Button>
           </form>
