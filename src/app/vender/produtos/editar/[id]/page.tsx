@@ -51,13 +51,17 @@ const addonGroupSchema = z.object({
   addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento.'),
 });
 
-const imageSchema = z.union([
-    z.object({
-        imageUrl: z.string(),
-        imageHint: z.string(),
-    }),
-    z.any().refine(val => val instanceof File, "Deve ser um arquivo de imagem.")
-]);
+// Zod schema for an image that is already uploaded (an object with imageUrl)
+const existingImageSchema = z.object({
+    imageUrl: z.string(),
+    imageHint: z.string(),
+});
+
+// Zod schema for a new image file
+const newImageSchema = z.any().refine(val => val instanceof File, "Deve ser um arquivo de imagem.");
+
+// Union schema to accept either type
+const imageSchema = z.union([existingImageSchema, newImageSchema]);
 
 
 const productSchema = z.object({
@@ -123,15 +127,13 @@ export default function EditProductPage() {
             router.push('/vender');
             return;
           }
-
-          const existingImagesData = product.images || [];
-
+          
           form.reset({
             name: product.name,
             description: product.description || '',
             price: product.price,
             category: product.category,
-            images: existingImagesData, 
+            images: product.images || [], 
             addonGroups: product.addons || []
           });
           setProductName(product.name);
@@ -145,11 +147,8 @@ export default function EditProductPage() {
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const currentImages = form.getValues('images');
-    const totalImages = currentImages.length + files.length;
-
-    if (totalImages > MAX_IMAGES) {
-      toast.error(`Você pode adicionar no máximo ${MAX_IMAGES - currentImages.length} imagens.`);
+    if (images.length + files.length > MAX_IMAGES) {
+      toast.error(`Você pode adicionar no máximo ${MAX_IMAGES - images.length} imagens.`);
       return;
     }
     
@@ -168,12 +167,12 @@ export default function EditProductPage() {
         // This is a placeholder for real file upload.
         // In a real app, you would upload the file and get a URL.
         finalImages.push({
-          imageUrl: `https://picsum.photos/seed/${Math.random()}/600/600`, // Placeholder URL
+          imageUrl: URL.createObjectURL(img), // Using blob URL for instant preview
           imageHint: values.category.toLowerCase(),
         });
       } else {
         // This is an existing image object, keep it
-        finalImages.push(img);
+        finalImages.push(img as ImagePlaceholder);
       }
     }
 
@@ -254,7 +253,7 @@ export default function EditProductPage() {
                       {images.map((image, index) => (
                         <div key={image.id} className="relative aspect-square">
                           <Image
-                            src={getImagePreviewUrl(image)}
+                            src={getImagePreviewUrl(form.getValues(`images.${index}`))}
                             alt={`Preview ${index}`}
                             fill
                             className="rounded-md object-cover"
@@ -528,4 +527,6 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
+    
+
     
