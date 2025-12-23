@@ -85,9 +85,31 @@
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
-        "name": { "type": "string" }
+        "name": { "type": "string" },
+        "operatingHours": {
+          "type": "object",
+          "properties": {
+            "sun": { "$ref": "#/backend/entities/DayOperatingHours" },
+            "mon": { "$ref": "#/backend/entities/DayOperatingHours" },
+            "tue": { "$ref": "#/backend/entities/DayOperatingHours" },
+            "wed": { "$ref": "#/backend/entities/DayOperatingHours" },
+            "thu": { "$ref": "#/backend/entities/DayOperatingHours" },
+            "fri": { "$ref": "#/backend/entities/DayOperatingHours" },
+            "sat": { "$ref": "#/backend/entities/DayOperatingHours" }
+          }
+        }
       },
       "required": ["id", "userId", "name"]
+    },
+    "DayOperatingHours": {
+        "title": "DayOperatingHours",
+        "type": "object",
+        "properties": {
+            "isOpen": { "type": "boolean" },
+            "open": { "type": "string", "format": "time" },
+            "close": { "type": "string", "format": "time" }
+        },
+        "required": ["isOpen", "open", "close"]
     },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -133,6 +155,11 @@
           "items": {
             "$ref": "#/backend/entities/AddonGroup"
           }
+        },
+        "availability": {
+            "type": "string",
+            "enum": ["available", "on_demand", "unavailable"],
+            "description": "The stock status of the product."
         }
       },
       "required": [
@@ -142,7 +169,8 @@
         "description",
         "price",
         "imageUrl",
-        "category"
+        "category",
+        "availability"
       ]
     },
     "AddonGroup": {

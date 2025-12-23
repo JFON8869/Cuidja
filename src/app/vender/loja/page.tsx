@@ -6,15 +6,18 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  ArrowLeft,
-  Upload,
-  X,
-  Loader2
-} from 'lucide-react';
+import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+} from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -30,6 +33,9 @@ import {
 } from '@/components/ui/form';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OperatingHoursForm } from '@/components/vender/OperatingHoursForm';
+import { Separator } from '@/components/ui/separator';
+import { Store } from '@/lib/data';
 
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja deve ter pelo menos 3 caracteres.'),
@@ -39,7 +45,7 @@ const storeSchema = z.object({
 export default function StoreManagementPage() {
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
-  const [store, setStore] = React.useState<{id: string, name: string, logoUrl?: string} | null>(null);
+  const [store, setStore] = React.useState<Store | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -48,9 +54,9 @@ export default function StoreManagementPage() {
     resolver: zodResolver(storeSchema),
     defaultValues: {
       name: '',
-    }
+    },
   });
-  
+
   const isEditing = !!store;
 
   React.useEffect(() => {
@@ -66,20 +72,22 @@ export default function StoreManagementPage() {
 
       if (!querySnapshot.empty) {
         const storeDoc = querySnapshot.docs[0];
-        const storeData = { id: storeDoc.id, ...storeDoc.data() } as {id: string, name: string, logoUrl?: string};
+        const storeData = {
+          id: storeDoc.id,
+          ...storeDoc.data(),
+        } as Store;
         setStore(storeData);
         form.reset({
-            name: storeData.name,
+          name: storeData.name,
         });
         if (storeData.logoUrl) {
-            setLogoPreview(storeData.logoUrl);
+          setLogoPreview(storeData.logoUrl);
         }
       }
       setIsLoading(false);
     }
     fetchStore();
   }, [user, firestore, isUserLoading, form]);
-
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -88,79 +96,78 @@ export default function StoreManagementPage() {
     form.setValue('logo', file, { shouldValidate: true });
     setLogoPreview(URL.createObjectURL(file));
   };
-  
+
   const removeLogo = () => {
     form.setValue('logo', null, { shouldValidate: true });
     setLogoPreview(null);
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
-  }
+  };
 
   async function onSubmit(values: z.infer<typeof storeSchema>) {
     if (!firestore || !user) {
-        toast.error("Erro de autenticação.");
-        return;
+      toast.error('Erro de autenticação.');
+      return;
     }
-    
+
     // TODO: Implement actual image upload to Firebase Storage
     // This would return a URL to be saved in Firestore.
     // For now, we'll use a placeholder or the existing URL.
     let logoUrl = store?.logoUrl || null;
     if (values.logo && typeof values.logo !== 'string') {
-        // This is a new file, we should upload it.
-        // As we don't have upload logic, we will just use the blob url for now.
-        // In a real app: logoUrl = await uploadFile(values.logo);
-        logoUrl = logoPreview; 
+      // This is a new file, we should upload it.
+      // As we don't have upload logic, we will just use the blob url for now.
+      // In a real app: logoUrl = await uploadFile(values.logo);
+      logoUrl = logoPreview;
     } else if (!logoPreview) {
-        logoUrl = null;
+      logoUrl = null;
     }
-
 
     try {
-        if (isEditing && store) {
-            // Update existing store
-            const storeRef = doc(firestore, 'stores', store.id);
-            await updateDoc(storeRef, {
-                name: values.name,
-                logoUrl: logoUrl,
-            });
-            toast.success('Loja atualizada com sucesso!');
-        } else {
-            // Create new store
-            const storesCollection = collection(firestore, 'stores');
-            await addDoc(storesCollection, {
-                name: values.name,
-                logoUrl: logoUrl,
-                userId: user.uid,
-                createdAt: new Date().toISOString(),
-            });
-            toast.success('Loja criada com sucesso!');
-        }
-        router.push('/vender');
-        router.refresh(); // Refresh page to get new store data
-    } catch(error) {
-        console.error("Error saving store:", error);
-        toast.error("Não foi possível salvar os dados da loja. Tente novamente.");
+      if (isEditing && store) {
+        // Update existing store
+        const storeRef = doc(firestore, 'stores', store.id);
+        await updateDoc(storeRef, {
+          name: values.name,
+          logoUrl: logoUrl,
+        });
+        toast.success('Loja atualizada com sucesso!');
+      } else {
+        // Create new store
+        const storesCollection = collection(firestore, 'stores');
+        await addDoc(storesCollection, {
+          name: values.name,
+          logoUrl: logoUrl,
+          userId: user.uid,
+          createdAt: new Date().toISOString(),
+        });
+        toast.success('Loja criada com sucesso!');
+      }
+      router.push('/vender');
+      router.refresh(); // Refresh page to get new store data
+    } catch (error) {
+      console.error('Error saving store:', error);
+      toast.error('Não foi possível salvar os dados da loja. Tente novamente.');
     }
   }
-  
+
   if (isLoading || isUserLoading) {
     return (
-         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-            <header className="flex items-center border-b p-4">
-                <Skeleton className="h-10 w-10" />
-                <Skeleton className="h-6 w-48 mx-auto" />
-                <div className="w-10"></div>
-            </header>
-            <main className="flex-1 p-4 space-y-6">
-                <Skeleton className="h-32 w-32 rounded-full mx-auto" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                 <Skeleton className="h-12 w-full" />
-            </main>
-        </div>
-    )
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+        <header className="flex items-center border-b p-4">
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="mx-auto h-6 w-48" />
+          <div className="w-10"></div>
+        </header>
+        <main className="flex-1 space-y-6 p-4">
+          <Skeleton className="mx-auto h-32 w-32 rounded-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -171,7 +178,9 @@ export default function StoreManagementPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">{isEditing ? "Editar Minha Loja" : "Criar Minha Loja"}</h1>
+        <h1 className="mx-auto font-headline text-xl">
+          {isEditing ? 'Editar Minha Loja' : 'Criar Minha Loja'}
+        </h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
@@ -189,30 +198,33 @@ export default function StoreManagementPage() {
                       onClick={() => fileInputRef.current?.click()}
                     >
                       {logoPreview ? (
-                          <>
-                            <Image
-                                src={logoPreview}
-                                alt="Preview da logo"
-                                fill
-                                className="rounded-full object-cover"
-                            />
-                             <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute -right-1 -top-1 h-7 w-7 rounded-full z-10"
-                                onClick={(e) => { e.stopPropagation(); removeLogo();}}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                          </>
+                        <>
+                          <Image
+                            src={logoPreview}
+                            alt="Preview da logo"
+                            fill
+                            className="rounded-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -right-1 -top-1 z-10 h-7 w-7 rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeLogo();
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
                       ) : (
-                          <div className="text-center">
-                            <Upload className="mx-auto h-10 w-10" />
-                            <p className="text-xs mt-1">Enviar foto</p>
-                          </div>
+                        <div className="text-center">
+                          <Upload className="mx-auto h-10 w-10" />
+                          <p className="mt-1 text-xs">Enviar foto</p>
+                        </div>
                       )}
-                       <input
+                      <input
                         type="file"
                         accept="image/*"
                         ref={fileInputRef}
@@ -221,9 +233,7 @@ export default function StoreManagementPage() {
                       />
                     </div>
                   </FormControl>
-                  <FormDescription>
-                    Clique para enviar a logo.
-                  </FormDescription>
+                  <FormDescription>Clique para enviar a logo.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -243,12 +253,25 @@ export default function StoreManagementPage() {
               )}
             />
 
-            <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isEditing ? 'Salvar Alterações' : 'Criar Loja'}
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {isEditing ? 'Salvar Nome e Logo' : 'Criar Loja'}
             </Button>
           </form>
         </Form>
+        {isEditing && store && (
+          <>
+            <Separator className="my-8" />
+            <OperatingHoursForm store={store} />
+          </>
+        )}
       </main>
     </div>
   );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -78,6 +79,7 @@ const productSchema = z.object({
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
   addonGroups: z.array(addonGroupSchema).optional(),
+  availability: z.string({ required_error: 'Selecione a disponibilidade.' }).default('available'),
 });
 
 type FormValues = z.infer<typeof productSchema>;
@@ -101,6 +103,7 @@ export default function EditProductPage() {
       price: 0,
       images: [],
       addonGroups: [],
+      availability: 'available',
     },
   });
 
@@ -134,7 +137,8 @@ export default function EditProductPage() {
             price: product.price,
             category: product.category,
             images: product.images || [], 
-            addonGroups: product.addons || []
+            addonGroups: product.addons || [],
+            availability: product.availability || 'available',
           });
           setProductName(product.name);
         } else {
@@ -189,6 +193,7 @@ export default function EditProductPage() {
         category: values.category,
         addons: finalAddonGroups || [],
         images: finalImages,
+        availability: values.availability,
       });
 
       toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
@@ -223,6 +228,9 @@ export default function EditProductPage() {
     }
     return image.imageUrl;
   }
+
+  const selectedCategory = form.watch('category');
+  const isService = selectedCategory === 'Serviços';
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -302,7 +310,7 @@ export default function EditProductPage() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Produto</FormLabel>
+                  <FormLabel>Nome do {isService ? 'Serviço' : 'Produto'}</FormLabel>
                   <FormControl>
                     <Input placeholder="Ex: Pão Artesanal" {...field} />
                   </FormControl>
@@ -375,26 +383,53 @@ export default function EditProductPage() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="availability"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Disponibilidade</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a disponibilidade" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="available">Disponível (em estoque)</SelectItem>
+                        <SelectItem value="on_demand">Sob Encomenda</SelectItem>
+                        <SelectItem value="unavailable">Indisponível</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
-            <Separator />
-
-             {/* Addon Groups Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
-              {addonGroups.map((group, groupIndex) => (
-                <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Grupo de Complementos
-              </Button>
-            </div>
-
+            {!isService && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
+                {addonGroups.map((group, groupIndex) => (
+                  <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Adicionar Grupo de Complementos
+                </Button>
+              </div>
+            </>
+            )}
 
             <Button
               type="submit"

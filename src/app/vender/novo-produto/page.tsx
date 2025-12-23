@@ -66,6 +66,7 @@ const productSchema = z.object({
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
   addonGroups: z.array(addonGroupSchema).optional(),
+  availability: z.string({ required_error: 'Selecione a disponibilidade.' }).default('available'),
 });
 
 export default function NewProductPage() {
@@ -96,7 +97,7 @@ export default function NewProductPage() {
     }
 
     fetchStoreId();
-  }, [firestore, user, isUserLoading, router, toast]);
+  }, [firestore, user, isUserLoading, router]);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -106,6 +107,7 @@ export default function NewProductPage() {
       price: 0,
       images: [],
       addonGroups: [],
+      availability: 'available',
     },
   });
   
@@ -154,7 +156,7 @@ export default function NewProductPage() {
 
     // TODO: Implement actual image upload to Firebase Storage
     // For now, we are using the local blob URLs which is not persistent.
-    const imageUrls = imagePreviews.map((preview, i) => ({
+    const imageUrls = imagePreviews.map((preview) => ({
       // This is not a real upload, just a placeholder structure
       imageUrl: preview,
       imageHint: values.category.toLowerCase(),
@@ -177,6 +179,7 @@ export default function NewProductPage() {
         storeId: storeId,
         sellerId: user.uid, // Denormalize sellerId for security rules
         addons: finalAddonGroups || [],
+        availability: values.availability,
         createdAt: new Date().toISOString(),
       });
 
@@ -358,6 +361,31 @@ export default function NewProductPage() {
               )}
             />
 
+             <FormField
+              control={form.control}
+              name="availability"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Disponibilidade</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a disponibilidade" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="available">Disponível (em estoque)</SelectItem>
+                        <SelectItem value="on_demand">Sob Encomenda</SelectItem>
+                        <SelectItem value="unavailable">Indisponível</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             {!isService && (
               <>

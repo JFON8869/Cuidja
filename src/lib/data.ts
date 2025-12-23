@@ -25,11 +25,23 @@ export interface AddonGroup {
   addons: Addon[];
 }
 
+export type DayOfWeek = 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat';
+
+export interface OperatingHours {
+  [key: DayOfWeek]: {
+    isOpen: boolean;
+    open: string;
+    close: string;
+  };
+}
+
 export interface Store {
   id: string;
   name: string;
-  category: string;
-  logo: ImagePlaceholder;
+  category?: string;
+  logoUrl?: string;
+  userId: string;
+  operatingHours?: OperatingHours;
 }
 
 export interface Product {
@@ -41,6 +53,7 @@ export interface Product {
   images: ImagePlaceholder[];
   category: string;
   addons?: AddonGroup[];
+  availability: 'available' | 'on_demand' | 'unavailable';
 }
 
 export interface SelectedAddon {
