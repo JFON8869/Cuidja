@@ -12,7 +12,7 @@ const navItems = [
   { href: '/vender', label: 'Vender', icon: PlusCircle },
   { href: '/carrinho', label: 'Carrinho', icon: ShoppingCart },
   { href: '/notificacoes', label: 'Notificações', icon: Bell },
-  { href: '/perfil', label: 'Perfil', icon: User, auth: true },
+  { href: '/perfil', label: 'Perfil', auth: true },
 ];
 
 const NavItemSkeleton = ({ label }: { label: string }) => (
@@ -52,7 +52,6 @@ export default function BottomNav() {
           }
           
           const finalHref = requiresAuth && !user ? '/login' : href;
-          const isNotificationsTab = label === 'Notificações';
 
           return (
             <Link
