@@ -12,7 +12,7 @@ const navItems = [
   { href: '/vender', label: 'Vender', icon: PlusCircle },
   { href: '/carrinho', label: 'Carrinho', icon: ShoppingCart },
   { href: '/notificacoes', label: 'Notificações', icon: Bell },
-  { href: '/perfil', label: 'Perfil', auth: true },
+  { href: '/perfil', label: 'Perfil', auth: true, icon: User },
 ];
 
 const NavItemSkeleton = ({ label }: { label: string }) => (
