@@ -1,31 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ShoppingCart, Store, Heart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ShoppingCart, Store, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import BottomNav from '@/components/layout/BottomNav';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const splashSteps = [
   {
     icon: Store,
     title: 'Descubra o Comércio Local',
     description: 'Encontre produtos e serviços únicos de vendedores perto de você.',
-    image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzEzfDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA&ixlib=rb-4.0.3&q=80&w=1080'
+    image: PlaceHolderImages.find(p => p.id === 'banner-services')?.imageUrl || 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzEzfDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA&ixlib=rb-4.0.3&q=80&w=1080'
   },
   {
     icon: ShoppingCart,
     title: 'Compre com Facilidade e Segurança',
     description: 'Adicione itens ao carrinho e finalize sua compra com poucos cliques.',
-    image: 'https://images.unsplash.com/photo-1590779033100-9f60a05a013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcnVpdHMlMjBhbmQlMjB2ZWdldGFibGVzJTIwYmFubmVyfGVufDB8fHx8MTc3MDE3NjQ1OXww&ixlib=rb-4.1.0&q=80&w=1080'
+    image: PlaceHolderImages.find(p => p.id === 'banner-fruits-vegetables')?.imageUrl || 'https://images.unsplash.com/photo-1590779033100-9f60a05a013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcnVpdHMlMjBhbmQlMjB2ZWdldGFibGVzJTIwYmFubmVyfGVufDB8fHx8MTc3MDE3NjQ1OXww&ixlib=rb-4.1.0&q=80&w=1080'
   },
   {
     icon: Heart,
     title: 'Apoie Pequenos Negócios',
     description: 'Cada compra ajuda a fortalecer a economia da sua comunidade.',
-    image: 'https://images.unsplash.com/photo-1562340155-a721a3a5e189?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kbWFkZSUyMGNyYWZ0c3xlbnwwfHx8fDE3NzMzMjYzNTV8MA&ixlib=rb-4.1.0&q=80&w=1080'
+    image: PlaceHolderImages.find(p => p.id === 'banner-crafts')?.imageUrl || 'https://images.unsplash.com/photo-1562340155-a721a3a5e189?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kbWFkZSUyMGNyYWZ0c3xlbnwwfHx8fDE3NzMzMjYzNTV8MA&ixlib=rb-4.1.0&q=80&w=1080'
   },
 ];
 
@@ -33,15 +32,21 @@ export default function SplashPage() {
   const [step, setStep] = useState(0);
   const router = useRouter();
 
-  const handleNext = () => {
-    if (step < splashSteps.length - 1) {
-      setStep(step + 1);
-    } else {
-      router.push('/welcome');
-    }
-  };
+  useEffect(() => {
+    const handleNext = () => {
+      if (step < splashSteps.length - 1) {
+        setStep(prevStep => prevStep + 1);
+      } else {
+        router.push('/welcome');
+      }
+    };
 
-  const isLastStep = step === splashSteps.length - 1;
+    const timer = setTimeout(handleNext, 3000); // Avança após 3 segundos
+
+    // Limpa o timer se o componente for desmontado
+    return () => clearTimeout(timer);
+  }, [step, router]);
+
   const currentStepData = splashSteps[step];
   const Icon = currentStepData.icon;
 
@@ -52,7 +57,8 @@ export default function SplashPage() {
           src={currentStepData.image}
           alt={currentStepData.title}
           fill
-          className="object-cover"
+          className="object-cover transition-opacity duration-1000"
+          key={step} // Key change triggers re-render and animation
         />
         <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-transparent" />
       </div>
@@ -77,17 +83,6 @@ export default function SplashPage() {
               />
             ))}
           </div>
-
-          <Button size="lg" className="w-full" onClick={handleNext}>
-            {isLastStep ? 'Começar' : 'Avançar'}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-
-          {!isLastStep && (
-             <Button variant="ghost" className="w-full" onClick={() => router.push('/welcome')}>
-                Pular
-            </Button>
-          )}
         </div>
       </div>
     </div>
