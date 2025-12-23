@@ -76,6 +76,7 @@ export interface Product {
   description?: string;
   price: number;
   storeId: string;
+  sellerId: string;
   images: ImagePlaceholder[];
   category: string; // Legacy, `type` is preferred
   type: ItemType; // PRODUCT or SERVICE
