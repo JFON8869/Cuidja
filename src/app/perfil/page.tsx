@@ -38,6 +38,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { mockProducts, mockServices } from '@/lib/mock-data';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import BottomNav from '@/components/layout/BottomNav';
 
 const menuItems = [
   { href: '/notificacoes', icon: Bell, label: 'Notificações' },
@@ -67,7 +68,7 @@ export default function ProfilePage() {
     if (auth) {
       await auth.signOut();
       toast.success('Você saiu da sua conta.');
-      router.push('/login');
+      router.push('/welcome');
     }
   };
 
@@ -157,7 +158,7 @@ export default function ProfilePage() {
 
   if (isUserLoading || !user) {
     return (
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
         <header className="flex items-center border-b p-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/home">
@@ -181,12 +182,13 @@ export default function ProfilePage() {
             ))}
           </div>
         </main>
+        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/home">
@@ -297,6 +299,7 @@ export default function ProfilePage() {
           </Button>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

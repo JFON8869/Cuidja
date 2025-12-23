@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import BottomNav from '@/components/layout/BottomNav';
 
 
 interface OrderItem {
@@ -178,7 +179,7 @@ export default function MyOrdersPage() {
 
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-background shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-background pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/home">
@@ -208,6 +209,7 @@ export default function MyOrdersPage() {
             </Tabs>
         )}
       </main>
+      <BottomNav />
     </div>
   );
 }

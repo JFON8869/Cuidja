@@ -34,7 +34,7 @@ export default function BottomNav() {
     setIsClient(true);
   }, []);
 
-  const pagesToHideNav = ['/', '/login', '/signup'];
+  const pagesToHideNav = ['/', '/login', '/signup', '/welcome'];
   if (pagesToHideNav.includes(pathname)) {
     return null;
   }

@@ -22,6 +22,7 @@ import { WithId } from '@/firebase/firestore/use-collection';
 import { Product } from '@/lib/data';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, limit, getDocs, orderBy, where } from 'firebase/firestore';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function Home() {
   const [products, setProducts] = React.useState<WithId<Product>[]>([]);
@@ -69,7 +70,7 @@ export default function Home() {
   const featuredProducts = products.slice(5, 15);
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col overflow-hidden bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col overflow-hidden bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center justify-between border-b p-4">
         <Link href="/home" className="flex items-center gap-2 text-primary">
           <Image src="/logo.svg" alt="Cuidja Logo" width={32} height={32} />
@@ -189,6 +190,7 @@ export default function Home() {
           }
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

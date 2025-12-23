@@ -7,6 +7,7 @@ import { ArrowLeft, Trash2, Loader2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { Separator } from '@/components/ui/separator';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function CartPage() {
   const { cart, removeFromCart, total, isCartLoading } = useCart();
@@ -18,7 +19,7 @@ export default function CartPage() {
 
   if (isCartLoading) {
     return (
-       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
+       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent pb-16 shadow-2xl">
          <header className="flex w-full items-center border-b p-4">
            <Button variant="ghost" size="icon" asChild>
              <Link href="/home">
@@ -31,12 +32,13 @@ export default function CartPage() {
          <div className="flex flex-1 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary"/>
          </div>
+          <BottomNav />
       </div>
     )
   }
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/home">
@@ -119,6 +121,7 @@ export default function CartPage() {
             </Button>
         </footer>
       )}
+      <BottomNav />
     </div>
   );
 }

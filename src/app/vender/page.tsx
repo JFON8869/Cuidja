@@ -26,6 +26,7 @@ import {
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Store } from '@/lib/data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function VenderPage() {
   const { user, isUserLoading, store, isStoreLoading } = useFirebase();
@@ -67,7 +68,7 @@ export default function VenderPage() {
 
 function VenderSkeleton() {
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="border-b p-4">
         <h1 className="font-headline text-xl">Painel do Vendedor</h1>
       </header>
@@ -76,6 +77,7 @@ function VenderSkeleton() {
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }
@@ -95,7 +97,7 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
   const { user } = useFirebase();
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="border-b p-4">
         <h1 className="font-headline text-xl">Painel do Vendedor</h1>
       </header>
@@ -152,6 +154,7 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
           </Link>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

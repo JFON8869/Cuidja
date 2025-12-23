@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "react-hot-toast"
-import BottomNav from '@/components/layout/BottomNav';
 import { AppProviders } from '@/context/AppProviders';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
@@ -26,10 +25,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AppProviders>
             <div className="gradient-background fixed inset-0 -z-10" />
-            <div className="pb-12">
-              {children}
-            </div>
-            <BottomNav />
+            {children}
             <Toaster />
           </AppProviders>
         </FirebaseClientProvider>
