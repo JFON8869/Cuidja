@@ -18,13 +18,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoreCard } from '@/components/store/StoreCard';
 import { useEffect, useState, useMemo } from 'react';
-import { mockCategories } from '@/lib/data';
+import { mockCategories, OperatingHours } from '@/lib/data';
 import { slugify } from '@/lib/utils';
 
 interface StoreDocument {
   id: string;
   name: string;
   logoUrl?: string;
+  operatingHours?: OperatingHours;
 }
 
 export default function CategoryPage() {

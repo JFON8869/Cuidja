@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { StoreCard } from '@/components/store/StoreCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OperatingHours } from '@/lib/data';
 
 interface StoreDocument {
   id: string;
   name: string;
   userId: string;
   logoUrl?: string;
+  operatingHours?: OperatingHours;
 }
 
 export default function ServicesCategoryPage() {
