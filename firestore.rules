@@ -25,12 +25,12 @@ service cloud.firestore {
 
     // Checks if the requesting user is the owner of a document via a denormalized field.
     function isDocumentOwner(doc, fieldName) {
-      return isSignedIn() && resource != null && request.auth.uid == doc[fieldName];
+      return isSignedIn() && request.auth.uid == doc[fieldName];
     }
     
     // Checks if the requesting user is the seller of a product/service via a denormalized field.
     function isResourceSeller(doc) {
-      return isSignedIn() && resource != null && request.auth.uid == doc.sellerId;
+      return isSignedIn() && request.auth.uid == doc.sellerId;
     }
     
     match /users/{userId} {
@@ -57,11 +57,8 @@ service cloud.firestore {
         return isDocumentOwner(resource.data, 'customerId');
       }
 
-      function getStoreOwnerId() { 
-        return get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.userId; 
-      }
       function isOrderSeller() {
-        return request.auth.uid == getStoreOwnerId();
+        return isDocumentOwner(resource.data, 'sellerId');
       }
       
       function isOrderParticipant() {
@@ -77,25 +74,6 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow get, list: if isSignedIn() && isOrderParticipant();
         allow create: if isSignedIn() && isOrderParticipant() && isCreatingOwn('senderId');
-        allow update, delete: if false;
-      }
-    }
-
-    match /serviceRequests/{requestId} {
-      function isRequestCustomer() { return isDocumentOwner(resource.data, 'customerId'); }
-      function getServiceStoreOwnerId() { return get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.userId; }
-      function isRequestSeller() { return request.auth.uid == getServiceStoreOwnerId(); }
-      function isRequestParticipant() { return isRequestCustomer() || isRequestSeller(); }
-      
-      allow get: if isSignedIn() && isRequestParticipant();
-      allow create: if isSignedIn() && isCreatingOwn('customerId');
-      allow update: if isSignedIn() && isRequestParticipant();
-      allow delete: if false;
-      allow list: if false;
-
-       match /messages/{messageId} {
-        allow get, list: if isSignedIn() && isRequestParticipant();
-        allow create: if isSignedIn() && isRequestParticipant() && isCreatingOwn('senderId');
         allow update, delete: if false;
       }
     }
