@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -14,6 +13,7 @@ import {
   Loader2,
   ChevronRight,
   Info,
+  Wrench,
 } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -116,8 +116,8 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
     const menuItems = [
         { href: `/vender/novo-anuncio?storeId=${store.id}`, label: 'Criar Novo Anúncio', icon: PlusCircle },
         { href: '/vender/produtos', label: 'Gerenciar Produtos', icon: Package },
-        { href: '/vender/servicos', label: 'Gerenciar Serviços', icon: ClipboardList },
-        { href: `/vender/loja?storeId=${store.id}`, label: 'Editar Dados da Loja', icon: StoreIcon },
+        { href: '/vender/servicos', label: 'Gerenciar Serviços', icon: Wrench },
+        { href: `/vender/loja`, label: 'Editar Dados da Loja', icon: StoreIcon },
     ];
 
     const { user } = useFirebase();
@@ -161,7 +161,7 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
                         <Card className="hover:bg-muted/50 transition-colors">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-lg">Pedidos Recebidos</CardTitle>
-                                <BarChart2 className="w-6 h-6 text-muted-foreground" />
+                                <ClipboardList className="w-6 h-6 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <p className="text-3xl font-bold">0</p>

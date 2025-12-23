@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -62,7 +61,7 @@ export default function StoreFormPage() {
     }
 
     const fetchStore = async () => {
-        if (!firestore) return;
+        if (!firestore || !user) return;
         setIsLoading(true);
         const q = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
@@ -101,6 +100,7 @@ export default function StoreFormPage() {
         toast.success('Sua loja foi criada!');
       }
       router.push('/vender');
+      router.refresh(); // Forces a refresh to fetch new store data on the dashboard
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
@@ -183,7 +183,7 @@ export default function StoreFormPage() {
 
                         <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {store ? 'Salvar Alterações' : 'Criar Loja'}
+                            {store ? 'Salvar Alterações' : 'Criar Loja e Ir para o Painel'}
                         </Button>
                     </form>
                     </Form>

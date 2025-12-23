@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import {
   ArrowLeft,
   Loader2,
 } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
+import { Product } from '@/lib/data';
 import {
   Form,
   FormControl,
@@ -43,11 +44,12 @@ const serviceSchema = z.object({
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
 
-function NewServicePage() {
+function EditServicePage() {
   const { user, firestore, isUserLoading } = useFirebase();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const storeId = searchParams.get('storeId');
+  const params = useParams();
+  const serviceId = params.id as string;
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
@@ -58,60 +60,72 @@ function NewServicePage() {
     },
   });
 
+  useEffect(() => {
+    if (!firestore || !serviceId) return;
+
+    const fetchService = async () => {
+      setIsPageLoading(true);
+      const docRef = doc(firestore, 'products', serviceId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const serviceData = docSnap.data() as Product;
+        form.reset(serviceData);
+      } else {
+        toast.error("Serviço não encontrado.");
+        router.push('/vender/servicos');
+      }
+      setIsPageLoading(false);
+    };
+
+    fetchService();
+  }, [firestore, serviceId, form, router]);
+
   if (!isUserLoading && !user) {
     router.push('/login?redirect=/vender');
     return null;
   }
 
-  if (!storeId) {
-    toast.error('ID da loja é necessário para criar um anúncio.');
-    router.push('/vender');
-    return null;
-  }
-
   async function onSubmit(values: ServiceFormValues) {
-    if (!firestore || !user) {
-      toast.error('Erro de autenticação. Faça login novamente.');
+    if (!firestore || !user || !serviceId) {
+      toast.error('Erro de autenticação ou ID do serviço faltando.');
       return;
     }
     
-    // Services have a generic placeholder image by default
-    const serviceImage = {
-        imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzZXJ2aWNlfGVufDB8fHx8MTc3MzM5NzAyNHww&ixlib=rb-4.1.0&q=80&w=1080',
-        imageHint: 'professional service'
-    }
-
     try {
-      await addDoc(collection(firestore, 'products'), {
+      const docRef = doc(firestore, 'products', serviceId);
+      await updateDoc(docRef, {
         ...values,
-        storeId: storeId,
-        sellerId: user.uid,
-        type: 'SERVICE',
-        category: 'Serviços', // Legacy category for services
-        availability: 'on_demand', // Services are always on demand
-        images: [serviceImage],
-        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
-      toast.success('Serviço publicado com sucesso!');
+      toast.success('Serviço atualizado com sucesso!');
       router.push('/vender/servicos');
     } catch (error) {
-      console.error('Error saving service:', error);
-      toast.error('Não foi possível salvar o serviço. Tente novamente.');
+      console.error('Error updating service:', error);
+      toast.error('Não foi possível atualizar o serviço. Tente novamente.');
     }
   }
 
   const { isSubmitting } = form.formState;
 
+  if (isPageLoading || isUserLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/vender/novo-anuncio?storeId=${storeId}`}>
+          <Link href="/vender/servicos">
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Novo Serviço</h1>
+        <h1 className="mx-auto font-headline text-xl">Editar Serviço</h1>
         <div className="w-10"></div>
       </header>
 
@@ -167,7 +181,7 @@ function NewServicePage() {
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Tipo de Atendimento</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -192,7 +206,7 @@ function NewServicePage() {
               disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSubmitting ? 'Publicando serviço...' : 'Publicar Serviço'}
+              {isSubmitting ? 'Salvando alterações...' : 'Salvar Alterações'}
             </Button>
           </form>
         </Form>
@@ -202,10 +216,10 @@ function NewServicePage() {
 }
 
 
-export default function NewServicePageWrapper() {
+export default function EditServicePageWrapper() {
     return (
         <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>}>
-            <NewServicePage />
+            <EditServicePage />
         </Suspense>
     )
 }

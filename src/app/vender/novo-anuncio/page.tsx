@@ -1,10 +1,9 @@
-
 'use client';
 
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Package, Wrench, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Package, Wrench, ChevronRight, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,8 +12,8 @@ import { toast } from 'react-hot-toast';
 
 function NewAdPage() {
     const searchParams = useSearchParams();
-    const storeId = searchParams.get('storeId');
     const router = useRouter();
+    const storeId = searchParams.get('storeId');
 
     if (!storeId) {
         toast.error("ID da loja não encontrado. Voltando ao painel.");

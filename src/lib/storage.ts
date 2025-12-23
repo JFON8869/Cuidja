@@ -6,7 +6,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage';
-import { getApp } from 'firebase/app'; // Importar getApp
+import { getApp } from 'firebase/app'; 
 
 /**
  * Uploads a file to Firebase Storage and returns its public URL.
