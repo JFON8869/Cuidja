@@ -32,11 +32,6 @@ service cloud.firestore {
     function isResourceSeller(doc) {
       return isSignedIn() && request.auth.uid == doc.sellerId;
     }
-
-    // NEW HELPER: Checks if the user is the seller by looking up the store owner.
-    function isStoreOwner(storeId) {
-        return request.auth.uid == get(/databases/$(database)/documents/stores/$(storeId)).data.userId;
-    }
     
     match /users/{userId} {
       allow get, update, delete: if isOwner(userId);
@@ -53,8 +48,8 @@ service cloud.firestore {
     match /products/{productId} {
       allow get: if true;
       allow list: if false; // Deny global list, queries must use indexes.
-      allow create: if isCreatingOwnResource() && isStoreOwner(request.resource.data.storeId);
-      allow update, delete: if isResourceSeller(resource.data) && isStoreOwner(resource.data.storeId);
+      allow create: if isCreatingOwnResource();
+      allow update, delete: if isResourceSeller(resource.data);
     }
 
     match /orders/{orderId} {
