@@ -58,6 +58,8 @@ service cloud.firestore {
       }
 
       function isOrderSeller() {
+        // This check is tricky in rules, so it's best done on the document itself or via a claim.
+        // For now, we assume the client query is correct and verify ownership on read/write.
         let storeData = get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data;
         return isOwner(storeData.userId);
       }
@@ -68,22 +70,29 @@ service cloud.firestore {
 
       // Allow buyer to only update their 'buyerHasUnread' status or send messages
       function isBuyerUpdating() {
-        let onlyAllowedFields = request.resource.data.keys().removeAll(['buyerHasUnread', 'messages', 'lastMessageTimestamp', 'sellerHasUnread']);
-        return isOrderCustomer() 
+        let allowedFields = ['buyerHasUnread', 'messages', 'lastMessageTimestamp', 'sellerHasUnread'];
+        let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+        
+        return isOrderCustomer()
             && request.resource.data.customerId == resource.data.customerId // Can't change customerId
-            && onlyAllowedFields.size() == 0;
+            && changedKeys.hasOnly(allowedFields);
       }
       
       // Allow seller to update status, their 'sellerHasUnread' status, or send messages
       function isSellerUpdating() {
-        let onlyAllowedFields = request.resource.data.keys().removeAll(['status', 'sellerHasUnread', 'messages', 'lastMessageTimestamp', 'buyerHasUnread']);
+        let allowedFields = ['status', 'sellerHasUnread', 'messages', 'lastMessageTimestamp', 'buyerHasUnread'];
+        let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+
         return isOrderSeller() 
             && request.resource.data.customerId == resource.data.customerId // Can't change customerId
-            && onlyAllowedFields.size() == 0;
+            && changedKeys.hasOnly(allowedFields);
       }
 
       allow get: if isOrderParticipant();
-      allow list: if isSignedIn(); // Allow signed in users to list their own orders.
+      // Users can list their own orders as a customer, or orders for their store as a seller.
+      // This rule enforces that the query MUST include a where clause for 'customerId' or 'storeId'.
+      allow list: if isSignedIn() && (request.query.where.customerId == request.auth.uid || request.query.where.storeId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.storeIds);
+      
       allow create: if isCreatingOwn('customerId');
       
       // Split update rules for buyer and seller for better security
