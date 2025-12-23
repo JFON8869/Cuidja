@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -108,7 +107,7 @@ export default function StoreFormPage() {
     defaultValues: {
       name: '',
       address: '',
-      logoUrl: '',
+      logoUrl: null,
       operatingHours: getDefaultOperatingHours(),
     },
   });
@@ -134,7 +133,6 @@ export default function StoreFormPage() {
         const storeDoc = querySnapshot.docs[0];
         const storeData = { id: storeDoc.id, ...storeDoc.data() } as Store;
         setStore(storeData);
-        // Ensure operatingHours is not undefined when resetting form
         form.reset({
           ...storeData,
           operatingHours:
@@ -151,25 +149,25 @@ export default function StoreFormPage() {
   const onSubmit = async (values: StoreFormValues) => {
     if (!user || !firestore) return;
     
-    let logoUrl = store?.logoUrl || '';
+    let finalLogoUrl = store?.logoUrl || '';
 
     try {
-       if (values.logoUrl && values.logoUrl instanceof File) {
-         logoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}`);
-       }
+      if (values.logoUrl && values.logoUrl instanceof File) {
+        finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}`);
+      } else if (values.logoUrl === null) {
+        finalLogoUrl = ''; // Handle case where logo is removed
+      }
 
       const dataToSave = { 
           ...values,
-          logoUrl,
+          logoUrl: finalLogoUrl,
        };
 
       if (store) {
-        // Update existing store
         const storeRef = doc(firestore, 'stores', store.id);
         await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Create new store
         const newStoreRef = doc(collection(firestore, 'stores'));
         const newStore = {
           ...dataToSave,
@@ -190,12 +188,10 @@ export default function StoreFormPage() {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      // Basic file type validation
       if (!file.type.startsWith('image/')) {
-        toast.error('Por favor, selecione um arquivo de imagem.');
+        toast.error('Por favor, selecione um arquivo de imagem (PNG, JPG).');
         return;
       }
-      // Basic file size validation (e.g., 2MB)
       if (file.size > 2 * 1024 * 1024) {
         toast.error('A imagem é muito grande. O tamanho máximo é 2MB.');
         return;

@@ -103,14 +103,24 @@ function NewProductPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const existingNames = imageFields.map((field: any) => field instanceof File ? field.name : '').filter(Boolean);
-      
+      const existingFileNames = imageFields
+        .map(field => (field as any instanceof File ? (field as any).name : null))
+        .filter(Boolean);
+
       files.forEach(file => {
-          if (existingNames.includes(file.name)) {
-              toast.error(`A imagem "${file.name}" já foi adicionada.`);
-          } else {
-              appendImage(file);
-          }
+        if (!file.type.startsWith('image/')) {
+          toast.error(`"${file.name}" não é uma imagem válida.`);
+          return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+          toast.error(`"${file.name}" é muito grande (max 2MB).`);
+          return;
+        }
+        if (existingFileNames.includes(file.name)) {
+          toast.error(`A imagem "${file.name}" já foi adicionada.`);
+          return;
+        }
+        appendImage(file);
       });
     }
   };
@@ -135,40 +145,38 @@ function NewProductPage() {
     }
 
     try {
-      const newImageFiles = values.images.filter((image: any) => image instanceof File);
-      const existingImageObjects = values.images.filter((image: any) => !(image instanceof File));
-      
-      const uploadPromises = newImageFiles.map((file: File) => uploadFile(file, `products/${user.uid}`));
-      const newImageUrls = await Promise.all(uploadPromises);
+        const newImageFiles = values.images.filter((image: any): image is File => image instanceof File);
+        
+        const uploadPromises = newImageFiles.map(file => uploadFile(file, `products/${user.uid}`));
+        const newImageUrls = await Promise.all(uploadPromises);
 
-      const newImageObjects = newImageUrls.map(url => ({
-        imageUrl: url,
-        imageHint: 'product photo' 
-      }));
+        const newImageObjects = newImageUrls.map(url => ({
+            imageUrl: url,
+            imageHint: 'product photo' 
+        }));
 
-      const finalImageObjects = [...existingImageObjects, ...newImageObjects];
+        const finalImageObjects = [...newImageObjects];
 
+        const addonGroups = values.addonGroups?.map(group => ({
+            ...group,
+            id: group.id || `${Date.now()}-${Math.random()}`
+        }));
 
-      const addonGroups = values.addonGroups?.map(group => ({
-        ...group,
-        id: group.id || `${Date.now()}-${Math.random()}`
-      }))
+        await addDoc(collection(firestore, 'products'), {
+            ...values,
+            images: finalImageObjects,
+            addonGroups: addonGroups || [],
+            storeId: storeId,
+            sellerId: user.uid,
+            type: 'PRODUCT',
+            createdAt: serverTimestamp(),
+        });
 
-      await addDoc(collection(firestore, 'products'), {
-        ...values,
-        images: finalImageObjects,
-        addonGroups: addonGroups || [],
-        storeId: storeId,
-        sellerId: user.uid,
-        type: 'PRODUCT',
-        createdAt: serverTimestamp(),
-      });
-
-      toast.success('Produto publicado com sucesso!');
-      router.push('/vender/produtos');
+        toast.success('Produto publicado com sucesso!');
+        router.push('/vender/produtos');
     } catch (error) {
-      console.error('Error saving product:', error);
-      toast.error('Não foi possível salvar o produto. Tente novamente.');
+        console.error('Error saving product:', error);
+        toast.error('Não foi possível salvar o produto. Tente novamente.');
     }
   }
 
@@ -266,30 +274,36 @@ function NewProductPage() {
                           accept="image/*"
                         />
                       </label>
-                      <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, GIF até 10MB</p>
+                      <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, GIF até 2MB</p>
                     </div>
                   </FormControl>
                    <FormMessage />
                   {imageFields.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-4">
-                      {imageFields.map((field, index) => (
-                        <div key={field.id} className="relative group">
-                          <Image
-                             src={field instanceof File ? URL.createObjectURL(field) : (field as any).imageUrl}
-                            alt={`Preview ${index}`}
-                            width={100}
-                            height={100}
-                            className="h-24 w-24 rounded-md object-cover"
-                          />
-                           <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-80 group-hover:opacity-100 transition-opacity"
-                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
+                      {imageFields.map((field, index) => {
+                          const file = field as unknown as File;
+                          const src = file instanceof File ? URL.createObjectURL(file) : '';
+                          return (
+                            <div key={field.id} className="relative group">
+                              {src && (
+                                <Image
+                                  src={src}
+                                  alt={`Preview ${index}`}
+                                  width={100}
+                                  height={100}
+                                  className="h-24 w-24 rounded-md object-cover"
+                                />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-80 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
                     </div>
                   )}
                 </FormItem>
