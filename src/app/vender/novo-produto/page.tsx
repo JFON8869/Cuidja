@@ -176,7 +176,7 @@ export default function NewProductPage() {
         imageHint: values.category.toLowerCase(),
       }));
       
-      const finalAddonGroups = values.addonGroups?.map(group => ({
+      const addons = values.addonGroups?.map(group => ({
           ...group,
           id: group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
       }));
@@ -190,7 +190,7 @@ export default function NewProductPage() {
         images: finalImageObjects,
         storeId: storeId,
         sellerId: user.uid,
-        addons: finalAddonGroups || [],
+        addons: addons || [],
         availability: values.availability,
         createdAt: new Date().toISOString(),
       });
@@ -552,3 +552,5 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
+
+    
