@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { slugify } from "@/lib/utils";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface StoreCardProps {
   store: {
@@ -15,12 +16,14 @@ interface StoreCardProps {
 }
 
 export function StoreCard({ store, categoryName, categorySlug }: StoreCardProps) {
+  const genericLogo = PlaceHolderImages.find(p => p.id === 'generic-store-logo');
+  
   return (
     <Link href={`/lojas/${store.id}?category=${categorySlug}`} className="group">
       <Card className="overflow-hidden transition-all hover:shadow-lg">
         <CardContent className="flex items-center gap-4 p-4">
           <Image
-            src={store.logoUrl || `https://picsum.photos/seed/${store.id}/80`}
+            src={store.logoUrl || genericLogo?.imageUrl || `https://picsum.photos/seed/${store.id}/80`}
             alt={`Logo da ${store.name}`}
             width={80}
             height={80}

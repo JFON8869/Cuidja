@@ -6,13 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type Product } from "@/lib/data";
+import { type Product, ImagePlaceholder } from "@/lib/data";
 import { Store } from "lucide-react";
 import Link from "next/link";
 import { WithId } from "@/firebase/firestore/use-collection";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface ProductCardProps {
   product: WithId<Product>;
@@ -21,6 +22,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { firestore } = useFirebase();
   const [storeName, setStoreName] = useState<string | null>(null);
+  const genericServiceImage = PlaceHolderImages.find(p => p.id === 'generic-service');
 
   useEffect(() => {
     async function fetchStoreName() {
@@ -44,6 +46,10 @@ export function ProductCard({ product }: ProductCardProps) {
     ? `/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`
     : `/produtos/${product.id}`;
 
+  const image: ImagePlaceholder | undefined = product.images?.[0];
+  const imageUrl = image?.imageUrl || (isService ? genericServiceImage?.imageUrl : undefined) || 'https://picsum.photos/seed/placeholder/400/400';
+  const imageHint = image?.imageHint || 'product photo';
+
 
   return (
     <Link href={href} className="group">
@@ -51,11 +57,11 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardHeader className="p-0">
           <div className="aspect-square relative w-full">
             <Image
-              src={product.images[0].imageUrl}
+              src={imageUrl}
               alt={product.name}
               fill
               className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-              data-ai-hint={product.images[0].imageHint}
+              data-ai-hint={imageHint}
             />
           </div>
         </CardHeader>
