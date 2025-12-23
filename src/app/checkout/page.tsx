@@ -76,7 +76,15 @@ export default function CheckoutPage() {
     },
   });
   
-  useEffect(() => {
+ useEffect(() => {
+    if (isUserLoading) return; // Wait for auth state to be resolved
+
+    if (!user) {
+      toast.error('Você precisa estar logado para finalizar a compra.');
+      router.push('/login?redirect=/checkout');
+      return;
+    }
+
     if (userData) {
       const defaultAddress = userData.addresses && userData.addresses.length > 0 ? userData.addresses[0] : null;
       form.reset({
@@ -86,7 +94,7 @@ export default function CheckoutPage() {
         city: defaultAddress?.city || '',
         zip: defaultAddress?.zip || '',
         paymentMethod: form.getValues('paymentMethod') || 'card',
-        isUrgent: form.getValues('isUrgent'),
+        isUrgent: isUrgentCategory,
       });
     } else if (user) {
        form.reset({
@@ -96,22 +104,15 @@ export default function CheckoutPage() {
         city: '',
         zip: '',
         paymentMethod: form.getValues('paymentMethod') || 'card',
-        isUrgent: form.getValues('isUrgent'),
+        isUrgent: isUrgentCategory,
        });
     }
-  }, [userData, user, form]);
+  }, [userData, user, isUserLoading, isUrgentCategory, form, router]);
 
   useEffect(() => {
     form.setValue('isUrgent', isUrgentCategory);
   }, [isUrgentCategory, form]);
   
-  // Effect to redirect if not logged in
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      toast.error('Você precisa estar logado para finalizar a compra.');
-      router.push('/login');
-    }
-  }, [isUserLoading, user, router]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     if (!firestore || !user || !storeId) {
@@ -125,6 +126,7 @@ export default function CheckoutPage() {
         const orderData = {
             customerId: user.uid,
             storeId: storeId,
+            orderType: 'PURCHASE', // V2 Data Model
             items: cart.map(item => ({
                 id: item.id,
                 name: item.name,
@@ -133,7 +135,7 @@ export default function CheckoutPage() {
                 selectedAddons: item.selectedAddons || []
             })),
             totalAmount: total,
-            status: 'Aguardando Pagamento', // This status happens before the simulated payment
+            status: 'Confirmado', // V2: Status starts as Confirmed
             orderDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
@@ -150,6 +152,7 @@ export default function CheckoutPage() {
             messages: []
         };
         
+        // The simulated payment happens on the next page, but we create the order first.
         const docRef = await addDoc(ordersCollection, orderData);
         toast.success('Seu pedido foi criado. Redirecionando para o pagamento.');
         clearCart();

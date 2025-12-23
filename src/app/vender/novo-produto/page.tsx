@@ -86,8 +86,9 @@ export default function NewProductPage() {
 
   React.useEffect(() => {
     async function fetchStoreId() {
+      if (isUserLoading) return;
       if (!firestore || !user) {
-        if (!isUserLoading) setStoreLoading(false);
+        setStoreLoading(false);
         return;
       }
       setStoreLoading(true);
@@ -103,7 +104,7 @@ export default function NewProductPage() {
     }
 
     fetchStoreId();
-  }, [firestore, user, isUserLoading, router]);
+  }, [firestore, user, isUserLoading]);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -190,6 +191,7 @@ export default function NewProductPage() {
         description: values.description,
         price: values.price,
         category: values.category,
+        type: 'PRODUCT', // V2 Data Model
         images: finalImageObjects,
         storeId: storeId,
         sellerId: user.uid,
@@ -209,7 +211,7 @@ export default function NewProductPage() {
     }
   }
 
-  if (isUserLoading) {
+  if (isUserLoading || isStoreLoading) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
         <header className="flex items-center border-b p-4">
@@ -347,7 +349,7 @@ export default function NewProductPage() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {mockCategories.filter(c => c.name !== 'Serviços').map((category) => (
+                      {mockCategories.filter(c => c.type === 'PRODUCT').map((category) => (
                           <SelectItem key={category.id} value={category.name}>
                             {category.name}
                           </SelectItem>

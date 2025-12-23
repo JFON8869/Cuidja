@@ -40,7 +40,9 @@ export function ProductCard({ product }: ProductCardProps) {
     fetchStoreName();
   }, [firestore, product.storeId]);
   
-  const isService = product.category === 'Serviços';
+  // V2 Data Model Compatibility: Use the new `type` field if it exists,
+  // otherwise fall back to the legacy `category` check.
+  const isService = product.type === 'SERVICE' || (!product.type && product.category === 'Serviços');
 
   const href = isService 
     ? `/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`
@@ -72,11 +74,11 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardContent>
         <CardFooter className="p-3 pt-0 flex flex-col items-start gap-2">
            <p className="text-lg font-bold text-primary">
-            {isService ? 'Taxa: ' : ''}
-            {new Intl.NumberFormat("pt-BR", {
+            {isService ? 'A partir de: ' : ''}
+            {product.price > 0 ? new Intl.NumberFormat("pt-BR", {
               style: "currency",
               currency: "BRL",
-            }).format(product.price)}
+            }).format(product.price) : 'A combinar'}
           </p>
           {storeName && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">

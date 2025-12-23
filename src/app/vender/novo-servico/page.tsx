@@ -23,13 +23,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { uploadFile } from '@/lib/storage';
@@ -59,8 +52,9 @@ export default function NewServicePage() {
 
   React.useEffect(() => {
     async function fetchStoreId() {
+      if (isUserLoading) return;
       if (!firestore || !user) {
-        if (!isUserLoading) setStoreLoading(false);
+        setStoreLoading(false);
         return;
       }
       setStoreLoading(true);
@@ -73,7 +67,7 @@ export default function NewServicePage() {
       setStoreLoading(false);
     }
     fetchStoreId();
-  }, [firestore, user, isUserLoading, router]);
+  }, [firestore, user, isUserLoading]);
 
   const form = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
@@ -146,7 +140,8 @@ export default function NewServicePage() {
         name: values.name,
         description: values.description,
         price: values.price,
-        category: 'Serviços',
+        category: 'Serviços', // Legacy category
+        type: 'SERVICE', // V2 Data Model
         attendanceType: values.attendanceType,
         images: finalImageObjects,
         storeId: storeId,
@@ -167,7 +162,7 @@ export default function NewServicePage() {
     }
   }
 
-  if (isUserLoading) {
+  if (isUserLoading || isStoreLoading) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
         <header className="flex items-center border-b p-4">
@@ -302,7 +297,7 @@ export default function NewServicePage() {
                     />
                   </FormControl>
                    <FormDescription>
-                     Pode ser uma taxa de visita, contato ou o valor por hora. Se for 0, aparecerá como "A combinar".
+                     Pode ser uma taxa de visita ou contato. Se for 0, aparecerá como "A combinar".
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

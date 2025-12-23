@@ -87,7 +87,8 @@ export default function ProductDetailPage() {
   }
 
   const hasOptions = product.addons && product.addons.length > 0;
-  const isService = product.category === 'Serviços';
+  // V2 Data Model Compatibility
+  const isService = product.type === 'SERVICE' || (!product.type && product.category === 'Serviços');
 
   return (
     <Sheet open={isCartSheetOpen} onOpenChange={setIsCartSheetOpen}>
@@ -152,25 +153,25 @@ export default function ProductDetailPage() {
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    {isService ? 'Taxa de Visita/Contato' : 'Preço'}
+                    {isService ? 'A partir de' : 'Preço'}
                   </span>
                   <p className="text-2xl font-bold text-primary">
-                    {new Intl.NumberFormat('pt-BR', {
+                    {product.price > 0 ? new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
-                    }).format(product.price)}
+                    }).format(product.price) : 'A combinar'}
                   </p>
                 </div>
                  {isService ? (
                    <Button size="lg" className="w-full" asChild>
                      <Link href={`/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`}>
-                        Iniciar Contato
+                        Solicitar Contato
                      </Link>
                    </Button>
                  ) : hasOptions ? (
                    <ProductOptionsSheet product={product} onAddToCart={handleWithOptionsAddToCart}>
                       <Button size="lg" className="w-full">
-                        Comprar
+                        Adicionar
                       </Button>
                    </ProductOptionsSheet>
                 ) : (

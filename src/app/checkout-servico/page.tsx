@@ -71,6 +71,14 @@ export default function ServiceCheckoutPage() {
   });
   
   useEffect(() => {
+    if (isUserLoading) return;
+
+    if (!user) {
+        toast.error("Você precisa estar logado para solicitar um serviço.");
+        router.push(`/login?redirect=/checkout-servico?serviceId=${serviceId}&storeId=${storeId}`);
+        return;
+    }
+
     if (userData) {
       const defaultAddress = userData.addresses && userData.addresses.length > 0 ? userData.addresses[0] : null;
       form.reset({
@@ -91,14 +99,7 @@ export default function ServiceCheckoutPage() {
         message: form.getValues('message'),
       });
     }
-  }, [userData, user, form]);
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-        toast.error("Você precisa estar logado para solicitar um serviço.");
-        router.push(`/login?redirect=/checkout-servico?serviceId=${serviceId}&storeId=${storeId}`);
-    }
-  }, [isUserLoading, user, router, serviceId, storeId]);
+  }, [userData, user, isUserLoading, form, router, serviceId, storeId]);
 
   
   async function onSubmit(values: z.infer<typeof serviceCheckoutSchema>) {
@@ -114,6 +115,7 @@ export default function ServiceCheckoutPage() {
         const orderData = {
             customerId: user.uid,
             storeId: storeId,
+            orderType: 'SERVICE_REQUEST', // V2 Data Model
             items: [{
                 id: service.id,
                 name: service.name,
@@ -122,7 +124,7 @@ export default function ServiceCheckoutPage() {
                 selectedAddons: []
             }],
             totalAmount: service.price,
-            status: 'Solicitação de Contato',
+            status: 'Solicitação Recebida', // V2: Use a enum de ServiceRequestStatus
             orderDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
@@ -143,11 +145,11 @@ export default function ServiceCheckoutPage() {
         }
         
         const docRef = await addDoc(ordersCollection, orderData);
-        toast.success('Seu pedido de contato foi enviado! Acompanhe pelo chat.');
+        toast.success('Sua solicitação de contato foi enviada! Acompanhe pelo chat.');
         router.push(`/pedidos/${docRef.id}`);
 
     } catch(error) {
-        console.error("Error creating service order: ", error);
+        console.error("Error creating service request: ", error);
         toast.error('Não foi possível solicitar o serviço. Tente novamente.');
     }
   }
@@ -190,7 +192,7 @@ export default function ServiceCheckoutPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft />
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Confirmar Contato</h1>
+        <h1 className="mx-auto font-headline text-xl">Solicitar Contato</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
@@ -207,7 +209,7 @@ export default function ServiceCheckoutPage() {
                         <span className="line-clamp-1 flex-1 pr-4 font-semibold">{service.name}</span>
                     </div>
                      <div className="flex justify-between items-center font-bold text-lg">
-                        <span>{hasFee ? 'Taxa de Visita/Contato' : 'Custo do Contato'}</span>
+                        <span>{hasFee ? 'Taxa de Contato' : 'Custo do Contato'}</span>
                         <span>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price || 0)}
                         </span>
@@ -331,7 +333,7 @@ export default function ServiceCheckoutPage() {
           onClick={form.handleSubmit(onSubmit)}
           disabled={form.formState.isSubmitting || isLoading}
         >
-          {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar Contato'}
+          {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar Solicitação'}
         </Button>
       </footer>
     </div>

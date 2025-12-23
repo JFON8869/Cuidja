@@ -12,6 +12,32 @@ import {
   Wrench,
 } from 'lucide-react';
 
+// --- V2 Data Model ---
+export type ItemType = 'PRODUCT' | 'SERVICE';
+export type OrderType = 'PURCHASE' | 'SERVICE_REQUEST';
+
+export const PurchaseStatus = [
+  'Pendente',
+  'Confirmado',
+  'Em Preparo',
+  'Saiu para Entrega',
+  'Entregue',
+  'Cancelado',
+] as const;
+
+export const ServiceRequestStatus = [
+  'Solicitação Recebida',
+  'Em Conversa',
+  'Orçamento Enviado',
+  'Em Execução',
+  'Concluído',
+  'Cancelado',
+] as const;
+
+export type PurchaseStatusType = typeof PurchaseStatus[number];
+export type ServiceRequestStatusType = typeof ServiceRequestStatus[number];
+// --- End V2 Data Model ---
+
 export interface Addon {
   name: string;
   price: number;
@@ -51,7 +77,8 @@ export interface Product {
   price: number;
   storeId: string;
   images: ImagePlaceholder[];
-  category: string;
+  category: string; // Legacy, `type` is preferred
+  type: ItemType; // PRODUCT or SERVICE
   addons?: AddonGroup[];
   availability: 'available' | 'on_demand' | 'unavailable';
   attendanceType?: 'presencial' | 'online' | 'ambos';
@@ -73,6 +100,7 @@ export interface Category {
   name:string;
   slug: string;
   Icon: LucideIcon;
+  type: ItemType;
 }
 
 export interface Banner {
@@ -95,14 +123,14 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const mockCategories: Category[] = [
-  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils },
-  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater },
-  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', Icon: ShoppingBasket },
-  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush },
-  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets },
-  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog },
-  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill },
-  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench },
+  { id: '1', name: 'Restaurantes', slug: 'restaurantes', Icon: Utensils, type: 'PRODUCT' },
+  { id: '2', name: 'Bebidas', slug: 'bebidas', Icon: GlassWater, type: 'PRODUCT' },
+  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', Icon: ShoppingBasket, type: 'PRODUCT' },
+  { id: '4', name: 'Artesanatos', slug: 'artesanatos', Icon: Brush, type: 'PRODUCT' },
+  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', Icon: Droplets, type: 'PRODUCT' },
+  { id: '6', name: 'Pets', slug: 'pets', Icon: Dog, type: 'PRODUCT' },
+  { id: '7', name: 'Farmácias', slug: 'farmacias', Icon: Pill, type: 'PRODUCT' },
+  { id: '8', name: 'Serviços', slug: 'servicos', Icon: Wrench, type: 'SERVICE' },
 ];
 
 export const mockBanners: Banner[] = [
