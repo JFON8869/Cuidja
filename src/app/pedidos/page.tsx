@@ -1,0 +1,223 @@
+'use client';
+
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Loader2,
+  Package,
+  Wrench,
+  ShoppingBag,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+import { Button } from '@/components/ui/button';
+import { useFirebase } from '@/firebase';
+import { collection, query, where, getDocs, orderBy, or } from 'firebase/firestore';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+
+interface OrderItem {
+  name: string;
+  quantity: number;
+}
+
+interface Order {
+  id: string;
+  orderType: 'PURCHASE' | 'SERVICE_REQUEST';
+  orderDate?: { toDate: () => Date };
+  requestDate?: { toDate: () => Date };
+  status: string;
+  totalAmount?: number;
+  items?: OrderItem[];
+  serviceName?: string;
+  storeId: string;
+}
+
+export default function MyOrdersPage() {
+  const { user, firestore, isUserLoading } = useFirebase();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [stores, setStores] = useState<Record<string, { name: string }>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isUserLoading || !user || !firestore) {
+      if (!isUserLoading) setIsLoading(false);
+      return;
+    }
+
+    const fetchOrdersAndStores = async () => {
+      setIsLoading(true);
+      try {
+        // Find stores where the user is the owner
+        const sellerStoresQuery = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
+        const sellerStoresSnap = await getDocs(sellerStoresQuery);
+        const sellerStoreIds = sellerStoresSnap.docs.map(doc => doc.id);
+
+        // Build the query
+        const ordersRef = collection(firestore, 'orders');
+        let ordersQuery;
+
+        if (sellerStoreIds.length > 0) {
+            // User is a seller, fetch orders for their stores OR orders they created
+            ordersQuery = query(ordersRef, 
+                or(
+                    where('customerId', '==', user.uid),
+                    where('storeId', 'in', sellerStoreIds)
+                ),
+                orderBy('orderDate', 'desc')
+            );
+        } else {
+            // User is only a buyer, fetch only their orders
+            ordersQuery = query(ordersRef, where('customerId', '==', user.uid), orderBy('orderDate', 'desc'));
+        }
+
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const fetchedOrders = ordersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Order[];
+        setOrders(fetchedOrders);
+
+        // Fetch store details for all unique store IDs
+        const storeIds = [
+          ...new Set(fetchedOrders.map((order) => order.storeId)),
+        ];
+        if (storeIds.length > 0) {
+          const fetchedStores: Record<string, { name: string }> = {};
+          const storeChunks = [];
+          // Firestore 'in' query limit is 30
+          for (let i = 0; i < storeIds.length; i += 30) {
+            storeChunks.push(storeIds.slice(i, i + 30));
+          }
+          for (const chunk of storeChunks) {
+             const storesQuery = query(collection(firestore, 'stores'), where('__name__', 'in', chunk));
+             const storesSnapshot = await getDocs(storesQuery);
+             storesSnapshot.forEach((doc) => {
+                fetchedStores[doc.id] = { name: doc.data().name };
+             });
+          }
+          setStores(fetchedStores);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrdersAndStores();
+  }, [user, firestore, isUserLoading]);
+  
+  const { purchaseOrders, serviceRequests } = useMemo(() => {
+    const purchaseOrders = orders.filter(o => o.orderType === 'PURCHASE');
+    const serviceRequests = orders.filter(o => o.orderType === 'SERVICE_REQUEST');
+    return { purchaseOrders, serviceRequests };
+  }, [orders]);
+
+  const renderOrderList = (orderList: Order[]) => {
+    if (orderList.length === 0) {
+      return (
+        <div className="flex h-[50vh] flex-col items-center justify-center text-center">
+          <ShoppingBag className="mb-4 h-16 w-16 text-muted-foreground" />
+          <h2 className="text-2xl font-bold">Nenhum pedido aqui</h2>
+          <p className="text-muted-foreground">
+            Suas compras ou solicitações aparecerão nesta seção.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {orderList.map((order) => {
+          const isPurchase = order.orderType === 'PURCHASE';
+          const date = isPurchase ? order.orderDate?.toDate() : order.requestDate?.toDate();
+          const title = isPurchase ? (order.items?.[0]?.name || 'Pedido') : order.serviceName;
+          const storeName = stores[order.storeId]?.name || 'Loja não encontrada';
+
+          return (
+            <Link href={`/pedidos/${order.id}`} key={order.id}>
+              <Card className="transition-all hover:shadow-md">
+                <CardHeader>
+                  <div className='flex justify-between items-start'>
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                           {isPurchase ? <Package size={20}/> : <Wrench size={20}/>}
+                           {title}
+                           {order.items && order.items.length > 1 && ` + ${order.items.length - 1} item(s)`}
+                        </CardTitle>
+                        <CardDescription>{storeName}</CardDescription>
+                    </div>
+                     <Badge variant="secondary">{order.status}</Badge>
+                  </div>
+                </CardHeader>
+                <CardFooter className="flex justify-between text-sm">
+                  <p className="text-muted-foreground">
+                    {date ? format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Data indisponível'}
+                  </p>
+                  {isPurchase && order.totalAmount && (
+                    <p className="font-bold text-primary">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(order.totalAmount)}
+                    </p>
+                  )}
+                </CardFooter>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+    );
+  };
+
+
+  return (
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-background shadow-2xl">
+      <header className="flex items-center border-b p-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/home">
+            <ArrowLeft />
+          </Link>
+        </Button>
+        <h1 className="mx-auto font-headline text-xl">Meus Pedidos</h1>
+        <div className="w-10"></div>
+      </header>
+      <main className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="p-4 space-y-4">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+          </div>
+        ) : (
+           <Tabs defaultValue="purchases" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 m-4">
+                <TabsTrigger value="purchases">Compras</TabsTrigger>
+                <TabsTrigger value="services">Serviços</TabsTrigger>
+              </TabsList>
+              <TabsContent value="purchases" className="p-4">
+                {renderOrderList(purchaseOrders)}
+              </TabsContent>
+              <TabsContent value="services" className="p-4">
+                {renderOrderList(serviceRequests)}
+              </TabsContent>
+            </Tabs>
+        )}
+      </main>
+    </div>
+  );
+}

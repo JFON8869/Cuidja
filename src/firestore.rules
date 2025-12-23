@@ -1,0 +1,89 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions to improve readability and reuse of logic.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Checks if the requesting user is the owner based on a UID.
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Validates that the customerId on a new document matches the creator's UID.
+    function isCreatingOwn(fieldName) {
+        return isSignedIn() && request.resource.data[fieldName] == request.auth.uid;
+    }
+
+    // Validates that the sellerId on a new resource (product/service) matches the creator's UID.
+    function isCreatingOwnResource() {
+        return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
+    }
+    
+    // Checks if the requesting user is the owner of a document via a denormalized field.
+    function isDocumentOwner(doc, fieldName) {
+      return isSignedIn() && resource != null && request.auth.uid == doc[fieldName];
+    }
+    
+    // Checks if the requesting user is the seller of a product/service via a denormalized field.
+    function isResourceSeller(doc) {
+      return isSignedIn() && resource != null && request.auth.uid == doc.sellerId;
+    }
+
+    // NEW HELPER: Checks if the user is the seller by looking up the store owner.
+    function isStoreOwner(storeId) {
+        return request.auth.uid == get(/databases/$(database)/documents/stores/$(storeId)).data.userId;
+    }
+    
+    match /users/{userId} {
+      allow get, update, delete: if isOwner(userId);
+      allow list: if false; 
+      allow create: if isOwner(userId);
+    }
+
+    match /stores/{storeId} {
+        allow get, list: if true;
+        allow create: if isCreatingOwn('userId');
+        allow update, delete: if isOwner(resource.data.userId);
+    }
+    
+    match /products/{productId} {
+      allow get: if true;
+      allow list: if false; // Deny global list, queries must use indexes.
+      allow create: if isCreatingOwnResource() && isStoreOwner(request.resource.data.storeId);
+      allow update, delete: if isResourceSeller(resource.data) && isStoreOwner(resource.data.storeId);
+    }
+
+    match /orders/{orderId} {
+      function isOrderCustomer() {
+        return isDocumentOwner(resource.data, 'customerId');
+      }
+
+      function isOrderSeller() {
+        // V3: Use the denormalized sellerId field for efficiency
+        return isDocumentOwner(resource.data, 'sellerId');
+      }
+      
+      function isOrderParticipant() {
+        return isOrderCustomer() || isOrderSeller();
+      }
+
+      allow get: if isSignedIn() && isOrderParticipant();
+      allow create: if isSignedIn() && isCreatingOwn('customerId');
+      allow update: if isSignedIn() && isOrderParticipant();
+      allow delete: if false; // Orders should not be deleted.
+      allow list: if false; // Globally deny listing. Queries need filters.
+
+      match /messages/{messageId} {
+        // Any participant can read the chat history.
+        allow get, list: if isSignedIn() && isOrderParticipant();
+        // A user can only send messages as themselves in a chat they are part of.
+        allow create: if isSignedIn() && isOrderParticipant() && isCreatingOwn('senderId');
+        allow update, delete: if false;
+      }
+    }
+  }
+}
