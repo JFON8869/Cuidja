@@ -22,7 +22,7 @@ service cloud.firestore {
     function isCreatingOwnResource() {
         return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
     }
-
+    
     // Checks if the requesting user is the owner of a document via a denormalized field.
     function isDocumentOwner(doc, fieldName) {
       return isSignedIn() && request.auth.uid == doc[fieldName];
@@ -41,7 +41,8 @@ service cloud.firestore {
 
     match /stores/{storeId} {
         allow get, list: if true;
-        allow create: if isCreatingOwn('userId');
+        // The user creating the store must be the owner of the store.
+        allow create: if isCreatingOwn('userId') && request.resource.data.userId == request.auth.uid;
         allow update, delete: if isOwner(resource.data.userId);
     }
     
