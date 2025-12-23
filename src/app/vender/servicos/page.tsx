@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
-import { useFirebase } from '@/firebase';
+import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { Product } from '@/lib/data';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Button } from '@/components/ui/button';
@@ -92,6 +92,12 @@ export default function SellerServicesPage() {
         toast.success("Serviço excluído com sucesso.");
     } catch (error) {
         console.error("Error deleting service:", error);
+        const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
         toast.error("Erro ao excluir o serviço. Verifique suas permissões.");
     }
   }
