@@ -23,7 +23,6 @@ import { useFirebase } from '@/firebase';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -101,6 +100,7 @@ export default function StoreFormPage() {
   const router = useRouter();
   const [store, setStore] = useState<Store | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeSchema),
@@ -144,14 +144,13 @@ export default function StoreFormPage() {
     fetchStore();
   }, [user, firestore, isUserLoading, router, form]);
 
-  const { isSubmitting } = form.formState;
-
   const onSubmit = async (values: StoreFormValues) => {
     if (!user || !firestore) return;
     
-    let finalLogoUrl = store?.logoUrl || '';
-
+    setIsSubmitting(true);
     try {
+      let finalLogoUrl = store?.logoUrl || '';
+
       if (values.logoUrl && values.logoUrl instanceof File) {
         finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}`);
       } else if (values.logoUrl === null) {
@@ -182,6 +181,8 @@ export default function StoreFormPage() {
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
+    } finally {
+        setIsSubmitting(false);
     }
   };
   

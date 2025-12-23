@@ -50,6 +50,7 @@ function EditServicePage() {
   const params = useParams();
   const serviceId = params.id as string;
   const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
@@ -92,6 +93,7 @@ function EditServicePage() {
       return;
     }
     
+    setIsSubmitting(true);
     try {
       const docRef = doc(firestore, 'products', serviceId);
       await updateDoc(docRef, {
@@ -104,10 +106,10 @@ function EditServicePage() {
     } catch (error) {
       console.error('Error updating service:', error);
       toast.error('Não foi possível atualizar o serviço. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
     }
   }
-
-  const { isSubmitting } = form.formState;
 
   if (isPageLoading || isUserLoading) {
     return (

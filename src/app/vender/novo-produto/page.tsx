@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -78,6 +78,7 @@ type ProductFormValues = z.infer<typeof productSchema>;
 function NewProductPage() {
   const { user, firestore, isUserLoading, store } = useFirebase();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -148,6 +149,7 @@ function NewProductPage() {
       return;
     }
     
+    setIsSubmitting(true);
     try {
         const newImageFiles = values.images.filter((image: any): image is File => image instanceof File);
         
@@ -185,10 +187,10 @@ function NewProductPage() {
     } catch (error) {
         console.error('Error saving product:', error);
         toast.error('Não foi possível salvar o produto. Tente novamente.');
+    } finally {
+        setIsSubmitting(false);
     }
   }
-
-  const { isSubmitting } = form.formState;
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">

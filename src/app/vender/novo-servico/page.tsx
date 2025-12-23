@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -48,6 +48,7 @@ function NewServicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const storeId = searchParams.get('storeId');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
@@ -75,33 +76,34 @@ function NewServicePage() {
       return;
     }
     
-    // Services have a generic placeholder image by default
-    const serviceImage = {
-        imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzZXJ2aWNlfGVufDB8fHx8MTc3MzM5NzAyNHww&ixlib=rb-4.1.0&q=80&w=1080',
-        imageHint: 'professional service'
-    }
-
+    setIsSubmitting(true);
     try {
-      await addDoc(collection(firestore, 'products'), {
-        ...values,
-        storeId: storeId,
-        sellerId: user.uid,
-        type: 'SERVICE',
-        category: 'Serviços', // Legacy category for services
-        availability: 'on_demand', // Services are always on demand
-        images: [serviceImage],
-        createdAt: serverTimestamp(),
-      });
+        // Services have a generic placeholder image by default
+        const serviceImage = {
+            imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzZXJ2aWNlfGVufDB8fHx8MTc3MzM5NzAyNHww&ixlib=rb-4.1.0&q=80&w=1080',
+            imageHint: 'professional service'
+        }
 
-      toast.success('Serviço publicado com sucesso!');
-      router.push('/vender/servicos');
+        await addDoc(collection(firestore, 'products'), {
+            ...values,
+            storeId: storeId,
+            sellerId: user.uid,
+            type: 'SERVICE',
+            category: 'Serviços', // Legacy category for services
+            availability: 'on_demand', // Services are always on demand
+            images: [serviceImage],
+            createdAt: serverTimestamp(),
+        });
+
+        toast.success('Serviço publicado com sucesso!');
+        router.push('/vender/servicos');
     } catch (error) {
-      console.error('Error saving service:', error);
-      toast.error('Não foi possível salvar o serviço. Tente novamente.');
+        console.error('Error saving service:', error);
+        toast.error('Não foi possível salvar o serviço. Tente novamente.');
+    } finally {
+        setIsSubmitting(false);
     }
   }
-
-  const { isSubmitting } = form.formState;
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">

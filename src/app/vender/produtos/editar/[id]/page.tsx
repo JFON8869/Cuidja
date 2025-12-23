@@ -79,7 +79,7 @@ function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string;
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
 
   const form = useForm<ProductFormValues>({
@@ -119,9 +119,18 @@ function EditProductPage() {
     fetchProduct();
   }, [firestore, productId, form, router]);
 
-  const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
+  const { fields: imageFields, append: appendImage, remove: removeImage, replace } = useFieldArray({
     control: form.control,
     name: 'images',
+  });
+
+   const {
+    fields: addonGroupFields,
+    append: appendAddonGroup,
+    remove: removeAddonGroup,
+  } = useFieldArray({
+    control: form.control,
+    name: 'addonGroups',
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,6 +170,7 @@ function EditProductPage() {
       return;
     }
     
+    setIsSubmitting(true);
     try {
         const newImageFiles = values.images.filter((image: any): image is File => image instanceof File);
         const existingImageObjects = values.images.filter((image: any) => typeof image === 'object' && image.imageUrl && !(image instanceof File));
@@ -177,6 +187,7 @@ function EditProductPage() {
         
         if (finalImageObjects.length === 0) {
             form.setError('images', { type: 'manual', message: 'Adicione pelo menos uma imagem.' });
+            setIsSubmitting(false); // release the lock
             return;
         }
 
@@ -199,10 +210,10 @@ function EditProductPage() {
     } catch (error) {
       console.error('Error updating product:', error);
       toast.error('Não foi possível atualizar o produto. Tente novamente.');
+    } finally {
+        setIsSubmitting(false);
     }
   }
-
-  const { isSubmitting } = form.formState;
 
   if (isPageLoading || isUserLoading) {
     return (
@@ -321,7 +332,7 @@ function EditProductPage() {
                                   alt={`Preview ${index}`}
                                   width={100}
                                   height={100}
-                                  className="h-24 w-24 rounded-md object-cover" // h-6rem w-6rem
+                                  className="h-24 w-24 rounded-md object-cover"
                                 />
                               ) : null}
                               <button
