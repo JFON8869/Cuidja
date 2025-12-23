@@ -15,9 +15,34 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Helper function to get cart from localStorage
+const getInitialCart = (): CartItem[] => {
+  if (typeof window !== 'undefined') {
+    const savedCart = localStorage.getItem('cuidja_cart');
+    if (savedCart) {
+      try {
+        return JSON.parse(savedCart);
+      } catch (e) {
+        console.error("Failed to parse cart from localStorage", e);
+        return [];
+      }
+    }
+  }
+  return [];
+};
+
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(getInitialCart);
   const [total, setTotal] = useState(0);
+  
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cuidja_cart', JSON.stringify(cart));
+    }
+  }, [cart]);
+
 
   useEffect(() => {
     // Recalculate total whenever the cart changes
