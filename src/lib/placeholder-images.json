@@ -110,49 +110,49 @@
     },
     {
       "id": "category-restaurants",
-      "description": "restaurant icon",
+      "description": "3d restaurant icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/restaurant.png",
       "imageHint": "restaurant icon"
     },
     {
       "id": "category-drinks",
-      "description": "drinks icon",
+      "description": "3d drinks icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/drinks.png",
       "imageHint": "drinks icon"
     },
     {
       "id": "category-market",
-      "description": "market icon",
+      "description": "3d market icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/market.png",
       "imageHint": "market icon"
     },
     {
       "id": "category-crafts",
-      "description": "crafts icon",
+      "description": "3d crafts icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/crafts.png",
       "imageHint": "crafts icon"
     },
     {
       "id": "category-gas-water",
-      "description": "gas and water icon",
+      "description": "3d gas and water icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/gas-water.png",
       "imageHint": "gas water"
     },
     {
       "id": "category-pets",
-      "description": "pets icon",
+      "description": "3d pets icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/pets.png",
       "imageHint": "pets icon"
     },
     {
       "id": "category-pharmacy",
-      "description": "pharmacy icon",
+      "description": "3d pharmacy icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/pharmacy.png",
       "imageHint": "pharmacy icon"
     },
     {
       "id": "category-services",
-      "description": "services icon",
+      "description": "3d services icon",
       "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/services.png",
       "imageHint": "tools icon"
     },
