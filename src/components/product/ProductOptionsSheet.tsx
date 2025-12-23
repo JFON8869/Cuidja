@@ -19,17 +19,17 @@ import { useCart } from '@/context/CartContext';
 import { Product, Addon, AddonGroup, SelectedAddon } from '@/lib/data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 
 interface ProductOptionsSheetProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
   children: React.ReactNode;
 }
 
 type SelectedOptionsState = Record<string, SelectedAddon[]>;
 
-export function ProductOptionsSheet({ product, onAddToCart, children }: ProductOptionsSheetProps) {
+export function ProductOptionsSheet({ product, children }: ProductOptionsSheetProps) {
   const { addToCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptionsState>({});
@@ -75,7 +75,7 @@ export function ProductOptionsSheet({ product, onAddToCart, children }: ProductO
   const handleAddToCartClick = () => {
     const allSelectedAddons = Object.values(selectedOptions).flat();
     addToCart(product, allSelectedAddons);
-    onAddToCart(product); // This just triggers the confirmation sheet
+    toast.success(`${product.name} foi adicionado ao carrinho.`);
     setIsOpen(false);     // Close the options sheet
   }
   
