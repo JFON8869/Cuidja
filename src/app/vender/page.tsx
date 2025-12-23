@@ -75,7 +75,6 @@ export default function SellPage() {
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !store?.id) return null;
-    // This query now correctly filters by the storeId, adhering to security rules.
     return query(
       collection(firestore, 'orders'),
       where('storeId', '==', store.id)
@@ -162,7 +161,6 @@ export default function SellPage() {
     );
   }
 
-  // A store exists, show the main dashboard
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
@@ -179,12 +177,21 @@ export default function SellPage() {
         </Button>
       </header>
       <main className="flex-1 space-y-6 overflow-y-auto p-4">
-        <Button size="lg" className="w-full" asChild>
+        <div className="grid grid-cols-2 gap-4">
+          <Button size="lg" asChild>
             <Link href={'/vender/novo-produto'}>
               <PlusCircle className="mr-2" />
-              Anunciar Novo Item
+              Anunciar Produto
             </Link>
-        </Button>
+          </Button>
+           <Button size="lg" asChild variant="secondary">
+            <Link href={'/vender/novo-servico'}>
+              <PlusCircle className="mr-2" />
+              Anunciar Serviço
+            </Link>
+          </Button>
+        </div>
+
 
         <div className="grid grid-cols-2 gap-4">
           <Link href="/vender/produtos">

@@ -37,10 +37,10 @@ const serviceSchema = z.object({
     .array(z.any())
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
-  visitFee: z.coerce
+  price: z.coerce
     .number({
-      required_error: 'A taxa de visita é obrigatória.',
-      invalid_type_error: 'A taxa de visita deve ser um número.',
+      required_error: 'A taxa é obrigatória.',
+      invalid_type_error: 'A taxa deve ser um número.',
     })
     .min(10, 'A taxa de visita mínima é de R$ 10,00.'),
 });
@@ -73,7 +73,7 @@ export default function NewServicePage() {
     }
 
     fetchStoreId();
-  }, [firestore, user, isUserLoading, router, toast]);
+  }, [firestore, user, isUserLoading, router]);
 
   const form = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
@@ -81,7 +81,7 @@ export default function NewServicePage() {
       name: '',
       description: '',
       images: [],
-      visitFee: 10,
+      price: 10,
     },
   });
 
@@ -126,15 +126,15 @@ export default function NewServicePage() {
     }));
 
     try {
-      const servicesCollection = collection(firestore, 'services');
-      await addDoc(servicesCollection, {
+      const productsCollection = collection(firestore, 'products');
+      await addDoc(productsCollection, {
         name: values.name,
         description: values.description,
+        price: values.price,
         images: imageUrls,
-        providerId: storeId,
+        storeId: storeId,
         sellerId: user.uid, // Denormalize sellerId for security rules
         category: 'Serviços',
-        visitFee: values.visitFee,
         createdAt: new Date().toISOString(),
       });
 
@@ -271,7 +271,7 @@ export default function NewServicePage() {
             
             <FormField
               control={form.control}
-              name="visitFee"
+              name="price"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Taxa de Visita/Contato (R$)</FormLabel>
