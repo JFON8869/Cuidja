@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,6 +11,7 @@ import {
   Store,
   Loader2,
   Wrench,
+  ChevronRight,
 } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -37,6 +37,62 @@ const salesData = [
   { name: 'Mai', sales: 56 },
   { name: 'Jun', sales: 70 },
 ];
+
+const WelcomeSellPage = () => (
+  <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+     <header className="flex items-center border-b p-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/home">
+            <ArrowLeft />
+          </Link>
+        </Button>
+        <h1 className="mx-auto font-headline text-xl">Comece a Vender</h1>
+        <div className="w-10"></div>
+      </header>
+    <main className="flex flex-1 flex-col justify-between p-8 text-center">
+      <div className="flex-1">
+        <h2 className="font-headline text-4xl">Venda no Cuidja</h2>
+        <p className="mt-4 text-lg text-muted-foreground">
+            Alcance clientes perto de você e gerencie tudo em um só lugar.
+        </p>
+         <ul className="mt-8 space-y-4 text-left">
+            <li className="flex items-start gap-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Package className="h-5 w-5"/>
+                </div>
+                <div>
+                    <h3 className="font-semibold">Publique produtos ou serviços</h3>
+                    <p className="text-sm text-muted-foreground">Crie seu primeiro anúncio em menos de um minuto.</p>
+                </div>
+            </li>
+             <li className="flex items-start gap-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <ShoppingBag className="h-5 w-5"/>
+                </div>
+                <div>
+                    <h3 className="font-semibold">Gerencie pedidos e solicitações</h3>
+                    <p className="text-sm text-muted-foreground">Comunicação centralizada com seus clientes.</p>
+                </div>
+            </li>
+             <li className="flex items-start gap-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Store className="h-5 w-5"/>
+                </div>
+                <div>
+                    <h3 className="font-semibold">Crie sua vitrine online</h3>
+                    <p className="text-sm text-muted-foreground">Personalize sua loja para atrair mais clientes.</p>
+                </div>
+            </li>
+        </ul>
+      </div>
+      <div className="pb-4">
+        <Button size="lg" className="w-full" asChild>
+            <Link href="/vender/selecionar-tipo">Criar meu primeiro anúncio</Link>
+        </Button>
+      </div>
+    </main>
+  </div>
+);
 
 export default function SellPage() {
   const { user, firestore, isUserLoading } = useFirebase();
@@ -66,14 +122,6 @@ export default function SellPage() {
     fetchStore();
   }, [user, firestore, isUserLoading]);
 
-  const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'products'),
-      where('sellerId', '==', user.uid)
-    );
-  }, [firestore, user]);
-
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !store?.id) return null;
     return query(
@@ -82,13 +130,8 @@ export default function SellPage() {
     );
   }, [firestore, store]);
 
-  const { data: myProducts, isLoading: productsLoading } =
-    useCollection(productsQuery);
   const { data: myOrders, isLoading: ordersLoading } =
     useCollection(ordersQuery);
-
-  const myProductsCount = myProducts?.filter(p => p.category !== 'Serviços').length ?? 0;
-  const myServicesCount = myProducts?.filter(p => p.category === 'Serviços').length ?? 0;
   const myOrdersCount = myOrders?.length ?? 0;
 
   const isLoading = isStoreLoading || isUserLoading;
@@ -109,57 +152,11 @@ export default function SellPage() {
   }
 
   if (!user) {
-    return (
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-        <header className="flex items-center border-b p-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/home">
-              <ArrowLeft />
-            </Link>
-          </Button>
-          <h1 className="mx-auto font-headline text-xl">Seja um Vendedor</h1>
-          <div className="w-10"></div>
-        </header>
-        <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-          <h2 className="text-2xl font-bold">Faça login para começar</h2>
-          <p className="text-muted-foreground mb-6">
-            Você precisa estar logado para criar uma loja e vender.
-          </p>
-          <Button size="lg" asChild>
-            <Link href="/login">Fazer Login</Link>
-          </Button>
-        </main>
-      </div>
-    );
+    return <WelcomeSellPage />;
   }
-
+  
   if (user && !store) {
-    return (
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-        <header className="flex items-center border-b p-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/home">
-              <ArrowLeft />
-            </Link>
-          </Button>
-          <h1 className="mx-auto font-headline text-xl">Seja um Vendedor</h1>
-          <div className="w-10"></div>
-        </header>
-        <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-          <Store className="mb-4 h-20 w-20 text-muted-foreground" />
-          <h2 className="text-2xl font-bold">Crie sua loja para começar</h2>
-          <p className="text-muted-foreground mb-6">
-            O primeiro passo para vender é criar sua loja. É rápido e fácil!
-          </p>
-          <Button size="lg" asChild>
-            <Link href="/vender/loja">
-              <PlusCircle className="mr-2" />
-              Criar Minha Loja
-            </Link>
-          </Button>
-        </main>
-      </div>
-    );
+     return <WelcomeSellPage />;
   }
 
   return (
@@ -171,89 +168,57 @@ export default function SellPage() {
           </Link>
         </Button>
         <h1 className="mx-auto font-headline text-xl">Painel do Vendedor</h1>
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender/loja">
-            <Store />
-          </Link>
-        </Button>
+        <div className="w-10" />
       </header>
       <main className="flex-1 space-y-6 overflow-y-auto p-4">
         <div className="grid grid-cols-1 gap-4">
           <Button size="lg" asChild>
-            <Link href={'/vender/novo-produto'}>
+            <Link href={'/vender/selecionar-tipo'}>
               <PlusCircle className="mr-2" />
-              Anunciar Novo Item
+              Novo Anúncio
             </Link>
           </Button>
         </div>
 
-
-        <div className="grid grid-cols-2 gap-4">
-          <Link href="/vender/produtos">
-            <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Meus Produtos
-                </CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {productsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    myProductsCount
-                  )}
+        <div className="grid grid-cols-1 gap-4">
+            <Link href="/vender/pedidos" className="block rounded-lg border bg-card p-4 hover:bg-muted/50">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <ShoppingBag className="h-6 w-6 text-muted-foreground"/>
+                        <span className="font-semibold">Pedidos e Solicitações</span>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground"/>
                 </div>
-                <p className="text-xs text-muted-foreground">Produtos ativos</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/vender/servicos">
-            <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Meus Serviços
-                </CardTitle>
-                <Wrench className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {productsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    myServicesCount
-                  )}
+            </Link>
+             <Link href="/vender/produtos" className="block rounded-lg border bg-card p-4 hover:bg-muted/50">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Package className="h-6 w-6 text-muted-foreground"/>
+                        <span className="font-semibold">Produtos</span>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground"/>
                 </div>
-                <p className="text-xs text-muted-foreground">Serviços ativos</p>
-              </CardContent>
-            </Card>
-          </Link>
+            </Link>
+             <Link href="/vender/servicos" className="block rounded-lg border bg-card p-4 hover:bg-muted/50">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Wrench className="h-6 w-6 text-muted-foreground"/>
+                        <span className="font-semibold">Serviços</span>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground"/>
+                </div>
+            </Link>
+             <Link href="/vender/loja" className="block rounded-lg border bg-card p-4 hover:bg-muted/50">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Store className="h-6 w-6 text-muted-foreground"/>
+                        <span className="font-semibold">Minha Loja</span>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground"/>
+                </div>
+            </Link>
         </div>
-        <div className="grid grid-cols-1">
-          <Link href="/vender/pedidos">
-            <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Minhas Vendas
-                </CardTitle>
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {ordersLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    myOrdersCount
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Total de pedidos recebidos
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
+       
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg font-headline">

@@ -86,6 +86,7 @@
         "id": { "type": "string" },
         "userId": { "type": "string" },
         "name": { "type": "string" },
+        "address": {"type": "string"},
         "operatingHours": {
           "type": "object",
           "properties": {
@@ -99,7 +100,7 @@
           }
         }
       },
-      "required": ["id", "userId", "name"]
+      "required": ["id", "userId", "name", "address"]
     },
     "DayOperatingHours": {
         "title": "DayOperatingHours",
@@ -145,9 +146,9 @@
           "type": "string",
           "description": "Category of the product (e.g., 'Fruits', 'Vegetables', 'Serviços')."
         },
-        "location": {
+        "attendanceType": {
           "type": "string",
-          "description": "Location where the product is available."
+          "enum": ["presencial", "online", "ambos"]
         },
         "addons": {
           "type": "array",
@@ -202,50 +203,29 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents a product or service order placed on the platform.",
+      "description": "Represents a product order on the platform.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "customerId": {
-          "type": "string"
-        },
-        "storeId": {
-            "type": "string"
-        },
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "storeId": { "type": "string" },
         "items": {
           "type": "array",
-          "items": {
-            "$ref": "#/backend/entities/OrderItem"
-          }
+          "items": { "$ref": "#/backend/entities/OrderItem" }
         },
         "messages": {
           "type": "array",
           "description": "Chat messages between buyer and seller for this order.",
-          "items": {
-            "$ref": "#/backend/entities/Message"
-          }
+          "items": { "$ref": "#/backend/entities/Message" }
         },
-        "orderDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "totalAmount": {
-          "type": "number"
-        },
+        "orderDate": { "type": "string", "format": "date-time" },
+        "totalAmount": { "type": "number" },
         "status": {
           "type": "string",
-          "enum": ["Solicitação de Contato", "Pendente", "Confirmado", "Em Preparo", "Saiu para Entrega", "Entregue", "Cancelado"]
+          "enum": ["Pendente", "Confirmado", "Em Preparo", "Saiu para Entrega", "Entregue", "Cancelado"]
         },
-        "isUrgent": {
-          "type": "boolean"
-        },
-        "shippingAddress": {
-            "$ref": "#/backend/entities/Address"
-        },
-        "phone": {
-            "type": "string"
-        },
+        "isUrgent": { "type": "boolean" },
+        "shippingAddress": { "$ref": "#/backend/entities/Address" },
+        "phone": { "type": "string" },
         "sellerHasUnread": { "type": "boolean" },
         "buyerHasUnread": { "type": "boolean" }
       },
@@ -259,6 +239,32 @@
         "status",
         "shippingAddress"
       ]
+    },
+    "ServiceRequest": {
+        "title": "ServiceRequest",
+        "type": "object",
+        "description": "Represents a service request on the platform.",
+        "properties": {
+            "id": { "type": "string" },
+            "customerId": { "type": "string" },
+            "storeId": { "type": "string" },
+            "serviceId": { "type": "string" },
+            "serviceName": { "type": "string" },
+            "messages": {
+                "type": "array",
+                "items": { "$ref": "#/backend/entities/Message" }
+            },
+            "requestDate": { "type": "string", "format": "date-time" },
+            "status": {
+                "type": "string",
+                "enum": ["Solicitação recebida", "Em conversa", "Orçamento enviado", "Em execução", "Concluído", "Cancelado"]
+            },
+            "shippingAddress": { "$ref": "#/backend/entities/Address" },
+            "phone": { "type": "string" },
+            "sellerHasUnread": { "type": "boolean" },
+            "buyerHasUnread": { "type": "boolean" }
+        },
+        "required": [ "id", "customerId", "storeId", "serviceId", "serviceName", "requestDate", "status", "shippingAddress" ]
     },
     "OrderItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -375,7 +381,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores all product and service orders placed on the platform.",
+          "description": "Stores all product orders placed on the platform.",
           "params": [
             {
               "name": "orderId",
@@ -383,8 +389,23 @@
             }
           ]
         }
+      },
+      {
+        "path": "serviceRequests/{requestId}",
+        "definition": {
+          "entityName": "ServiceRequest",
+          "schema": {
+            "$ref": "#/backend/entities/ServiceRequest"
+          },
+          "description": "Stores all service requests placed on the platform.",
+          "params": [
+            {
+              "name": "requestId",
+              "description": "The unique identifier for the service request."
+            }
+          ]
+        }
       }
-    ],
-    "reasoning": "The data model has been simplified by merging the `Service` entity into the `Product` entity and removing the separate `ServiceRequest` collection. All transactions, whether for products or services, are now handled through the `Order` collection. Service requests are initiated as orders with a specific status (e.g., 'Solicitação de Contato'), unifying the transaction flow. This reduces complexity, streamlines data management, and simplifies security rules by removing the need to manage rules for two separate collections."
+    ]
   }
 }

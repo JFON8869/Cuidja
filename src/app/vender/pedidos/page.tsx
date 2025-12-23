@@ -1,7 +1,6 @@
-
 'use client';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Bell, Siren } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Bell, Siren, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import {
@@ -121,6 +120,9 @@ export default function SellerOrdersPage() {
       </div>
     );
   }
+  
+  const isServiceRequest = (order: Order) => order.status === 'Solicitação de Contato';
+
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -130,7 +132,7 @@ export default function SellerOrdersPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Minhas Vendas</h1>
+        <h1 className="mx-auto font-headline text-xl">Pedidos e Solicitações</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto">
@@ -143,10 +145,10 @@ export default function SellerOrdersPage() {
                 <Card
                   className={cn(
                     'cursor-pointer transition-colors hover:bg-muted/50',
-                    order.isUrgent && 'border-destructive'
+                    order.isUrgent && !isServiceRequest(order) && 'border-destructive'
                   )}
                 >
-                  {order.isUrgent && (
+                  {order.isUrgent && !isServiceRequest(order) && (
                     <div className="flex w-full items-center justify-center gap-2 bg-destructive py-1 text-center text-sm font-bold text-destructive-foreground">
                       <Siren className="h-4 w-4" />
                       PEDIDO URGENTE
@@ -154,17 +156,22 @@ export default function SellerOrdersPage() {
                   )}
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">
-                          Pedido #{order.id.substring(0, 7)}
-                        </CardTitle>
-                        <CardDescription>
-                          {format(
-                            new Date(order.orderDate),
-                            "dd 'de' MMMM 'de' yyyy, 'às' HH:mm",
-                            { locale: ptBR }
-                          )}
-                        </CardDescription>
+                      <div className="flex items-center gap-3">
+                         <div className="flex-shrink-0">
+                           {isServiceRequest(order) ? <Briefcase className="h-6 w-6 text-muted-foreground" /> : <ShoppingBag className="h-6 w-6 text-muted-foreground" />}
+                         </div>
+                         <div>
+                            <CardTitle className="text-lg">
+                              {isServiceRequest(order) ? 'Solicitação de Contato' : `Pedido #${order.id.substring(0, 7)}`}
+                            </CardTitle>
+                            <CardDescription>
+                              {format(
+                                new Date(order.orderDate),
+                                "dd/MM/yyyy 'às' HH:mm",
+                                { locale: ptBR }
+                              )}
+                            </CardDescription>
+                         </div>
                       </div>
                       {order.sellerHasUnread && (
                         <div className="relative">
@@ -177,8 +184,8 @@ export default function SellerOrdersPage() {
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p>Itens: {order.items.length}</p>
+                  <CardContent className="space-y-2 text-sm pl-14">
+                    <p className="font-semibold">{order.items[0]?.name}</p>
                     <p className="text-muted-foreground">
                       Status:{' '}
                       <span className="font-semibold text-accent">
@@ -186,7 +193,8 @@ export default function SellerOrdersPage() {
                       </span>
                     </p>
                   </CardContent>
-                  <CardFooter className="flex items-center justify-between font-bold">
+                  {!isServiceRequest(order) && (
+                  <CardFooter className="flex items-center justify-between font-bold pl-14">
                     <span>Total</span>
                     <span>
                       {new Intl.NumberFormat('pt-BR', {
@@ -195,6 +203,7 @@ export default function SellerOrdersPage() {
                       }).format(order.totalAmount)}
                     </span>
                   </CardFooter>
+                  )}
                 </Card>
               </Link>
             ))}
@@ -204,7 +213,7 @@ export default function SellerOrdersPage() {
             <ShoppingBag className="mb-4 h-16 w-16 text-muted-foreground" />
             <h2 className="mb-2 text-2xl font-bold">Nenhum pedido recebido</h2>
             <p className="mb-4 text-muted-foreground">
-              Quando você receber um pedido, ele aparecerá aqui.
+              Quando você receber um pedido ou solicitação, ele aparecerá aqui.
             </p>
           </div>
         )}
@@ -212,5 +221,3 @@ export default function SellerOrdersPage() {
     </div>
   );
 }
-
-    

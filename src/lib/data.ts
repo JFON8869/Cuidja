@@ -1,4 +1,3 @@
-
 import type { ImagePlaceholder } from './placeholder-images';
 import { PlaceHolderImages } from './placeholder-images';
 import type { LucideIcon } from 'lucide-react';
@@ -42,6 +41,7 @@ export interface Store {
   logoUrl?: string;
   userId: string;
   operatingHours?: OperatingHours;
+  address?: string;
 }
 
 export interface Product {
@@ -54,6 +54,7 @@ export interface Product {
   category: string;
   addons?: AddonGroup[];
   availability: 'available' | 'on_demand' | 'unavailable';
+  attendanceType?: 'presencial' | 'online' | 'ambos';
 }
 
 export interface SelectedAddon {

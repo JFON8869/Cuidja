@@ -37,6 +37,13 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { uploadFile } from '@/lib/storage';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
 
 const MAX_IMAGES = 3;
 
@@ -57,7 +64,7 @@ const productSchema = z.object({
   description: z
     .string()
     .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
-  price: z.coerce.number().positive('O preço/taxa deve ser um número positivo.'),
+  price: z.coerce.number().positive('O preço deve ser um número positivo.'),
   category: z
     .string({ required_error: 'Selecione uma categoria.' })
     .min(1, 'Selecione uma categoria.'),
@@ -90,8 +97,7 @@ export default function NewProductPage() {
       if (!querySnapshot.empty) {
         setStoreId(querySnapshot.docs[0].id);
       } else {
-        toast.error('Você precisa criar uma loja antes de adicionar produtos.');
-        router.push('/vender/loja');
+        // This case is handled by the submit function now
       }
       setStoreLoading(false);
     }
@@ -111,10 +117,6 @@ export default function NewProductPage() {
     },
   });
   
-  const selectedCategory = form.watch('category');
-  const isService = selectedCategory === 'Serviços';
-
-
   const { fields: addonGroups, append: appendAddonGroup, remove: removeAddonGroup } = useFieldArray({
     control: form.control,
     name: "addonGroups",
@@ -149,16 +151,24 @@ export default function NewProductPage() {
   };
 
   async function onSubmit(values: z.infer<typeof productSchema>) {
-    if (!firestore || !user || !storeId) {
-      toast.error('Não foi possível identificar a loja ou o usuário.');
+    if (!firestore || !user) {
+      toast.error('Você precisa estar logado para criar um anúncio.');
       return;
+    }
+
+     // If there is no store, force creation first.
+    if (!storeId) {
+        toast.error('Finalize sua loja para começar a receber pedidos.');
+        sessionStorage.setItem('pendingProduct', JSON.stringify(values));
+        router.push('/vender/loja?finalizing=true');
+        return;
     }
 
     const isSubmitting = form.formState.isSubmitting;
     if (isSubmitting) return;
 
     try {
-      toast.loading('Enviando imagens e cadastrando item...');
+      toast.loading('Publicando anúncio...');
       const imageUrls = await Promise.all(
         values.images.map((file: File) => 
           uploadFile(file, `products/${storeId}`)
@@ -170,7 +180,7 @@ export default function NewProductPage() {
         imageHint: values.category.toLowerCase(),
       }));
       
-      const finalAddonGroups = isService ? [] : values.addonGroups?.map(group => ({
+      const finalAddonGroups = values.addonGroups?.map(group => ({
           ...group,
           id: group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
       }));
@@ -189,17 +199,17 @@ export default function NewProductPage() {
       });
       
       toast.dismiss();
-      toast.success(`O item "${values.name}" foi cadastrado com sucesso.`);
-      router.push(isService ? '/vender/servicos' : '/vender/produtos');
+      toast.success(`O produto "${values.name}" foi publicado com sucesso.`);
+      router.push('/vender/produtos');
 
     } catch (error) {
       console.error('Error creating product:', error);
       toast.dismiss();
-      toast.error('Não foi possível salvar o item. Tente novamente.');
+      toast.error('Não foi possível salvar o produto. Tente novamente.');
     }
   }
 
-  if (isUserLoading || isStoreLoading) {
+  if (isUserLoading) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
         <header className="flex items-center border-b p-4">
@@ -221,51 +231,23 @@ export default function NewProductPage() {
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender">
+          <Link href="/vender/selecionar-tipo">
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Anunciar Novo Item</h1>
+        <h1 className="mx-auto font-headline text-xl">Anunciar Produto</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-             <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {mockCategories.map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
             <FormField
               control={form.control}
               name="images"
               render={() => (
                 <FormItem>
                   <FormLabel>
-                    Fotos do {isService ? 'Serviço' : 'Produto'} ({imagePreviews.length}/{MAX_IMAGES})
+                    Fotos do Produto ({imagePreviews.length}/{MAX_IMAGES})
                   </FormLabel>
                   <FormControl>
                     <div className="grid grid-cols-3 gap-2">
@@ -309,121 +291,152 @@ export default function NewProductPage() {
                     </div>
                   </FormControl>
                   <FormDescription>
-                    Envie até {MAX_IMAGES} fotos.
+                    A primeira foto será a capa.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do {isService ? 'Serviço' : 'Produto'}</FormLabel>
+                  <FormLabel>Nome do Produto</FormLabel>
                   <FormControl>
-                    <Input placeholder={isService ? "Ex: Instalação Elétrica" : "Ex: Pão Artesanal"} {...field} />
+                    <Input placeholder={"Ex: Pão Artesanal"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={isService ? "Descreva os detalhes do seu serviço..." : "Descreva os detalhes do seu produto..."}
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            
             <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{isService ? 'Taxa de Visita/Contato (R$)' : 'Preço (R$)'}</FormLabel>
+                  <FormLabel>Preço (R$)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       step="0.01"
-                      placeholder={isService ? "Ex: 50.00" : "Ex: 15.50"}
+                      placeholder={"Ex: 15.50"}
                       {...field}
                     />
                   </FormControl>
-                  {isService && <FormDescription>Insira a taxa de visita ou contato inicial. O valor final pode ser negociado via chat.</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-             <FormField
+            <FormField
               control={form.control}
-              name="availability"
+              name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Disponibilidade</FormLabel>
+                  <FormLabel>Categoria</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a disponibilidade" />
+                        <SelectValue placeholder="Selecione uma categoria" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        <SelectItem value="available">Disponível (em estoque)</SelectItem>
-                        <SelectItem value="on_demand">Sob Encomenda</SelectItem>
-                        <SelectItem value="unavailable">Indisponível</SelectItem>
+                      {mockCategories.filter(c => c.name !== 'Serviços').map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            {!isService && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
-                  {addonGroups.map((group, groupIndex) => (
-                    <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Adicionar Grupo de Complementos
-                  </Button>
-                </div>
-              </>
-            )}
 
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger>
+                   <span className="text-base text-muted-foreground">Configurações avançadas (opcional)</span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-6 pt-4">
+                   <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição Detalhada</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={"Descreva os detalhes do seu produto..."}
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="availability"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Disponibilidade</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a disponibilidade" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              <SelectItem value="available">Disponível (em estoque)</SelectItem>
+                              <SelectItem value="on_demand">Sob Encomenda</SelectItem>
+                              <SelectItem value="unavailable">Indisponível</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Complementos</h3>
+                    {addonGroups.map((group, groupIndex) => (
+                      <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Adicionar Grupo de Complementos
+                    </Button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+            
             <Button
               type="submit"
               className="w-full"
               size="lg"
-              disabled={form.formState.isSubmitting || isStoreLoading || !selectedCategory}
+              disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Anunciando...</>
-                : `Anunciar ${isService ? 'Serviço' : 'Produto'}`}
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publicando...</>
+                : `Publicar Produto`}
             </Button>
           </form>
         </Form>

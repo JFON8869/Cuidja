@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -7,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
   collection,
@@ -37,14 +36,19 @@ import { OperatingHoursForm } from '@/components/vender/OperatingHoursForm';
 import { Separator } from '@/components/ui/separator';
 import { Store } from '@/lib/data';
 import { uploadFile } from '@/lib/storage';
+import { Textarea } from '@/components/ui/textarea';
 
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja deve ter pelo menos 3 caracteres.'),
   logo: z.any().optional(),
+  address: z.string().min(5, 'O endereço é obrigatório.'),
 });
 
 export default function StoreManagementPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFinalizing = searchParams.get('finalizing') === 'true';
+
   const { user, firestore, isUserLoading } = useFirebase();
   const [store, setStore] = React.useState<Store | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -55,6 +59,7 @@ export default function StoreManagementPage() {
     resolver: zodResolver(storeSchema),
     defaultValues: {
       name: '',
+      address: '',
     },
   });
 
@@ -80,6 +85,7 @@ export default function StoreManagementPage() {
         setStore(storeData);
         form.reset({
           name: storeData.name,
+          address: storeData.address || '',
         });
         if (storeData.logoUrl) {
           setLogoPreview(storeData.logoUrl);
@@ -128,6 +134,7 @@ export default function StoreManagementPage() {
         const storeData = {
             name: values.name,
             logoUrl: logoUrl,
+            address: values.address,
             userId: user.uid,
         };
 
@@ -135,14 +142,25 @@ export default function StoreManagementPage() {
             const storeRef = doc(firestore, 'stores', store.id);
             await updateDoc(storeRef, storeData);
             toast.success('Loja atualizada com sucesso!');
+            router.push('/vender');
         } else {
             const docRef = await addDoc(collection(firestore, 'stores'), {
               ...storeData,
               createdAt: new Date().toISOString(),
             });
             toast.success('Loja criada com sucesso!');
-            // After creation, redirect to the same page but now in "edit" mode
-            router.replace(`/vender/loja?id=${docRef.id}`);
+            if (isFinalizing) {
+                 toast.info('Agora publique seu primeiro anúncio!');
+                 const pendingProduct = sessionStorage.getItem('pendingProduct');
+                 if (pendingProduct) {
+                     sessionStorage.removeItem('pendingProduct');
+                     router.push('/vender/novo-produto'); // Or pass data
+                 } else {
+                    router.push('/vender/selecionar-tipo');
+                 }
+            } else {
+                router.push('/vender');
+            }
         }
         router.refresh(); 
 
@@ -180,11 +198,17 @@ export default function StoreManagementPage() {
           </Link>
         </Button>
         <h1 className="mx-auto font-headline text-xl">
-          {isEditing ? 'Editar Minha Loja' : 'Criar Minha Loja'}
+          {isEditing ? 'Editar Minha Loja' : 'Finalize sua Loja'}
         </h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
+       {isFinalizing && !isEditing && (
+         <div className="mb-6 rounded-lg border border-accent/50 bg-accent/10 p-4 text-center text-accent-foreground">
+            <p className="font-semibold">Último passo!</p>
+            <p className="text-sm">Preencha os dados da sua loja para que seu anúncio seja publicado e você possa começar a vender.</p>
+         </div>
+       )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
@@ -254,6 +278,20 @@ export default function StoreManagementPage() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Endereço / Base de Atuação</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="O endereço principal da sua loja ou a área que você atende." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <Button
               type="submit"
               className="w-full"
@@ -263,7 +301,7 @@ export default function StoreManagementPage() {
               {form.formState.isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              {isEditing ? 'Salvar Nome e Logo' : 'Criar Loja'}
+              {isEditing ? 'Salvar Alterações' : 'Salvar e Publicar Anúncio'}
             </Button>
           </form>
         </Form>
