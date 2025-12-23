@@ -14,11 +14,9 @@ import {
   doc,
   getDoc,
   updateDoc,
-  writeBatch,
   query,
   where,
   getDocs,
-  arrayUnion,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -70,20 +68,26 @@ const updateUserStoreCategories = async (firestore: any, storeId: string) => {
     where('type', '==', 'PRODUCT')
   );
 
-  const querySnapshot = await getDocs(q);
-  // Using a Set to get unique category names
-  const categories = new Set(
-    querySnapshot.docs.map((doc) => doc.data().category)
-  );
+  try {
+    const querySnapshot = await getDocs(q);
+    // Using a Set to get unique category names
+    const categories = new Set(
+      querySnapshot.docs.map((doc) => doc.data().category)
+    );
 
-  const storeRef = doc(firestore, 'stores', storeId);
-  await updateDoc(storeRef, {
-    categories: Array.from(categories),
-  });
+    const storeRef = doc(firestore, 'stores', storeId);
+    await updateDoc(storeRef, {
+      categories: Array.from(categories),
+    });
+  } catch (error) {
+    console.error("Failed to update store categories:", error);
+    // Optionally throw the error to be caught by the calling function
+    throw error;
+  }
 };
 
 export function ProductForm({ productId }: ProductFormProps) {
-  const { user, firestore, isUserLoading, store, isStoreLoading } =
+  const { user, firestore, auth, isUserLoading, store, isStoreLoading } =
     useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -176,25 +180,27 @@ export function ProductForm({ productId }: ProductFormProps) {
   };
 
   async function onSubmit(values: ProductFormValues) {
-    if (!firestore || !user || !store) {
-      toast.error('É necessário ter uma loja para criar um anúncio.');
+    if (!firestore || !auth?.currentUser || !store) {
+      toast.error('É necessário estar autenticado e ter uma loja para criar um anúncio.');
       return;
     }
 
+    const uid = auth.currentUser.uid;
     setIsSubmitting(true);
     let success = false;
 
     const dataToSave = {
-        name: values.name,
-        description: values.description || '',
-        price: Number(values.price),
-        category: values.category,
-        availability: values.availability,
-        storeId: store.id,
-        sellerId: user.uid,
-        type: 'PRODUCT' as const,
-        createdAt: serverTimestamp(),
-      };
+      name: values.name,
+      description: values.description || '',
+      price: Number(values.price),
+      category: values.category,
+      availability: values.availability,
+      storeId: store.id,
+      sellerId: uid,
+      type: 'PRODUCT' as const,
+      createdAt: serverTimestamp(),
+      addons: [], // Ensure addons is an empty array
+    };
     
     try {
       if (isEditing && productId) {
@@ -211,12 +217,12 @@ export function ProductForm({ productId }: ProductFormProps) {
       console.error('Error saving product:', error);
       toast.error('Não foi possível salvar o produto. Tente novamente.');
     } finally {
+      setIsSubmitting(false);
       if (success) {
         toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
         router.push('/vender/produtos');
         router.refresh();
       }
-      setIsSubmitting(false);
     }
   }
 
@@ -374,7 +380,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             />
 
             <Separator />
-
+            
             <Button
               type="submit"
               className="w-full"

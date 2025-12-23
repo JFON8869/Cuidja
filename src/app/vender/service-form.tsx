@@ -56,7 +56,7 @@ interface ServiceFormProps {
 }
 
 export function ServiceForm({ serviceId }: ServiceFormProps) {
-  const { user, firestore, isUserLoading, store, isStoreLoading } =
+  const { user, firestore, auth, isUserLoading, store, isStoreLoading } =
     useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,11 +101,12 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
   }, [firestore, serviceId, form, router, isEditing]);
 
   async function onSubmit(values: ServiceFormValues) {
-    if (!firestore || !user || !store) {
-      toast.error('Erro de autenticação ou loja não encontrada.');
+    if (!firestore || !auth?.currentUser || !store) {
+      toast.error('É necessário estar autenticado e ter uma loja para criar um anúncio.');
       return;
     }
 
+    const uid = auth.currentUser.uid;
     setIsSubmitting(true);
     let success = false;
     
@@ -116,7 +117,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         price: Number(values.price),
         attendanceType: values.attendanceType,
         storeId: store.id,
-        sellerId: user.uid,
+        sellerId: uid,
         type: 'SERVICE' as const,
         category: 'Serviços',
         availability: 'on_demand' as const,
