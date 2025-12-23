@@ -3,15 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft,
-  PlusCircle,
-  Trash2,
   Loader2,
-  X,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -46,9 +43,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
 
 const productSchema = z.object({
@@ -86,9 +81,10 @@ export function ProductForm({ productId }: ProductFormProps) {
   });
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (isUserLoading || isStoreLoading) return;
+    if (!user) {
       router.push('/login?redirect=/vender');
-    } else if (!isStoreLoading && !store) {
+    } else if (!store) {
       router.push('/vender/loja');
     }
   }, [isUserLoading, user, isStoreLoading, store, router]);
@@ -171,6 +167,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
+        addons: [],
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,

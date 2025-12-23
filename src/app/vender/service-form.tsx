@@ -73,9 +73,10 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
   });
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (isUserLoading || isStoreLoading) return;
+    if (!user) {
       router.push('/login?redirect=/vender');
-    } else if (!isStoreLoading && !store) {
+    } else if (!store) {
       router.push('/vender/loja');
     }
   }, [isUserLoading, user, isStoreLoading, store, router]);
@@ -111,7 +112,6 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         description: values.description || '',
         price: Number(values.price),
         attendanceType: values.attendanceType,
-        images: [], // Images are not part of service form
         storeId: store.id,
         sellerId: user.uid,
         type: 'SERVICE' as const,
