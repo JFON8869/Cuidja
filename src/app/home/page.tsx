@@ -100,17 +100,10 @@ export default function Home() {
                 <Link
                   href={`/categorias/${category.slug}`}
                   key={category.id}
-                  className="flex flex-col items-center gap-2 text-center"
+                  className="flex flex-col items-center justify-center gap-2 rounded-xl bg-category-card p-2 text-center aspect-square shadow-sm transition-all hover:shadow-md"
                 >
-                  <div
-                    className={cn(
-                      'flex h-16 w-16 items-center justify-center rounded-xl border bg-card shadow-sm',
-                      'bg-green-500' // Example color, can be dynamic
-                    )}
-                  >
-                    <category.Icon className="h-8 w-8 text-white" />
-                  </div>
-                  <span className="text-xs font-medium leading-tight text-muted-foreground">
+                  <category.Icon className="h-8 w-8 text-slate-700" />
+                  <span className="text-xs font-medium leading-tight text-slate-600">
                     {category.name}
                   </span>
                 </Link>
