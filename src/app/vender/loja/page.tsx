@@ -31,18 +31,65 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Clock } from 'lucide-react';
 import { Store } from '@/lib/data';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { OperatingHoursForm } from '@/components/vender/OperatingHoursForm';
+
+const dayHoursSchema = z.object({
+  isOpen: z.boolean(),
+  open: z.string(),
+  close: z.string(),
+});
 
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja é obrigatório.'),
   address: z.string().min(10, 'O endereço é obrigatório.'),
   logoUrl: z.string().url('URL do logo inválida.').optional().or(z.literal('')),
+  operatingHours: z.object({
+    sun: dayHoursSchema,
+    mon: dayHoursSchema,
+    tue: dayHoursSchema,
+    wed: dayHoursSchema,
+    thu: dayHoursSchema,
+    fri: dayHoursSchema,
+    sat: dayHoursSchema,
+  }).optional(),
+}).refine(data => {
+    if (data.operatingHours) {
+        for (const day of Object.values(data.operatingHours)) {
+            if (day.isOpen && (!day.open || !day.close)) {
+                return false; // Invalid if open but times are missing
+            }
+        }
+    }
+    return true;
+}, {
+    message: "Horários de abertura e fechamento são obrigatórios para dias marcados como abertos.",
+    path: ['operatingHours'],
 });
 
+
 type StoreFormValues = z.infer<typeof storeSchema>;
+
+// Helper to generate default hours for a new store
+const getDefaultOperatingHours = () => {
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const hours: any = {};
+    days.forEach(day => {
+        hours[day] = { isOpen: day !== 'sun', open: '09:00', close: '18:00' };
+    });
+    return hours;
+}
+
 
 export default function StoreFormPage() {
   const { user, firestore, isUserLoading } = useFirebase();
@@ -52,28 +99,40 @@ export default function StoreFormPage() {
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeSchema),
-    defaultValues: { name: '', address: '', logoUrl: '' },
+    defaultValues: {
+      name: '',
+      address: '',
+      logoUrl: '',
+      operatingHours: getDefaultOperatingHours(),
+    },
   });
 
   useEffect(() => {
     if (isUserLoading) return;
     if (!user) {
-        router.push('/login?redirect=/vender');
-        return;
+      router.push('/login?redirect=/vender');
+      return;
     }
 
     const fetchStore = async () => {
-        if (!firestore || !user) return;
-        setIsLoading(true);
-        const q = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const storeDoc = querySnapshot.docs[0];
-            const storeData = { id: storeDoc.id, ...storeDoc.data() } as Store;
-            setStore(storeData);
-            form.reset(storeData);
-        }
-        setIsLoading(false);
+      if (!firestore || !user) return;
+      setIsLoading(true);
+      const q = query(
+        collection(firestore, 'stores'),
+        where('userId', '==', user.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const storeDoc = querySnapshot.docs[0];
+        const storeData = { id: storeDoc.id, ...storeDoc.data() } as Store;
+        setStore(storeData);
+        // Ensure operatingHours is not undefined when resetting form
+        form.reset({
+            ...storeData,
+            operatingHours: storeData.operatingHours || getDefaultOperatingHours()
+        });
+      }
+      setIsLoading(false);
     };
     fetchStore();
   }, [user, firestore, isUserLoading, router, form]);
@@ -84,16 +143,18 @@ export default function StoreFormPage() {
     if (!user || !firestore) return;
 
     try {
+      const dataToSave = { ...values };
+      
       if (store) {
         // Update existing store
         const storeRef = doc(firestore, 'stores', store.id);
-        await updateDoc(storeRef, values);
+        await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
         // Create new store
         const newStoreRef = doc(collection(firestore, 'stores'));
         const newStore = {
-          ...values,
+          ...dataToSave,
           id: newStoreRef.id,
           userId: user.uid,
           createdAt: serverTimestamp(),
@@ -102,96 +163,130 @@ export default function StoreFormPage() {
         toast.success('Sua loja foi criada!');
       }
       router.push('/vender');
-      router.refresh(); // Forces a refresh to fetch new store data on the dashboard
+      router.refresh();
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
     }
   };
-  
-    if (isLoading || isUserLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        )
-    }
+
+  if (isLoading || isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-        <header className="flex items-center border-b p-4">
-            <Button variant="ghost" size="icon" asChild>
-            <Link href="/vender">
-                <ArrowLeft />
-            </Link>
-            </Button>
-            <h1 className="mx-auto font-headline text-xl">
-                {store ? 'Editar Loja' : 'Criar Sua Loja'}
-            </h1>
-            <div className="w-10"></div>
-        </header>
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-12 shadow-2xl">
+      <header className="flex items-center border-b p-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/vender">
+            <ArrowLeft />
+          </Link>
+        </Button>
+        <h1 className="mx-auto font-headline text-xl">
+          {store ? 'Editar Loja' : 'Criar Sua Loja'}
+        </h1>
+        <div className="w-10"></div>
+      </header>
 
-        <main className="flex-1 overflow-y-auto p-4">
+      <main className="flex-1 overflow-y-auto p-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>
-                <CardHeader>
-                    <CardTitle>{store ? 'Atualize os dados' : 'Informações da Loja'}</CardTitle>
-                    <CardDescription>
-                        {store ? 'Mantenha as informações da sua loja sempre atualizadas.' : 'Estes são os dados que seus clientes verão. Capriche!'}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Nome da Loja</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Ex: Cantinho da Vovó" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
+              <CardHeader>
+                <CardTitle>
+                  {store ? 'Atualize os dados' : 'Informações da Loja'}
+                </CardTitle>
+                <CardDescription>
+                  {store
+                    ? 'Mantenha as informações da sua loja sempre atualizadas.'
+                    : 'Estes são os dados que seus clientes verão. Capriche!'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome da Loja</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Cantinho da Vovó" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Rua, número, bairro e cidade"
+                          {...field}
                         />
-                        <FormField
-                        control={form.control}
-                        name="address"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Endereço</FormLabel>
-                            <FormControl>
-                                <Textarea placeholder="Rua, número, bairro e cidade" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="logoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>URL do Logo (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="https://exemplo.com/logo.png"
+                          {...field}
                         />
-                         <FormField
-                        control={form.control}
-                        name="logoUrl"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>URL do Logo (Opcional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="https://exemplo.com/logo.png" {...field} />
-                            </FormControl>
-                            <FormDescription>Cole o link de uma imagem para ser o logo da sua loja.</FormDescription>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-
-                        <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {store ? 'Salvar Alterações' : 'Criar Loja e Ir para o Painel'}
-                        </Button>
-                    </form>
-                    </Form>
-                </CardContent>
+                      </FormControl>
+                      <FormDescription>
+                        Cole o link de uma imagem para ser o logo da sua loja.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
             </Card>
-        </main>
+
+            <Separator />
+
+            <Card>
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5"/>
+                    Horários de Funcionamento
+                  </CardTitle>
+                  <CardDescription>
+                    Selecione os dias e horários em que sua loja está aberta.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OperatingHoursForm />
+              </CardContent>
+            </Card>
+
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {store ? 'Salvar Alterações' : 'Criar Loja e Ir para o Painel'}
+            </Button>
+          </form>
+        </Form>
+      </main>
     </div>
   );
 }
