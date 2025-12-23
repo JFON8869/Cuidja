@@ -1,11 +1,10 @@
 
 'use client';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Bell } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Bell, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useCollection, WithId } from '@/firebase/firestore/use-collection';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -17,30 +16,82 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
 
-interface Order extends WithId<any> {
+interface CombinedItem {
   id: string;
-  orderDate: string;
-  items: any[]; // Changed from productIds
+  date: string;
+  items: any[];
   status: string;
-  totalAmount: number;
-  buyerHasUnread?: boolean; // Changed from buyerHasUnreadMessages
+  totalAmount?: number;
+  buyerHasUnread?: boolean;
+  type: 'order' | 'service';
+  name: string;
 }
 
 export default function OrdersPage() {
   const { firestore, user, isUserLoading } = useFirebase();
+  const [combinedList, setCombinedList] = useState<CombinedItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('customerId', '==', user.uid),
-      orderBy('orderDate', 'desc')
-    );
-  }, [firestore, user]);
+  useEffect(() => {
+    if (isUserLoading || !user || !firestore) {
+      if (!isUserLoading) setIsLoading(false);
+      return;
+    }
 
-  const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+    const fetchAll = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch Orders
+        const ordersQuery = query(
+          collection(firestore, 'orders'),
+          where('customerId', '==', user.uid),
+          orderBy('orderDate', 'desc')
+        );
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const orders = ordersSnapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id,
+          type: 'order' as const,
+          date: doc.data().orderDate,
+          name: `Pedido #${doc.id.substring(0, 7)}`,
+        }));
 
+        // Fetch Service Requests
+        const requestsQuery = query(
+          collection(firestore, 'serviceRequests'),
+          where('customerId', '==', user.uid),
+          orderBy('requestDate', 'desc')
+        );
+        const requestsSnapshot = await getDocs(requestsQuery);
+        const requests = requestsSnapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id,
+          type: 'service' as const,
+          date: doc.data().requestDate,
+          name: `Solicitação: ${doc.data().serviceName}`,
+          items: [{ name: doc.data().serviceName }], // Normalize for display
+        }));
+        
+        // Combine and sort
+        const allItems = [...orders, ...requests];
+        allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setCombinedList(allItems as CombinedItem[]);
+
+      } catch (error) {
+        console.error("Failed to fetch user's orders and requests:", error);
+        toast.error("Não foi possível carregar seu histórico.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAll();
+
+  }, [firestore, user, isUserLoading]);
+  
   const renderSkeleton = () => (
     <div className="space-y-4 p-4">
       {[...Array(3)].map((_, i) => (
@@ -73,7 +124,7 @@ export default function OrdersPage() {
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto">
-        {isUserLoading || isLoading ? (
+        {isLoading ? (
           renderSkeleton()
         ) : !user ? (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
@@ -87,26 +138,36 @@ export default function OrdersPage() {
               <Link href="/login">Fazer Login</Link>
             </Button>
           </div>
-        ) : orders && orders.length > 0 ? (
+        ) : combinedList && combinedList.length > 0 ? (
           <div className="space-y-4 p-4">
-            {orders.map((order) => (
-              <Link key={order.id} href={`/pedidos/${order.id}`} passHref>
+            {combinedList.map((item) => {
+              const href = item.type === 'order' 
+                ? `/pedidos/${item.id}` 
+                : `/pedidos/${item.id}?type=service`;
+
+              return (
+              <Link key={item.id} href={href} passHref>
                 <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
                   <CardHeader>
                     <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">
-                          Pedido #{order.id.substring(0, 7)}
-                        </CardTitle>
-                        <CardDescription>
-                          {format(
-                            new Date(order.orderDate),
-                            "dd 'de' MMMM 'de' yyyy, 'às' HH:mm",
-                            { locale: ptBR }
-                          )}
-                        </CardDescription>
-                      </div>
-                       {order.buyerHasUnread && (
+                       <div className="flex items-center gap-3">
+                         <div className="flex-shrink-0">
+                           {item.type === 'order' ? <ShoppingBag className="h-6 w-6 text-muted-foreground" /> : <Briefcase className="h-6 w-6 text-muted-foreground" />}
+                         </div>
+                         <div>
+                            <CardTitle className="text-lg">
+                              {item.name}
+                            </CardTitle>
+                            <CardDescription>
+                              {format(
+                                new Date(item.date),
+                                "dd 'de' MMMM 'de' yyyy, 'às' HH:mm",
+                                { locale: ptBR }
+                              )}
+                            </CardDescription>
+                         </div>
+                       </div>
+                       {item.buyerHasUnread && (
                         <div className="relative">
                           <Bell className="h-5 w-5 text-accent" />
                           <span className="absolute -right-1 -top-1 flex h-3 w-3">
@@ -117,34 +178,36 @@ export default function OrdersPage() {
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p>Itens: {order.items.length}</p>
+                  <CardContent className="space-y-2 text-sm pl-14">
                     <p className="text-muted-foreground">
                       Status:{' '}
                       <span className="font-semibold text-accent">
-                        {order.status}
+                        {item.status}
                       </span>
                     </p>
                   </CardContent>
-                  <CardFooter className="flex items-center justify-between font-bold">
-                    <span>Total</span>
-                    <span>
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format(order.totalAmount)}
-                    </span>
-                  </CardFooter>
+                  {item.type === 'order' && (
+                    <CardFooter className="flex items-center justify-between font-bold pl-14">
+                        <span>Total</span>
+                        <span>
+                        {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                        }).format(item.totalAmount || 0)}
+                        </span>
+                    </CardFooter>
+                  )}
                 </Card>
               </Link>
-            ))}
+              )
+            })}
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
             <ShoppingBag className="mb-4 h-16 w-16 text-muted-foreground" />
             <h2 className="mb-2 text-2xl font-bold">Nenhum pedido realizado</h2>
             <p className="mb-4 text-muted-foreground">
-              Quando você fizer uma compra, seus pedidos aparecerão aqui.
+              Quando você fizer uma compra ou solicitação, seu histórico aparecerá aqui.
             </p>
             <Button asChild>
               <Link href="/home">Começar a comprar</Link>

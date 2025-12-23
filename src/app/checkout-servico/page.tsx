@@ -110,22 +110,15 @@ export default function ServiceCheckoutPage() {
     }
     
     try {
-        const ordersCollection = collection(firestore, 'orders');
+        const requestsCollection = collection(firestore, 'serviceRequests');
         
-        const orderData = {
+        const requestData = {
             customerId: user.uid,
             storeId: storeId,
-            orderType: 'SERVICE_REQUEST', // V2 Data Model
-            items: [{
-                id: service.id,
-                name: service.name,
-                price: service.price,
-                quantity: 1,
-                selectedAddons: []
-            }],
-            totalAmount: service.price,
-            status: 'Solicitação Recebida', // V2: Use a enum de ServiceRequestStatus
-            orderDate: new Date().toISOString(),
+            serviceId: service.id,
+            serviceName: service.name,
+            status: 'Solicitação recebida', 
+            requestDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
                 street: values.address,
@@ -144,9 +137,9 @@ export default function ServiceCheckoutPage() {
             buyerHasUnread: false
         }
         
-        const docRef = await addDoc(ordersCollection, orderData);
+        const docRef = await addDoc(requestsCollection, requestData);
         toast.success('Sua solicitação de contato foi enviada! Acompanhe pelo chat.');
-        router.push(`/pedidos/${docRef.id}`);
+        router.push(`/pedidos/${docRef.id}?type=service`); // Add type to handle in detail page
 
     } catch(error) {
         console.error("Error creating service request: ", error);

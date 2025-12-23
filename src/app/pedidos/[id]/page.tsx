@@ -1,8 +1,8 @@
 
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useRef, useState, useMemo } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Send, User as UserIcon, Phone, MapPin, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -48,25 +48,32 @@ interface OrderItem {
   quantity: number;
 }
 
-interface Order {
+// This can represent both an Order and a ServiceRequest for simplicity in the component state
+interface GenericRequest {
   id: string;
-  orderDate: string;
+  date: string; // Combined field for orderDate or requestDate
   items: OrderItem[];
   status: string;
-  totalAmount: number;
+  totalAmount?: number; // Optional for services
   customerId: string; 
   storeId: string;
-  messages?: any[]; // Legacy field for migration
+  messages?: any[]; // Legacy field
   sellerHasUnread?: boolean;
   buyerHasUnread?: boolean;
   shippingAddress?: Address;
   phone?: string;
+  type: 'order' | 'service'; // To distinguish the type
 }
 
 export default function OrderDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { id } = params;
+  
+  const type = searchParams.get('type') === 'service' ? 'service' : 'order';
+  const collectionName = type === 'service' ? 'serviceRequests' : 'orders';
+
   const { firestore, user, isUserLoading } = useFirebase();
   const [newMessage, setNewMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,65 +81,45 @@ export default function OrderDetailPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // --- Data Fetching ---
-  const orderRef = useMemoFirebase(() => {
+  const requestRef = useMemoFirebase(() => {
     if (!firestore || !id) return null;
-    return doc(firestore, 'orders', id as string);
-  }, [firestore, id]);
+    return doc(firestore, collectionName, id as string);
+  }, [firestore, id, collectionName]);
 
-  const { data: order, isLoading: isOrderLoading, error: orderError } = useDoc<WithId<Order>>(orderRef);
+  const { data: requestData, isLoading: isRequestLoading, error: requestError } = useDoc<any>(requestRef);
   
   const messagesQuery = useMemoFirebase(() => {
-    if (!orderRef) return null;
-    return query(collection(orderRef, 'messages'), orderBy('timestamp', 'asc'), limit(50));
-  }, [orderRef]);
+    if (!requestRef) return null;
+    return query(collection(requestRef, 'messages'), orderBy('timestamp', 'asc'), limit(50));
+  }, [requestRef]);
 
   const { data: messages, isLoading: areMessagesLoading } = useCollection<Message>(messagesQuery);
   
-  // --- Migration Logic ---
-  useEffect(() => {
-    const migrateLegacyMessages = async () => {
-        if (!firestore || !orderRef || !order || !order.messages || order.messages.length === 0) {
-            return;
-        }
-
-        toast.loading('Atualizando estrutura do chat...');
-        
-        try {
-            const batch = writeBatch(firestore);
-            const messagesColRef = collection(orderRef, 'messages');
-
-            order.messages.forEach((msg: any) => {
-                const newMsgRef = doc(messagesColRef);
-                batch.set(newMsgRef, {
-                    ...msg,
-                    timestamp: new Date(msg.timestamp) // Convert ISO string to Firebase Timestamp
-                });
-            });
-
-            // After adding all messages to the new subcollection, remove the old array
-            batch.update(orderRef, { messages: [] }); // Or delete(field) if you prefer
-            
-            await batch.commit();
-            toast.dismiss();
-            toast.success('Chat atualizado com sucesso!');
-        } catch (err) {
-            toast.dismiss();
-            toast.error('Não foi possível atualizar a estrutura do chat.');
-            console.error("Error migrating messages:", err);
-        }
-    };
-
-    if (order) {
-        migrateLegacyMessages();
+  const request = useMemo((): GenericRequest | null => {
+    if (!requestData) return null;
+    if (type === 'service') {
+        return {
+            ...requestData,
+            id: requestData.id,
+            date: requestData.requestDate,
+            items: [{ id: requestData.serviceId, name: requestData.serviceName, price: 0, quantity: 1 }],
+            type: 'service'
+        };
     }
-  }, [order, orderRef, firestore]);
+    return {
+        ...requestData,
+        id: requestData.id,
+        date: requestData.orderDate,
+        type: 'order'
+    };
+  }, [requestData, type]);
   
 
   // --- User & Role Logic ---
   useEffect(() => {
     const checkSeller = async () => {
-        if (user && firestore && order?.storeId) {
-            const storeRef = doc(firestore, 'stores', order.storeId);
+        if (user && firestore && request?.storeId) {
+            const storeRef = doc(firestore, 'stores', request.storeId);
             const storeSnap = await getDoc(storeRef);
             if (storeSnap.exists() && storeSnap.data().userId === user.uid) {
                 setIsSeller(true);
@@ -143,10 +130,10 @@ export default function OrderDetailPage() {
             setIsSeller(false);
         }
     };
-    if (!isUserLoading && user && order) {
+    if (!isUserLoading && user && request) {
         checkSeller();
     }
-  }, [user, firestore, order, isUserLoading]);
+  }, [user, firestore, request, isUserLoading]);
 
   // --- Effects for UI ---
   const scrollToBottom = () => {
@@ -157,32 +144,32 @@ export default function OrderDetailPage() {
       scrollToBottom();
   }, [messages]);
 
-  // Mark order as read when viewing
+  // Mark request as read when viewing
   useEffect(() => {
-    if (!orderRef || !order || !user || isSeller === undefined) return;
+    if (!requestRef || !request || !user || isSeller === undefined) return;
     
-    const isBuyer = user.uid === order.customerId;
+    const isBuyer = user.uid === request.customerId;
     let payload = {};
 
-    if (isBuyer && order.buyerHasUnread) {
+    if (isBuyer && request.buyerHasUnread) {
         payload = { buyerHasUnread: false };
-    } else if (isSeller && order.sellerHasUnread) {
+    } else if (isSeller && request.sellerHasUnread) {
         payload = { sellerHasUnread: false };
     }
 
     if (Object.keys(payload).length > 0) {
-        updateDoc(orderRef, payload).catch(err => console.error("Failed to mark order as read:", err));
+        updateDoc(requestRef, payload).catch(err => console.error("Failed to mark as read:", err));
     }
-  }, [order, user, orderRef, isSeller]);
+  }, [request, user, requestRef, isSeller]);
   
   // --- Event Handlers ---
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
-    if (!firestore || !user || !orderRef || !newMessage.trim()) return;
+    if (!firestore || !user || !requestRef || !newMessage.trim()) return;
     
     setIsSubmitting(true);
 
-    const messagesColRef = collection(orderRef, 'messages');
+    const messagesColRef = collection(requestRef, 'messages');
     
     const messagePayload = {
       senderId: user.uid,
@@ -190,7 +177,7 @@ export default function OrderDetailPage() {
       timestamp: serverTimestamp(),
     };
     
-    const isBuyer = user.uid === order?.customerId;
+    const isBuyer = user.uid === request?.customerId;
     const updatePayload = {
       lastMessageTimestamp: serverTimestamp(),
       ...(isBuyer 
@@ -201,7 +188,7 @@ export default function OrderDetailPage() {
 
     try {
       await addDoc(messagesColRef, messagePayload);
-      await updateDoc(orderRef, updatePayload);
+      await updateDoc(requestRef, updatePayload);
       setNewMessage('');
     } catch (err) {
       console.error("Error sending message: ", err);
@@ -221,17 +208,17 @@ export default function OrderDetailPage() {
   };
 
   // --- Render Logic ---
-  const isLoading = isOrderLoading || isUserLoading;
+  const isLoading = isRequestLoading || isUserLoading;
 
   if (isLoading) {
     return <OrderDetailSkeleton />;
   }
 
-  if (orderError || !order) {
+  if (requestError || !request) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center p-4 text-center">
-        <h2 className="text-2xl font-bold">Pedido não encontrado</h2>
-        <p className="text-muted-foreground">O pedido que você está procurando não existe ou você não tem permissão para vê-lo.</p>
+        <h2 className="text-2xl font-bold">Solicitação não encontrada</h2>
+        <p className="text-muted-foreground">O item que você está procurando não existe ou você não tem permissão para vê-lo.</p>
         <Button asChild variant="link">
           <Link href="/pedidos">Voltar para Meus Pedidos</Link>
         </Button>
@@ -239,7 +226,7 @@ export default function OrderDetailPage() {
     );
   }
   
-  const isBuyer = user?.uid === order.customerId;
+  const isBuyer = user?.uid === request.customerId;
   
   if (!isUserLoading && !isBuyer && !isSeller) {
      router.push('/login');
@@ -266,52 +253,54 @@ export default function OrderDetailPage() {
           </Link>
         </Button>
         <h1 className="mx-auto font-headline text-xl">
-          Pedido #{order.id.substring(0, 7)}
+          {type === 'order' ? 'Pedido' : 'Solicitação'} #{request.id.substring(0, 7)}
         </h1>
         <div className="w-10"></div>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
         {isSeller ? (
-            <StatusUpdater order={order} orderRef={orderRef} />
+            <StatusUpdater request={request} requestRef={requestRef} type={type} />
         ) : (
             <Card>
             <CardHeader>
-                <CardTitle>Detalhes do Pedido</CardTitle>
+                <CardTitle>Detalhes da {type === 'order' ? 'Compra' : 'Solicitação'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-                <p><strong>Data:</strong> {format(new Date(order.orderDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                <p><strong>Status:</strong> <span className="font-semibold text-accent">{order.status}</span></p>
-                <p><strong>Itens:</strong> {order.items?.length || 'N/A'}</p>
-                <p><strong>Total:</strong> 
-                    <span className="font-bold">
-                        {' '}{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.totalAmount)}
-                    </span>
-                </p>
+                <p><strong>Data:</strong> {format(new Date(request.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                <p><strong>Status:</strong> <span className="font-semibold text-accent">{request.status}</span></p>
+                <p><strong>Item:</strong> {request.items[0]?.name || 'N/A'}</p>
+                {request.type === 'order' && request.totalAmount && (
+                    <p><strong>Total:</strong> 
+                        <span className="font-bold">
+                            {' '}{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(request.totalAmount)}
+                        </span>
+                    </p>
+                )}
             </CardContent>
             </Card>
         )}
         
-        {isSeller && order.shippingAddress && (
+        {isSeller && request.shippingAddress && (
              <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <MapPin className="h-5 w-5" />
-                        Informações de Entrega
+                        Informações do Cliente
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
                    <p className="flex items-center gap-2">
                      <UserIcon className="h-4 w-4 text-muted-foreground" />
-                     <strong>{order.shippingAddress.name}</strong>
+                     <strong>{request.shippingAddress.name}</strong>
                     </p>
-                    {order.phone && (
+                    {request.phone && (
                         <p className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-muted-foreground" />
-                            {order.phone}
+                            {request.phone}
                         </p>
                     )}
-                    <p className="pt-2">{order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.zip}</p>
+                    <p className="pt-2">{request.shippingAddress.street}, {request.shippingAddress.city}, {request.shippingAddress.zip}</p>
                 </CardContent>
             </Card>
         )}

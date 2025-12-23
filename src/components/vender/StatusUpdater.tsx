@@ -15,7 +15,6 @@ import { toast } from 'react-hot-toast';
 import { WithId } from '@/firebase/firestore/use-doc';
 
 const orderStatusOptions = [
-  'Solicitação de Contato',
   'Pendente',
   'Confirmado',
   'Em Preparo',
@@ -24,33 +23,45 @@ const orderStatusOptions = [
   'Cancelado',
 ];
 
-interface Order {
+const serviceStatusOptions = [
+  'Solicitação recebida',
+  'Em conversa',
+  'Orçamento enviado',
+  'Em execução',
+  'Concluído',
+  'Cancelado',
+];
+
+interface Request {
   id: string;
   status: string;
 }
 
 interface StatusUpdaterProps {
-  order: WithId<Order>;
-  orderRef: DocumentReference;
+  request: WithId<Request>;
+  requestRef: DocumentReference;
+  type: 'order' | 'service';
 }
 
-export default function StatusUpdater({ order, orderRef }: StatusUpdaterProps) {
-  const [currentStatus, setCurrentStatus] = React.useState(order.status);
+export default function StatusUpdater({ request, requestRef, type }: StatusUpdaterProps) {
+  const [currentStatus, setCurrentStatus] = React.useState(request.status);
   const [isUpdating, setIsUpdating] = React.useState(false);
+
+  const statusOptions = type === 'order' ? orderStatusOptions : serviceStatusOptions;
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === currentStatus) return;
     setIsUpdating(true);
     try {
-      await updateDoc(orderRef, {
+      await updateDoc(requestRef, {
         status: newStatus,
         buyerHasUnread: true, // Notify the buyer
       });
       setCurrentStatus(newStatus);
-      toast.success(`O pedido foi marcado como "${newStatus}".`);
+      toast.success(`O status foi atualizado para "${newStatus}".`);
     } catch (error) {
-      console.error('Failed to update order status:', error);
-      toast.error('Não foi possível alterar o status do pedido.');
+      console.error('Failed to update status:', error);
+      toast.error('Não foi possível alterar o status.');
     } finally {
       setIsUpdating(false);
     }
@@ -59,12 +70,12 @@ export default function StatusUpdater({ order, orderRef }: StatusUpdaterProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Gerenciar Pedido</CardTitle>
+        <CardTitle>Gerenciar {type === 'order' ? 'Pedido' : 'Solicitação'}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">
-            Alterar status do pedido
+            Alterar status
           </p>
           <Select
             value={currentStatus}
@@ -75,7 +86,7 @@ export default function StatusUpdater({ order, orderRef }: StatusUpdaterProps) {
               <SelectValue placeholder="Selecione um status" />
             </SelectTrigger>
             <SelectContent>
-              {orderStatusOptions.map((status) => (
+              {statusOptions.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status}
                 </SelectItem>
