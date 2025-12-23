@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Shield,
   Cloud,
-  Broom,
+  Trash,
   Loader2,
 } from 'lucide-react';
 import { collection, getDocs, writeBatch } from 'firebase/firestore';
@@ -186,7 +186,7 @@ export default function ProfilePage() {
                 </Link>
             ))}
             <div className="border-t p-4 flex items-center gap-4">
-                <Broom className="w-5 h-5 text-muted-foreground" />
+                <Trash className="w-5 h-5 text-muted-foreground" />
                 <span className="flex-1 text-base">Limpar Dados Antigos</span>
                 <Button onClick={handleCleanup} disabled={isCleaning} size="sm" variant="destructive">
                     {isCleaning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
