@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { mockCategories, ImagePlaceholder } from '@/lib/data';
-import { useFirebase } from '@/firebase';
+import { useFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -195,7 +195,7 @@ export default function EditProductPage() {
             id: group.id || group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
         }));
 
-        await updateDoc(productRef, {
+        const updateData = {
             name: values.name,
             description: values.description,
             price: values.price,
@@ -203,15 +203,31 @@ export default function EditProductPage() {
             addons: finalAddonGroups || [],
             images: finalImages,
             availability: values.availability,
-        });
+        };
 
-        toast.dismiss();
-        toast.success(`O item "${values.name}" foi atualizado com sucesso.`);
-        router.push(isService ? '/vender/servicos' : '/vender/produtos');
-        router.refresh();
+        updateDoc(productRef, updateData)
+            .then(() => {
+                toast.dismiss();
+                toast.success(`O item "${values.name}" foi atualizado com sucesso.`);
+                router.push(isService ? '/vender/servicos' : '/vender/produtos');
+                router.refresh();
+            })
+            .catch((error) => {
+                toast.dismiss();
+                console.error('Error updating product: ', error);
+
+                const permissionError = new FirestorePermissionError({
+                  path: productRef.path,
+                  operation: 'update',
+                  requestResourceData: updateData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+
+                toast.error('Não foi possível salvar as alterações. Verifique suas permissões.');
+            });
 
     } catch (error) {
-        console.error('Error updating product: ', error);
+        console.error('Error during image upload or data preparation: ', error);
         toast.dismiss();
         toast.error('Não foi possível salvar as alterações. Tente novamente.');
     }
@@ -580,3 +596,5 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
+
+    
