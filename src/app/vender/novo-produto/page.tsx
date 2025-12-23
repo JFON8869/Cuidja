@@ -98,13 +98,15 @@ export default function NewProductPage() {
       if (!querySnapshot.empty) {
         setStoreId(querySnapshot.docs[0].id);
       } else {
-        // This case is handled by the submit function now
+        toast.error('Você precisa criar uma loja antes de anunciar.');
+        router.push('/vender/loja');
       }
       setStoreLoading(false);
     }
-
-    fetchStoreId();
-  }, [firestore, user, isUserLoading]);
+    if (!isUserLoading) {
+      fetchStoreId();
+    }
+  }, [firestore, user, isUserLoading, router]);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -152,17 +154,9 @@ export default function NewProductPage() {
   };
 
   async function onSubmit(values: z.infer<typeof productSchema>) {
-    if (!firestore || !user) {
-      toast.error('Você precisa estar logado para criar um anúncio.');
+    if (!firestore || !user || !storeId) {
+      toast.error('Você precisa ter uma loja para criar um anúncio.');
       return;
-    }
-
-     // If there is no store, force creation first.
-    if (!storeId) {
-        toast.error('Finalize sua loja para começar a receber pedidos.');
-        sessionStorage.setItem('pendingProduct', JSON.stringify(values));
-        router.push('/vender/loja?finalizing=true');
-        return;
     }
 
     const isSubmitting = form.formState.isSubmitting;
@@ -191,7 +185,7 @@ export default function NewProductPage() {
         description: values.description,
         price: values.price,
         category: values.category,
-        type: 'PRODUCT', // V2 Data Model
+        type: 'PRODUCT',
         images: finalImageObjects,
         storeId: storeId,
         sellerId: user.uid,
@@ -220,10 +214,7 @@ export default function NewProductPage() {
           <div className="w-10"></div>
         </header>
         <main className="flex-1 space-y-6 p-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-12 w-full" />
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
         </main>
       </div>
     );
@@ -447,7 +438,6 @@ export default function NewProductPage() {
   );
 }
 
-// Sub-component for managing an addon group
 function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, removeGroup: (index: number) => void}) {
   const { control } = useFormContext<z.infer<typeof productSchema>>();
   const { fields, append, remove } = useFieldArray({

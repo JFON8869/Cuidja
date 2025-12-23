@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { Home, PlusCircle, User, ShoppingCart, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 const navItems = [
   { href: '/home', label: 'Início', icon: Home },
@@ -28,77 +27,16 @@ const NavItemSkeleton = ({ label }: { label: string }) => (
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user, isUserLoading, firestore } = useFirebase();
+  const { user, isUserLoading } = useFirebase();
   const [isClient, setIsClient] = useState(false);
-  const [hasNotifications, setHasNotifications] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
-  useEffect(() => {
-    if (isUserLoading || !user || !firestore) {
-      setHasNotifications(false);
-      return;
-    }
-
-    const checkNotifications = async () => {
-      try {
-        // Query 1: Check for unread notifications as a buyer
-        const buyerQuery = query(
-          collection(firestore, 'orders'),
-          where('customerId', '==', user.uid),
-          where('buyerHasUnread', '==', true),
-          limit(1)
-        );
-        const buyerSnapshot = await getDocs(buyerQuery);
-        if (!buyerSnapshot.empty) {
-          setHasNotifications(true);
-          return;
-        }
-
-        // Query 2: Check if user is a seller by fetching their stores
-        const storesRef = collection(firestore, 'stores');
-        const storeQuery = query(storesRef, where('userId', '==', user.uid));
-        const storeSnapshot = await getDocs(storeQuery);
-        const storeIds = storeSnapshot.docs.map(doc => doc.id);
-        
-        if (storeIds.length > 0) {
-            // Query 3: If they are a seller, check for unread notifications
-            const sellerQuery = query(
-                collection(firestore, 'orders'),
-                where('storeId', 'in', storeIds),
-                where('sellerHasUnread', '==', true),
-                limit(1)
-            );
-            const sellerSnapshot = await getDocs(sellerQuery);
-            if (!sellerSnapshot.empty) {
-                setHasNotifications(true);
-                return;
-            }
-        }
-        
-        // If we reach here, no unread notifications were found
-        setHasNotifications(false);
-
-      } catch (e) {
-        console.error("Failed to check for notifications:", e);
-        setHasNotifications(false);
-      }
-    };
-
-    // Use an interval to periodically check for notifications
-    const interval = setInterval(checkNotifications, 30000); // Check every 30 seconds
-    checkNotifications(); // Initial check
-
-    return () => clearInterval(interval); // Cleanup interval
-
-  }, [firestore, user, isUserLoading]);
-
 
   const pagesToHideNav = ['/', '/login', '/signup'];
   if (pagesToHideNav.includes(pathname)) {
-    return null; // Don't show nav on specified pages
+    return null;
   }
 
   return (
@@ -129,11 +67,6 @@ export default function BottomNav() {
             >
               <Icon className="h-5 w-5" />
               <span>{label}</span>
-              {isNotificationsTab && hasNotifications && (
-                <span className="absolute right-[22px] top-[10px] flex h-2.5 w-2.5">
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                </span>
-              )}
             </Link>
           );
         })}

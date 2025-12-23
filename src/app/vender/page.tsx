@@ -25,9 +25,8 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
-import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCollection, WithId } from '@/firebase/firestore/use-collection';
 
 const salesData = [
   { name: 'Jan', sales: 65 },
@@ -58,11 +57,20 @@ const WelcomeSellPage = () => (
          <ul className="mt-8 space-y-4 text-left">
             <li className="flex items-start gap-4">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Store className="h-5 w-5"/>
+                </div>
+                <div>
+                    <h3 className="font-semibold">Crie sua vitrine online</h3>
+                    <p className="text-sm text-muted-foreground">O primeiro passo é criar sua loja para que os clientes te encontrem.</p>
+                </div>
+            </li>
+             <li className="flex items-start gap-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Package className="h-5 w-5"/>
                 </div>
                 <div>
                     <h3 className="font-semibold">Publique produtos ou serviços</h3>
-                    <p className="text-sm text-muted-foreground">Crie seu primeiro anúncio em menos de um minuto.</p>
+                    <p className="text-sm text-muted-foreground">Anuncie seus itens em um formulário rápido e intuitivo.</p>
                 </div>
             </li>
              <li className="flex items-start gap-4">
@@ -74,20 +82,11 @@ const WelcomeSellPage = () => (
                     <p className="text-sm text-muted-foreground">Comunicação centralizada com seus clientes.</p>
                 </div>
             </li>
-             <li className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Store className="h-5 w-5"/>
-                </div>
-                <div>
-                    <h3 className="font-semibold">Crie sua vitrine online</h3>
-                    <p className="text-sm text-muted-foreground">Personalize sua loja para atrair mais clientes.</p>
-                </div>
-            </li>
         </ul>
       </div>
       <div className="pb-4">
         <Button size="lg" className="w-full" asChild>
-            <Link href="/vender/selecionar-tipo">Criar meu primeiro anúncio</Link>
+            <Link href="/vender/loja">Criar minha loja</Link>
         </Button>
       </div>
     </main>
@@ -119,20 +118,10 @@ export default function SellPage() {
       }
       setStoreLoading(false);
     }
-    fetchStore();
+    if (!isUserLoading) {
+        fetchStore();
+    }
   }, [user, firestore, isUserLoading]);
-
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !store?.id) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('storeId', '==', store.id)
-    );
-  }, [firestore, store]);
-
-  const { data: myOrders, isLoading: ordersLoading } =
-    useCollection(ordersQuery);
-  const myOrdersCount = myOrders?.length ?? 0;
 
   const isLoading = isStoreLoading || isUserLoading;
 

@@ -63,11 +63,16 @@ export default function NewServicePage() {
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         setStoreId(querySnapshot.docs[0].id);
+      } else {
+        toast.error('Você precisa criar uma loja antes de anunciar.');
+        router.push('/vender/loja');
       }
       setStoreLoading(false);
     }
-    fetchStoreId();
-  }, [firestore, user, isUserLoading]);
+    if (!isUserLoading) {
+      fetchStoreId();
+    }
+  }, [firestore, user, isUserLoading, router]);
 
   const form = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
@@ -108,16 +113,9 @@ export default function NewServicePage() {
   };
 
   async function onSubmit(values: z.infer<typeof serviceSchema>) {
-    if (!firestore || !user) {
-      toast.error('Você precisa estar logado para criar um anúncio.');
+    if (!firestore || !user || !storeId) {
+      toast.error('Você precisa ter uma loja para criar um anúncio.');
       return;
-    }
-    
-    if (!storeId) {
-        toast.error('Finalize sua loja para começar a receber solicitações.');
-        sessionStorage.setItem('pendingService', JSON.stringify(values));
-        router.push('/vender/loja?finalizing=true');
-        return;
     }
 
     const isSubmitting = form.formState.isSubmitting;
@@ -140,8 +138,8 @@ export default function NewServicePage() {
         name: values.name,
         description: values.description,
         price: values.price,
-        category: 'Serviços', // Legacy category
-        type: 'SERVICE', // V2 Data Model
+        category: 'Serviços',
+        type: 'SERVICE',
         attendanceType: values.attendanceType,
         images: finalImageObjects,
         storeId: storeId,
@@ -171,10 +169,7 @@ export default function NewServicePage() {
           <div className="w-10"></div>
         </header>
         <main className="flex-1 space-y-6 p-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-12 w-full" />
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
         </main>
       </div>
     );

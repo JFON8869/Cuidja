@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   collection,
@@ -46,9 +46,6 @@ const storeSchema = z.object({
 
 export default function StoreManagementPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isFinalizing = searchParams.get('finalizing') === 'true';
-
   const { user, firestore, isUserLoading } = useFirebase();
   const [store, setStore] = React.useState<Store | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -94,7 +91,9 @@ export default function StoreManagementPage() {
       }
       setIsLoading(false);
     }
-    fetchStore();
+    if (!isUserLoading) {
+      fetchStore();
+    }
   }, [user, firestore, isUserLoading, form]);
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,26 +141,14 @@ export default function StoreManagementPage() {
             const storeRef = doc(firestore, 'stores', store.id);
             await updateDoc(storeRef, storeData);
             toast.success('Loja atualizada com sucesso!');
-            router.push('/vender');
         } else {
             const docRef = await addDoc(collection(firestore, 'stores'), {
               ...storeData,
               createdAt: new Date().toISOString(),
             });
-            toast.success('Loja criada com sucesso!');
-            if (isFinalizing) {
-                 toast.info('Agora publique seu primeiro anúncio!');
-                 const pendingProduct = sessionStorage.getItem('pendingProduct');
-                 if (pendingProduct) {
-                     sessionStorage.removeItem('pendingProduct');
-                     router.push('/vender/novo-produto'); // Or pass data
-                 } else {
-                    router.push('/vender/selecionar-tipo');
-                 }
-            } else {
-                router.push('/vender');
-            }
+            toast.success('Sua loja foi criada! Agora você pode começar a anunciar.');
         }
+        router.push('/vender');
         router.refresh(); 
 
     } catch (error) {
@@ -198,15 +185,15 @@ export default function StoreManagementPage() {
           </Link>
         </Button>
         <h1 className="mx-auto font-headline text-xl">
-          {isEditing ? 'Editar Minha Loja' : 'Finalize sua Loja'}
+          {isEditing ? 'Editar Minha Loja' : 'Criar Minha Loja'}
         </h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
-       {isFinalizing && !isEditing && (
+       {!isEditing && (
          <div className="mb-6 rounded-lg border border-accent/50 bg-accent/10 p-4 text-center text-accent-foreground">
-            <p className="font-semibold">Último passo!</p>
-            <p className="text-sm">Preencha os dados da sua loja para que seu anúncio seja publicado e você possa começar a vender.</p>
+            <p className="font-semibold">Primeiro passo!</p>
+            <p className="text-sm">Preencha os dados da sua loja para que você possa começar a anunciar seus produtos e serviços.</p>
          </div>
        )}
         <Form {...form}>
@@ -301,7 +288,7 @@ export default function StoreManagementPage() {
               {form.formState.isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              {isEditing ? 'Salvar Alterações' : 'Salvar e Publicar Anúncio'}
+              {isEditing ? 'Salvar Alterações' : 'Salvar e Criar Loja'}
             </Button>
           </form>
         </Form>
