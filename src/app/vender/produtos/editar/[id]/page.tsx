@@ -169,15 +169,20 @@ export default function EditProductPage() {
     
     // This is a placeholder for real file upload.
     // In a real app, you would upload the File objects and get back URLs.
-    const newImageUrls = values.images.map(img => {
+    const newImageUrls = values.images.map((img, index) => {
+      // Check if it's an existing image object with imageUrl
       if (typeof img.imageUrl === 'string') {
-        // This is an existing image from Firestore
         return img;
       }
-      // This is a new File object, use its preview URL as a placeholder
+      // It's a new File object, use its corresponding preview URL as a placeholder
       // In a real app, this `img` would be uploaded and you'd get a URL.
+      // The preview URL needs to be found from the imagePreviews state
+      const previewUrl = imagePreviews.find(p => p.startsWith('blob:'))
       return {
-        imageUrl: URL.createObjectURL(img),
+        // This is a simplified mapping. A more robust solution might
+        // involve tracking files and their previews in a more linked way.
+        // For this context, we'll assume the order is maintained.
+        imageUrl: imagePreviews[index], 
         imageHint: values.category.toLowerCase(),
       };
     });
@@ -526,3 +531,5 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
+
+    
