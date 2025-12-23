@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Home, PlusCircle, User, ShoppingCart, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, or } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 const navItems = [
   { href: '/home', label: 'Início', icon: Home },
@@ -43,57 +43,55 @@ export default function BottomNav() {
     }
 
     const checkNotifications = async () => {
-      // Find stores this user owns
-      const storesRef = collection(firestore, 'stores');
-      const storeQuery = query(storesRef, where('userId', '==', user.uid));
-      const storeSnapshot = await getDocs(storeQuery);
-      const storeIds = storeSnapshot.docs.map(doc => doc.id);
-      
       let unreadFound = false;
+      const ordersRef = collection(firestore, 'orders');
 
-      // Build queries
-      const buyerUnreadQuery = where('customerId', '==', user.uid);
-      const buyerHasUnreadClause = where('buyerHasUnread', '==', true);
-      
-      let finalQuery;
-      
-      // If user is also a seller, check their stores too
-      if (storeIds.length > 0) {
-        const sellerUnreadQuery = where('storeId', 'in', storeIds);
-        const sellerHasUnreadClause = where('sellerHasUnread', '==', true);
-        
-        finalQuery = query(
-            collection(firestore, 'orders'),
-            or(
-                // Is the buyer and has unread messages
-                where('customerId', '==', user.uid),
-                where('buyerHasUnread', '==', true),
-                // Is the seller and has unread messages
-                where('storeId', 'in', storeIds),
-                where('sellerHasUnread', '==', true)
-            )
-        );
-
-      } else {
-        // Only check for buyer notifications
-        finalQuery = query(collection(firestore, 'orders'), buyerUnreadQuery, buyerHasUnreadClause);
-      }
-        
       try {
-        const snapshot = await getDocs(finalQuery);
-        unreadFound = !snapshot.empty;
-      } catch (e) {
-          // This can happen if the `or` query is complex and needs an index.
-          // For now, we'll just log it and default to no notifications.
-          console.error("Failed to check for notifications, likely needs a Firestore index:", e);
-          unreadFound = false;
-      }
+        // Query 1: Check for unread notifications as a buyer
+        const buyerQuery = query(
+          ordersRef,
+          where('customerId', '==', user.uid),
+          where('buyerHasUnread', '==', true),
+          limit(1)
+        );
+        const buyerSnapshot = await getDocs(buyerQuery);
+        if (!buyerSnapshot.empty) {
+          setHasNotifications(true);
+          return;
+        }
 
-      setHasNotifications(unreadFound);
+        // Query 2: Check if user is a seller
+        const storesRef = collection(firestore, 'stores');
+        const storeQuery = query(storesRef, where('userId', '==', user.uid), limit(1));
+        const storeSnapshot = await getDocs(storeQuery);
+        
+        if (!storeSnapshot.empty) {
+            const storeId = storeSnapshot.docs[0].id;
+            // Query 3: If they are a seller, check for unread notifications
+            const sellerQuery = query(
+                ordersRef,
+                where('storeId', '==', storeId),
+                where('sellerHasUnread', '==', true),
+                limit(1)
+            );
+            const sellerSnapshot = await getDocs(sellerQuery);
+            if (!sellerSnapshot.empty) {
+                setHasNotifications(true);
+                return;
+            }
+        }
+        
+        // If we reach here, no unread notifications were found
+        setHasNotifications(false);
+
+      } catch (e) {
+        console.error("Failed to check for notifications:", e);
+        setHasNotifications(false);
+      }
     };
 
     // Use an interval to periodically check for notifications
-    const interval = setInterval(checkNotifications, 5000); // Check every 5 seconds
+    const interval = setInterval(checkNotifications, 10000); // Check every 10 seconds
     checkNotifications(); // Initial check
 
     return () => clearInterval(interval); // Cleanup interval

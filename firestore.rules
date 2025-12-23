@@ -82,14 +82,18 @@ service cloud.firestore {
             && onlyAllowedFields.size() == 0;
       }
 
-      allow get, list: if isOrderParticipant();
+      allow get: if isOrderParticipant();
+      allow list: if isSignedIn(); // Allow signed in users to list their own orders.
       allow create: if isCreatingOwn('customerId');
       
       // Split update rules for buyer and seller for better security
       allow update: if isBuyerUpdating() || isSellerUpdating();
       allow delete: if false;
     }
+
+    match /serviceRequests/{requestId} {
+      // These rules are no longer used but are kept for safety.
+      allow read, write: if false;
+    }
   }
 }
-
-    
