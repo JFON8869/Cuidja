@@ -14,6 +14,7 @@ import {
   Trash2,
   Loader2,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
@@ -43,6 +44,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { suggestCategory } from '@/ai/flows/suggest-category-flow';
 
 const MAX_IMAGES = 3;
 
@@ -74,15 +76,15 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
-interface ProductFormProps {
-  productId?: string;
-}
+function ProductForm() {
+  const params = useParams();
+  const productId = params.id as string | undefined;
 
-function ProductForm({ productId }: ProductFormProps) {
   const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(!!productId);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const isEditing = !!productId;
 
@@ -148,10 +150,9 @@ function ProductForm({ productId }: ProductFormProps) {
     if (!isUserLoading && !user) {
       router.push('/login?redirect=/vender');
     } else if (!isStoreLoading && !store) {
-       // Only redirect if not editing, as editing page has its own loading
-      if (!isEditing) router.push('/vender/loja');
+      router.push('/vender/loja');
     }
-  }, [isUserLoading, user, isStoreLoading, store, router, isEditing]);
+  }, [isUserLoading, user, isStoreLoading, store, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -175,6 +176,38 @@ function ProductForm({ productId }: ProductFormProps) {
         }
         appendImage(file);
       }
+    }
+  };
+
+  const handleSuggestCategory = async () => {
+    const name = form.getValues('name');
+    const description = form.getValues('description');
+
+    if (!name.trim()) {
+      toast.error('Por favor, insira um nome para o produto antes de sugerir uma categoria.');
+      return;
+    }
+
+    setIsSuggesting(true);
+    try {
+      const result = await suggestCategory({
+        productName: name,
+        productDescription: description || '',
+      });
+      
+      // Check if the suggested category is a valid one
+      const validCategory = mockCategories.find(c => c.name === result.category);
+      if (validCategory) {
+        form.setValue('category', result.category, { shouldValidate: true });
+        toast.success(`Categoria sugerida: ${result.category}`);
+      } else {
+        toast.error(`A sugestão "${result.category}" não é uma categoria válida.`);
+      }
+    } catch (error) {
+      console.error("Error suggesting category:", error);
+      toast.error("Não foi possível sugerir uma categoria.");
+    } finally {
+      setIsSuggesting(false);
     }
   };
   
@@ -286,6 +319,20 @@ function ProductForm({ productId }: ProductFormProps) {
               )}
             />
 
+             <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                        <Textarea placeholder="Detalhes que ajudam o cliente a escolher seu produto." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
@@ -305,7 +352,13 @@ function ProductForm({ productId }: ProductFormProps) {
                 name="category"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Categoria</FormLabel>
+                    <div className="flex justify-between items-center mb-2">
+                      <FormLabel>Categoria</FormLabel>
+                      <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={handleSuggestCategory} disabled={isSuggesting}>
+                        {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Sugerir
+                      </Button>
+                    </div>
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
@@ -384,20 +437,6 @@ function ProductForm({ productId }: ProductFormProps) {
             />
 
             <Separator />
-            
-             <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Descrição</FormLabel>
-                    <FormControl>
-                        <Textarea placeholder="Detalhes que ajudam o cliente a escolher seu produto." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
 
             <FormField
               control={form.control}
@@ -566,18 +605,10 @@ function AddonGroupForm({ groupIndex, removeAddonGroup }: { groupIndex: number; 
   );
 }
 
-
-function ProductFormPage() {
-    const params = useParams();
-    const productId = params.id as string | undefined;
-
-    return <ProductForm productId={productId} />
-}
-
 export default function ProductFormPageWrapper() {
     return (
         <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
-            <ProductFormPage />
+            <ProductForm />
         </Suspense>
     )
 }
