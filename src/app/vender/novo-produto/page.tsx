@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
 import { uploadFile } from '@/lib/storage';
-import { mockCategories } from '@/lib/data';
+import { mockCategories, Product } from '@/lib/data';
 import {
   Form,
   FormControl,
@@ -43,7 +43,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useRouter as useNavigationRouter } from 'next/navigation';
 
 const MAX_IMAGES = 3;
 
@@ -75,10 +74,17 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
-function NewProductPage() {
+interface ProductFormProps {
+  productId?: string;
+}
+
+function ProductForm({ productId }: ProductFormProps) {
   const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(!!productId);
+
+  const isEditing = !!productId;
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -91,6 +97,38 @@ function NewProductPage() {
       addonGroups: [],
     },
   });
+  
+  useEffect(() => {
+    if (isEditing && firestore && productId) {
+      const fetchProduct = async () => {
+        setIsPageLoading(true);
+        try {
+          const docRef = doc(firestore, 'products', productId);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const productData = docSnap.data() as Product;
+            form.reset({
+              ...productData,
+              addonGroups: productData.addonGroups || [],
+              images: productData.images || [],
+            });
+          } else {
+            toast.error("Produto não encontrado.");
+            router.push('/vender/produtos');
+          }
+        } catch (error) {
+          toast.error("Erro ao carregar o produto.");
+          console.error(error);
+          router.push('/vender/produtos');
+        } finally {
+          setIsPageLoading(false);
+        }
+      };
+      fetchProduct();
+    }
+  }, [firestore, productId, form, router, isEditing]);
+
 
   const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
     control: form.control,
@@ -110,9 +148,10 @@ function NewProductPage() {
     if (!isUserLoading && !user) {
       router.push('/login?redirect=/vender');
     } else if (!isStoreLoading && !store) {
-      router.push('/vender/loja');
+       // Only redirect if not editing, as editing page has its own loading
+      if (!isEditing) router.push('/vender/loja');
     }
-  }, [isUserLoading, user, isStoreLoading, store, router]);
+  }, [isUserLoading, user, isStoreLoading, store, router, isEditing]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -139,15 +178,14 @@ function NewProductPage() {
     }
   };
   
-  if (isUserLoading || isStoreLoading) {
-    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (isUserLoading || isStoreLoading || isPageLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
   }
   
-  // This is a safeguard, the useEffect should handle redirection.
   if (!store) {
      return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Redirecionando para a criação da loja...</p>
+      <div className="flex h-screen items-center justify-center p-4 text-center">
+        <p>Você precisa criar uma loja antes de adicionar produtos. Redirecionando...</p>
       </div>
     );
   }
@@ -161,16 +199,19 @@ function NewProductPage() {
     setIsSubmitting(true);
     try {
         const newImageFiles = values.images.filter((image: any): image is File => image instanceof File);
+        const existingImageObjects = values.images.filter((image: any) => typeof image === 'object' && image.imageUrl && !(image instanceof File));
         
-        const uploadPromises = newImageFiles.map(file => uploadFile(file, `products/${user.uid}`));
+        const uploadPromises = newImageFiles.map(file => uploadFile(file, `products/${user.uid}/${Date.now()}-${file.name}`));
         const newImageUrls = await Promise.all(uploadPromises);
 
         const newImageObjects = newImageUrls.map(url => ({
             imageUrl: url,
             imageHint: 'product photo' 
         }));
+        
+        const finalImageObjects = [...existingImageObjects, ...newImageObjects];
 
-        if (newImageObjects.length === 0) {
+        if (finalImageObjects.length === 0) {
             form.setError('images', { type: 'manual', message: 'Adicione pelo menos uma imagem.' });
             setIsSubmitting(false);
             return;
@@ -181,18 +222,31 @@ function NewProductPage() {
             id: group.id || `${Date.now()}-${Math.random()}`
         }));
 
-        await addDoc(collection(firestore, 'products'), {
+        const dataToSave = {
             ...values,
             price: Number(values.price),
-            images: newImageObjects,
+            images: finalImageObjects,
             addonGroups: addonGroups || [],
             storeId: store.id,
             sellerId: user.uid,
-            type: 'PRODUCT',
-            createdAt: serverTimestamp(),
-        });
+            type: 'PRODUCT' as const,
+        };
 
-        toast.success('Produto publicado com sucesso!');
+        if (isEditing && productId) {
+             const docRef = doc(firestore, 'products', productId);
+             await updateDoc(docRef, {
+                 ...dataToSave,
+                 updatedAt: serverTimestamp(),
+             });
+             toast.success('Produto atualizado com sucesso!');
+        } else {
+            await addDoc(collection(firestore, 'products'), {
+                ...dataToSave,
+                createdAt: serverTimestamp(),
+            });
+            toast.success('Produto publicado com sucesso!');
+        }
+
         router.push('/vender/produtos');
     } catch (error) {
         console.error('Error saving product:', error);
@@ -206,11 +260,11 @@ function NewProductPage() {
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender/novo-anuncio">
+          <Link href={isEditing ? "/vender/produtos" : "/vender/novo-anuncio"}>
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Novo Produto</h1>
+        <h1 className="mx-auto font-headline text-xl">{isEditing ? "Editar Produto" : "Novo Produto"}</h1>
         <div className="w-10"></div>
       </header>
 
@@ -252,7 +306,7 @@ function NewProductPage() {
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Categoria</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -302,7 +356,7 @@ function NewProductPage() {
                   {imageFields.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-4">
                       {imageFields.map((field, index) => {
-                          const src = field instanceof File ? URL.createObjectURL(field) : field?.imageUrl;
+                          const src = field instanceof File ? URL.createObjectURL(field) : (field as any)?.imageUrl;
                           if (!src) return null;
                           return (
                             <div key={field.id} className="relative group aspect-square h-auto w-full">
@@ -351,7 +405,7 @@ function NewProductPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Disponibilidade</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Como este produto estará disponível?" />
@@ -412,7 +466,7 @@ function NewProductPage() {
               disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSubmitting ? 'Publicando anúncio...' : 'Publicar Anúncio'}
+              {isEditing ? 'Salvar Alterações' : 'Publicar Anúncio'}
             </Button>
           </form>
         </Form>
@@ -513,10 +567,17 @@ function AddonGroupForm({ groupIndex, removeAddonGroup }: { groupIndex: number; 
 }
 
 
-export default function NewProductPageWrapper() {
+function ProductFormPage() {
+    const params = useParams();
+    const productId = params.id as string | undefined;
+
+    return <ProductForm productId={productId} />
+}
+
+export default function ProductFormPageWrapper() {
     return (
-        <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>}>
-            <NewProductPage />
+        <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
+            <ProductFormPage />
         </Suspense>
     )
 }
