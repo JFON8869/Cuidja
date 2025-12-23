@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -60,7 +61,7 @@ export default function MyProductsPage() {
     try {
         await deleteDoc(doc(firestore, "products", productId));
         toast.success(`O produto "${productName}" foi removido.`);
-        router.push('/vender');
+        // No redirect needed, useCollection will update the UI automatically.
     } catch(error) {
         console.error("Error deleting product: ", error);
         toast.error(`Não foi possível remover o produto. Tente novamente.`);
