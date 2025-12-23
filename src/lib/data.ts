@@ -111,7 +111,7 @@ export const mockBanners: Banner[] = [
     title: 'Os Mais Pedidos',
     subtitle: 'Confira os produtos populares!',
     image: findImage('banner-bread-cheese'),
-    link: '/home', // Link to a general "popular" page or anchor
+    link: '/mais-vendidos',
   },
   {
     id: 'banner-4',
