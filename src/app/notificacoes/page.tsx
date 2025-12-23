@@ -2,14 +2,15 @@
 import Link from 'next/link';
 import { ArrowLeft, Bell, Package, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, getDocs, or } from 'firebase/firestore';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 interface BaseOrder extends WithId<any> {
   id: string;
@@ -40,66 +41,66 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isUserLoading || !user || !firestore) {
+  const fetchNotifications = useCallback(async () => {
+    if (!user || !firestore) {
       if (!isUserLoading) setIsLoading(false);
       return;
     }
-
-    const fetchNotifications = async () => {
-      setIsLoading(true);
-      try {
+    setIsLoading(true);
+    try {
         const storesRef = collection(firestore, 'stores');
         const storeQuery = query(storesRef, where('userId', '==', user.uid));
         const storeSnapshot = await getDocs(storeQuery);
         const ownedStoreIds = storeSnapshot.docs.map(doc => doc.id);
         
-        let notificationsQuery;
         const ordersRef = collection(firestore, 'orders');
 
-        // Build a query that gets all notifications for the user, whether they are a buyer or a seller.
         const userIsBuyer = where('customerId', '==', user.uid);
         const userIsSeller = ownedStoreIds.length > 0 ? where('storeId', 'in', ownedStoreIds) : null;
 
-        const buyerHasUnread = where('buyerHasUnread', '==', true);
-        const sellerHasUnread = where('sellerHasUnread', '==', true);
-        
-        // Conditions for fetching notifications
-        const buyerNotifications = and(userIsBuyer, buyerHasUnread);
-        const sellerNotifications = userIsSeller ? and(userIsSeller, sellerHasUnread) : null;
-        
-        let finalConditions = [buyerNotifications];
-        if (sellerNotifications) {
-            finalConditions.push(sellerNotifications);
+        const finalConditions = [userIsBuyer];
+        if (userIsSeller) {
+            finalConditions.push(userIsSeller);
         }
 
-        notificationsQuery = query(ordersRef, or(...finalConditions), orderBy('orderDate', 'desc'));
+        const notificationsQuery = query(ordersRef, or(...finalConditions), orderBy('orderDate', 'desc'));
 
         const querySnapshot = await getDocs(notificationsQuery);
-        const allNotifications = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+
+        const allNotifications = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Notification))
+            .filter(notification => {
+                const isSellerNotification = ownedStoreIds.includes(notification.storeId);
+                if (isSellerNotification) {
+                    return notification.sellerHasUnread;
+                }
+                return notification.buyerHasUnread;
+            });
 
         setNotifications(allNotifications);
 
-      } catch (error) {
-        // FirebaseError: The query requires an index. You can create it here:
-        // This is a common error. The console provides a direct link to create it.
-        if (error instanceof Error && error.message.includes('The query requires an index')) {
-            console.warn("Firestore index missing for notifications query. Please create it using the link in the Firebase console error message.");
-            // We can show a friendly message to the user in this case.
-            toast.error("A configuração do banco de dados está sendo finalizada. Tente novamente em alguns minutos.");
-        } else {
-            console.error("Failed to fetch notifications:", error);
-            toast.error("Erro ao buscar notificações.");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      
+      const permissionError = new FirestorePermissionError({
+        path: `notifications for user ${user.uid}`,
+        operation: 'list',
+      });
+      errorEmitter.emit('permission-error', permissionError);
 
-    // Helper functions for query composition. `and` is imported from 'firebase/firestore'
-    const { and } = require("firebase/firestore");
-    fetchNotifications();
+      if (error instanceof Error && error.message.includes('The query requires an index')) {
+          toast.error("A configuração do banco de dados está sendo finalizada. Tente novamente em alguns minutos.");
+      } else {
+          toast.error("Erro ao buscar notificações.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }, [user, firestore, isUserLoading]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
 
   const renderSkeleton = () => (
