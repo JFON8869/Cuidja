@@ -4,6 +4,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   Auth,
+  FirebaseError,
 } from 'firebase/auth';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, SetStateAction } from 'react';
@@ -45,8 +46,13 @@ export const handleGoogleSignIn = async (
     toast.success('Login com Google realizado com sucesso!');
     router.push('/home');
   } catch (error) {
-    console.error('Google Sign-In Error:', error);
-    toast.error('Não foi possível fazer login com o Google. Tente novamente.');
+    // Gracefully handle the case where the user closes the popup
+    if (error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user') {
+      // Do nothing, as this is a normal user action.
+    } else {
+      console.error('Google Sign-In Error:', error);
+      toast.error('Não foi possível fazer login com o Google. Tente novamente.');
+    }
   } finally {
     setGoogleLoading(false);
   }
