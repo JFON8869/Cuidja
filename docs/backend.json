@@ -138,13 +138,20 @@
           "type": "number",
           "description": "The price of the product or service (or visit fee for services)."
         },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL of the product image."
+        "images": {
+            "type": "array",
+            "items": {
+                "$ref": "#/backend/entities/ImagePlaceholder"
+            }
         },
         "category": {
           "type": "string",
           "description": "Category of the product (e.g., 'Fruits', 'Vegetables', 'Serviços')."
+        },
+        "type": {
+            "type": "string",
+            "enum": ["PRODUCT", "SERVICE"],
+            "description": "Explicitly defines if the item is a product or a service."
         },
         "attendanceType": {
           "type": "string",
@@ -169,10 +176,19 @@
         "name",
         "description",
         "price",
-        "imageUrl",
+        "images",
         "category",
-        "availability"
+        "availability",
+        "type"
       ]
+    },
+    "ImagePlaceholder": {
+        "title": "ImagePlaceholder",
+        "type": "object",
+        "properties": {
+            "imageUrl": {"type": "string"},
+            "imageHint": {"type": "string"}
+        }
     },
     "AddonGroup": {
       "title": "AddonGroup",
@@ -208,14 +224,10 @@
         "id": { "type": "string" },
         "customerId": { "type": "string" },
         "storeId": { "type": "string" },
+        "orderType": { "type": "string", "enum": ["PURCHASE"], "description": "Defines the type of order."},
         "items": {
           "type": "array",
           "items": { "$ref": "#/backend/entities/OrderItem" }
-        },
-        "messages": {
-          "type": "array",
-          "description": "Chat messages between buyer and seller for this order.",
-          "items": { "$ref": "#/backend/entities/Message" }
         },
         "orderDate": { "type": "string", "format": "date-time" },
         "totalAmount": { "type": "number" },
@@ -227,7 +239,8 @@
         "shippingAddress": { "$ref": "#/backend/entities/Address" },
         "phone": { "type": "string" },
         "sellerHasUnread": { "type": "boolean" },
-        "buyerHasUnread": { "type": "boolean" }
+        "buyerHasUnread": { "type": "boolean" },
+        "lastMessageTimestamp": { "type": "string", "format": "date-time"}
       },
       "required": [
         "id",
@@ -250,10 +263,7 @@
             "storeId": { "type": "string" },
             "serviceId": { "type": "string" },
             "serviceName": { "type": "string" },
-            "messages": {
-                "type": "array",
-                "items": { "$ref": "#/backend/entities/Message" }
-            },
+            "orderType": { "type": "string", "enum": ["SERVICE_REQUEST"], "description": "Defines the type of order."},
             "requestDate": { "type": "string", "format": "date-time" },
             "status": {
                 "type": "string",
@@ -262,7 +272,8 @@
             "shippingAddress": { "$ref": "#/backend/entities/Address" },
             "phone": { "type": "string" },
             "sellerHasUnread": { "type": "boolean" },
-            "buyerHasUnread": { "type": "boolean" }
+            "buyerHasUnread": { "type": "boolean" },
+            "lastMessageTimestamp": { "type": "string", "format": "date-time"}
         },
         "required": [ "id", "customerId", "storeId", "serviceId", "serviceName", "requestDate", "status", "shippingAddress" ]
     },
@@ -314,8 +325,7 @@
       "properties": {
         "senderId": { "type": "string" },
         "text": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "isRead": { "type": "boolean" }
+        "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["senderId", "text", "timestamp"]
     }
@@ -390,7 +400,7 @@
           ]
         }
       },
-      {
+       {
         "path": "serviceRequests/{requestId}",
         "definition": {
           "entityName": "ServiceRequest",

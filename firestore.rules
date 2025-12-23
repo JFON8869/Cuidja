@@ -56,68 +56,47 @@ service cloud.firestore {
         return isDocumentOwner(resource.data, 'customerId');
       }
 
+      function getStoreOwnerId() { 
+        return get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.userId; 
+      }
       function isOrderSeller() {
-        // This check is tricky in rules. It relies on the client providing the storeId.
-        // A more secure way would be to use custom claims for the seller's storeId.
-        // For now, we trust the client query is filtered and verify ownership on write.
-        let storeData = get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data;
-        return isOwner(storeData.userId);
+        return request.auth.uid == getStoreOwnerId();
       }
       
       function isOrderParticipant() {
         return isOrderCustomer() || isOrderSeller();
       }
 
-      // Allow buyer to only update their 'buyerHasUnread' status or send messages
-      function isBuyerUpdating() {
-        let allowedFields = ['buyerHasUnread', 'lastMessageTimestamp', 'sellerHasUnread'];
-        let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
-        
-        return isOrderCustomer()
-            && request.resource.data.customerId == resource.data.customerId // Can't change customerId
-            && changedKeys.hasOnly(allowedFields);
-      }
-      
-      // Allow seller to update status, their 'sellerHasUnread' status, or send messages
-      function isSellerUpdating() {
-        let allowedFields = ['status', 'sellerHasUnread', 'lastMessageTimestamp', 'buyerHasUnread'];
-        let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
-
-        return isOrderSeller() 
-            && request.resource.data.customerId == resource.data.customerId // Can't change customerId
-            && changedKeys.hasOnly(allowedFields);
-      }
-
-      // Allow read only to participants of the order
-      allow get: if isOrderParticipant();
-      
-      // Explicitly deny listing all orders for security.
-      // Queries will still work if they include a 'where' clause on customerId or storeId
-      // that is checked by other rules.
-      allow list: if false;
-      
-      allow create: if isCreatingOwn('customerId');
-      
-      // Split update rules for buyer and seller for better security
-      allow update: if isBuyerUpdating() || isSellerUpdating();
-      
-      // Prevent orders from being deleted.
-      allow delete: if false;
+      allow get: if isSignedIn() && isOrderParticipant();
+      allow create: if isSignedIn() && isCreatingOwn('customerId');
+      allow update: if isSignedIn() && isOrderParticipant();
+      allow delete: if false; // Orders should not be deleted.
+      allow list: if false; // Globally deny listing. Queries need filters.
 
       match /messages/{messageId} {
-        // Only participants of the order can read messages
-        allow get, list: if isOrderParticipant();
-        // Only participants can write messages
-        // And the senderId of the new message must be their own UID
-        allow create: if isOrderParticipant() && isCreatingOwn('senderId');
-        // Messages are immutable once created
+        allow get, list: if isSignedIn() && isOrderParticipant();
+        allow create: if isSignedIn() && isOrderParticipant() && isCreatingOwn('senderId');
         allow update, delete: if false;
       }
     }
 
     match /serviceRequests/{requestId} {
-      // These rules are no longer used but are kept for safety.
-      allow read, write: if false;
+      function isRequestCustomer() { return isDocumentOwner(resource.data, 'customerId'); }
+      function getServiceStoreOwnerId() { return get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.userId; }
+      function isRequestSeller() { return request.auth.uid == getServiceStoreOwnerId(); }
+      function isRequestParticipant() { return isRequestCustomer() || isRequestSeller(); }
+      
+      allow get: if isSignedIn() && isRequestParticipant();
+      allow create: if isSignedIn() && isCreatingOwn('customerId');
+      allow update: if isSignedIn() && isRequestParticipant();
+      allow delete: if false;
+      allow list: if false;
+
+       match /messages/{messageId} {
+        allow get, list: if isSignedIn() && isRequestParticipant();
+        allow create: if isSignedIn() && isRequestParticipant() && isCreatingOwn('senderId');
+        allow update, delete: if false;
+      }
     }
   }
 }

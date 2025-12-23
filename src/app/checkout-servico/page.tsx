@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -6,7 +7,7 @@ import { ArrowLeft, MessageSquare, Briefcase, MapPin, Loader2 } from 'lucide-rea
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, addDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, doc, serverTimestamp } from 'firebase/firestore';
 import React, { useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -117,6 +118,7 @@ export default function ServiceCheckoutPage() {
             storeId: storeId,
             serviceId: service.id,
             serviceName: service.name,
+            orderType: 'SERVICE_REQUEST',
             status: 'Solicitação recebida', 
             requestDate: new Date().toISOString(),
             shippingAddress: {
@@ -127,19 +129,24 @@ export default function ServiceCheckoutPage() {
                 number: '', 
             },
             phone: values.phone,
-            messages: values.message ? [{
-                senderId: user.uid,
-                text: values.message,
-                timestamp: new Date().toISOString(),
-                isRead: false
-            }] : [],
             sellerHasUnread: true,
-            buyerHasUnread: false
+            buyerHasUnread: false,
+            lastMessageTimestamp: serverTimestamp()
         }
         
         const docRef = await addDoc(requestsCollection, requestData);
+
+        if (values.message?.trim()) {
+           const messagesColRef = collection(docRef, 'messages');
+           await addDoc(messagesColRef, {
+                senderId: user.uid,
+                text: values.message.trim(),
+                timestamp: serverTimestamp(),
+           })
+        }
+
         toast.success('Sua solicitação de contato foi enviada! Acompanhe pelo chat.');
-        router.push(`/pedidos/${docRef.id}?type=service`); // Add type to handle in detail page
+        router.push(`/pedidos/${docRef.id}?type=service`);
 
     } catch(error) {
         console.error("Error creating service request: ", error);
