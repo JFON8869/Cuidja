@@ -1,304 +1,195 @@
 
 'use client';
 
-import * as React from 'react';
-import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
+  doc,
+  setDoc,
+  updateDoc,
   collection,
   query,
   where,
   getDocs,
-  addDoc,
-  updateDoc,
-  doc,
+  serverTimestamp,
 } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useFirebase } from '@/firebase';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useFirebase } from '@/firebase';
-import { Skeleton } from '@/components/ui/skeleton';
-import { OperatingHoursForm } from '@/components/vender/OperatingHoursForm';
-import { Separator } from '@/components/ui/separator';
-import { Store } from '@/lib/data';
-import { uploadFile } from '@/lib/storage';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { Store } from '@/lib/data';
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const storeSchema = z.object({
-  name: z.string().min(3, 'O nome da loja deve ter pelo menos 3 caracteres.'),
-  logo: z.any().optional(),
-  address: z.string().min(5, 'O endereço é obrigatório.'),
+  name: z.string().min(3, 'O nome da loja é obrigatório.'),
+  address: z.string().min(10, 'O endereço é obrigatório.'),
+  logoUrl: z.string().url('URL do logo inválida.').optional().or(z.literal('')),
 });
 
-export default function StoreManagementPage() {
-  const router = useRouter();
-  const { user, firestore, isUserLoading } = useFirebase();
-  const [store, setStore] = React.useState<Store | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+type StoreFormValues = z.infer<typeof storeSchema>;
 
-  const form = useForm<z.infer<typeof storeSchema>>({
+export default function StoreFormPage() {
+  const { user, firestore, isUserLoading } = useFirebase();
+  const router = useRouter();
+  const [store, setStore] = useState<Store | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeSchema),
-    defaultValues: {
-      name: '',
-      address: '',
-    },
+    defaultValues: { name: '', address: '', logoUrl: '' },
   });
 
-  const isEditing = !!store;
-
-  React.useEffect(() => {
-    async function fetchStore() {
-      if (!firestore || !user) {
-        if (!isUserLoading) setIsLoading(false);
+  useEffect(() => {
+    if (isUserLoading) return;
+    if (!user) {
+        router.push('/login?redirect=/vender');
         return;
-      }
-      setIsLoading(true);
-      const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+    }
 
-      if (!querySnapshot.empty) {
-        const storeDoc = querySnapshot.docs[0];
-        const storeData = {
-          id: storeDoc.id,
-          ...storeDoc.data(),
-        } as Store;
-        setStore(storeData);
-        form.reset({
-          name: storeData.name,
-          address: storeData.address || '',
-        });
-        if (storeData.logoUrl) {
-          setLogoPreview(storeData.logoUrl);
-          form.setValue('logo', storeData.logoUrl);
+    const fetchStore = async () => {
+        if (!firestore) return;
+        setIsLoading(true);
+        const q = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const storeDoc = querySnapshot.docs[0];
+            const storeData = { id: storeDoc.id, ...storeDoc.data() } as Store;
+            setStore(storeData);
+            form.reset(storeData);
         }
-      }
-      setIsLoading(false);
-    }
-    if (!isUserLoading) {
-      fetchStore();
-    }
-  }, [user, firestore, isUserLoading, form]);
+        setIsLoading(false);
+    };
+    fetchStore();
+  }, [user, firestore, isUserLoading, router, form]);
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const { isSubmitting } = form.formState;
 
-    form.setValue('logo', file, { shouldValidate: true });
-    setLogoPreview(URL.createObjectURL(file));
-  };
-
-  const removeLogo = () => {
-    form.setValue('logo', null, { shouldValidate: true });
-    setLogoPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  async function onSubmit(values: z.infer<typeof storeSchema>) {
-    if (!firestore || !user) {
-      toast.error('Erro de autenticação.');
-      return;
-    }
-
-    form.formState.isSubmitting;
-    let logoUrl = store?.logoUrl || null;
+  const onSubmit = async (values: StoreFormValues) => {
+    if (!user || !firestore) return;
 
     try {
-        if (values.logo && values.logo instanceof File) {
-            toast.loading('Enviando logo...');
-            logoUrl = await uploadFile(values.logo, `stores/${user.uid}/logos`);
-            toast.dismiss();
-        } else if (!values.logo) {
-            logoUrl = null;
-        }
-
-        const storeData = {
-            name: values.name,
-            logoUrl: logoUrl,
-            address: values.address,
-            userId: user.uid,
+      if (store) {
+        // Update existing store
+        const storeRef = doc(firestore, 'stores', store.id);
+        await updateDoc(storeRef, values);
+        toast.success('Loja atualizada com sucesso!');
+      } else {
+        // Create new store
+        const newStoreRef = doc(collection(firestore, 'stores'));
+        const newStore = {
+          ...values,
+          id: newStoreRef.id,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
         };
-
-        if (isEditing && store) {
-            const storeRef = doc(firestore, 'stores', store.id);
-            await updateDoc(storeRef, storeData);
-            toast.success('Loja atualizada com sucesso!');
-        } else {
-            const docRef = await addDoc(collection(firestore, 'stores'), {
-              ...storeData,
-              createdAt: new Date().toISOString(),
-            });
-            toast.success('Sua loja foi criada! Agora você pode começar a anunciar.');
-        }
-        router.push('/vender');
-
+        await setDoc(newStoreRef, newStore);
+        toast.success('Sua loja foi criada!');
+      }
+      router.push('/vender');
     } catch (error) {
-        console.error('Error saving store:', error);
-        toast.dismiss();
-        toast.error('Não foi possível salvar os dados da loja. Tente novamente.');
+      console.error('Error saving store:', error);
+      toast.error('Erro ao salvar os dados da loja.');
     }
-  }
-
-  if (isLoading || isUserLoading) {
-    return (
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-        <header className="flex items-center border-b p-4">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="mx-auto h-6 w-48" />
-          <div className="w-10"></div>
-        </header>
-        <main className="flex-1 space-y-6 p-4">
-          <Skeleton className="mx-auto h-32 w-32 rounded-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </main>
-      </div>
-    );
-  }
+  };
+  
+    if (isLoading || isUserLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+        )
+    }
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-      <header className="flex items-center border-b p-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender">
-            <ArrowLeft />
-          </Link>
-        </Button>
-        <h1 className="mx-auto font-headline text-xl">
-          {isEditing ? 'Editar Minha Loja' : 'Criar Minha Loja'}
-        </h1>
-        <div className="w-10"></div>
-      </header>
-      <main className="flex-1 overflow-y-auto p-4">
-       {!isEditing && (
-         <div className="mb-6 rounded-lg border border-accent/50 bg-accent/10 p-4 text-center text-accent-foreground">
-            <p className="font-semibold">Primeiro passo!</p>
-            <p className="text-sm">Preencha os dados da sua loja para que você possa começar a anunciar seus produtos e serviços.</p>
-         </div>
-       )}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="logo"
-              render={() => (
-                <FormItem className="flex flex-col items-center">
-                  <FormLabel>Logo da Loja</FormLabel>
-                  <FormControl>
-                    <div
-                      className="relative flex h-32 w-32 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {logoPreview ? (
-                        <>
-                          <Image
-                            src={logoPreview}
-                            alt="Preview da logo"
-                            fill
-                            className="rounded-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -right-1 -top-1 z-10 h-7 w-7 rounded-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeLogo();
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <div className="text-center">
-                          <Upload className="mx-auto h-10 w-10" />
-                          <p className="mt-1 text-xs">Enviar foto</p>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={handleLogoChange}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormDescription>Clique para enviar a logo.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome da Loja</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Sítio Verde" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Endereço / Base de Atuação</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="O endereço principal da sua loja ou a área que você atende." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              {isEditing ? 'Salvar Alterações' : 'Salvar e Criar Loja'}
+        <header className="flex items-center border-b p-4">
+            <Button variant="ghost" size="icon" asChild>
+            <Link href="/vender">
+                <ArrowLeft />
+            </Link>
             </Button>
-          </form>
-        </Form>
-        {isEditing && store && (
-          <>
-            <Separator className="my-8" />
-            <OperatingHoursForm store={store} />
-          </>
-        )}
-      </main>
+            <h1 className="mx-auto font-headline text-xl">
+                {store ? 'Editar Loja' : 'Criar Sua Loja'}
+            </h1>
+            <div className="w-10"></div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>{store ? 'Atualize os dados' : 'Informações da Loja'}</CardTitle>
+                    <CardDescription>
+                        {store ? 'Mantenha as informações da sua loja sempre atualizadas.' : 'Estes são os dados que seus clientes verão. Capriche!'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Nome da Loja</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Ex: Cantinho da Vovó" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Endereço</FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="Rua, número, bairro e cidade" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                         <FormField
+                        control={form.control}
+                        name="logoUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>URL do Logo (Opcional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="https://exemplo.com/logo.png" {...field} />
+                            </FormControl>
+                            <FormDescription>Cole o link de uma imagem para ser o logo da sua loja.</FormDescription>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+
+                        <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {store ? 'Salvar Alterações' : 'Criar Loja'}
+                        </Button>
+                    </form>
+                    </Form>
+                </CardContent>
+            </Card>
+        </main>
     </div>
   );
 }

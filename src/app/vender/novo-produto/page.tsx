@@ -1,19 +1,37 @@
+
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
-import * as React from 'react';
-import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
+import Image from 'next/image';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Upload, X, PlusCircle, Trash2, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import {
+  ArrowLeft,
+  Image as ImageIcon,
+  PlusCircle,
+  Trash2,
+  Loader2,
+  X,
+} from 'lucide-react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useFirebase } from '@/firebase';
+import { uploadFile } from '@/lib/storage';
+import { mockCategories } from '@/lib/data';
 import {
   Form,
   FormControl,
@@ -23,302 +41,150 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { mockCategories, ImagePlaceholder } from '@/lib/data';
-import { useFirebase } from '@/firebase';
-import { Loader2 as PageLoader } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { uploadFile } from '@/lib/storage';
-
-
-const MAX_IMAGES = 3;
 
 const addonSchema = z.object({
-  name: z.string().min(1, 'Nome do complemento é obrigatório.'),
-  price: z.coerce.number().min(0, 'O preço não pode ser negativo.'),
+  name: z.string().min(1, 'Nome é obrigatório'),
+  price: z.coerce.number().min(0, 'Preço deve ser positivo'),
 });
 
 const addonGroupSchema = z.object({
-  id: z.string().optional(), // For keying in React
-  title: z.string().min(1, 'Título do grupo é obrigatório.'),
-  type: z.enum(['single', 'multiple'], { required_error: 'Selecione o tipo.'}),
-  addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento.'),
+  title: z.string().min(1, 'Título é obrigatório'),
+  type: z.enum(['single', 'multiple']),
+  addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento'),
 });
 
 const productSchema = z.object({
-  name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
-  description: z
-    .string()
-    .min(10, 'A descrição deve ter pelo menos 10 caracteres.'),
-  price: z.coerce.number().positive('O preço deve ser um número positivo.'),
-  category: z
-    .string({ required_error: 'Selecione uma categoria.' })
-    .min(1, 'Selecione uma categoria.'),
-  images: z
-    .array(z.any())
-    .min(1, 'Pelo menos uma imagem é obrigatória.')
-    .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
+  name: z.string().min(3, 'O nome do produto é obrigatório.'),
+  description: z.string().optional(),
+  price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
+  category: z.string({ required_error: 'Selecione uma categoria.' }),
+  availability: z.enum(['available', 'on_demand', 'unavailable']),
+  images: z.any().array().min(1, 'Adicione pelo menos uma imagem.'),
   addonGroups: z.array(addonGroupSchema).optional(),
-  availability: z.string({ required_error: 'Selecione a disponibilidade.' }).default('available'),
 });
 
-export default function NewProductPage() {
-  const router = useRouter();
+type ProductFormValues = z.infer<typeof productSchema>;
+
+function NewProductPage() {
   const { user, firestore, isUserLoading } = useFirebase();
-  const [storeId, setStoreId] = React.useState<string | null>(null);
-  const [isLoadingPage, setIsLoadingPage] = React.useState(true);
-  const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const storeId = searchParams.get('storeId');
 
-  React.useEffect(() => {
-    async function fetchStoreId() {
-      if (isUserLoading) return;
-      
-      if (!user) {
-        toast.error('Você precisa estar logado para anunciar.');
-        router.push('/login?redirect=/vender/novo-produto');
-        return;
-      }
-      
-      if (!firestore) {
-          setIsLoadingPage(false);
-          return;
-      }
-
-      const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid));
-      
-      try {
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          setStoreId(querySnapshot.docs[0].id);
-        } else {
-          toast.error('Você precisa criar uma loja antes de anunciar.');
-          router.push('/vender/loja');
-        }
-      } catch (error) {
-        console.error("Error fetching storeId:", error);
-        toast.error("Não foi possível verificar sua loja. Tente novamente.");
-        router.push('/vender');
-      } finally {
-        setIsLoadingPage(false);
-      }
-    }
-    fetchStoreId();
-  }, [firestore, user, isUserLoading, router]);
-
-  const form = useForm<z.infer<typeof productSchema>>({
+  const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       description: '',
       price: 0,
+      availability: 'available',
       images: [],
       addonGroups: [],
-      availability: 'available',
     },
   });
-  
-  const { fields: addonGroups, append: appendAddonGroup, remove: removeAddonGroup } = useFieldArray({
+
+  const { fields, append, remove, update } = useFieldArray({
     control: form.control,
-    name: "addonGroups",
+    name: 'images',
   });
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const currentImageFiles = form.getValues('images').filter((img): img is File => img instanceof File);
-    const currentImageNames = new Set(currentImageFiles.map(file => file.name));
-  
-    const validFiles = files.filter(file => {
-      if (currentImageNames.has(file.name)) {
-        toast.error(`A imagem "${file.name}" já foi adicionada.`);
-        return false;
-      }
-      return true;
-    });
+  const {
+    fields: addonGroupFields,
+    append: appendAddonGroup,
+    remove: removeAddonGroup,
+  } = useFieldArray({
+    control: form.control,
+    name: 'addonGroups',
+  });
 
-    if (validFiles.length === 0) {
-        return;
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const existingNames = fields.map((field: any) => field.name);
+      
+      files.forEach(file => {
+          if (existingNames.includes(file.name)) {
+              toast.error(`A imagem "${file.name}" já foi adicionada.`);
+          } else {
+              append(file);
+          }
+      });
     }
-  
-    const currentImages = form.getValues('images');
-    const totalImages = currentImages.length + validFiles.length;
-  
-    if (totalImages > MAX_IMAGES) {
-      toast.error(`Você só pode adicionar mais ${MAX_IMAGES - currentImages.length} imagens.`);
-      return;
-    }
-  
-    const newImageFiles = [...currentImages, ...validFiles];
-    form.setValue('images', newImageFiles, { shouldValidate: true });
-  
-    const newImagePreviews = validFiles.map((file) => URL.createObjectURL(file));
-    setImagePreviews((prev) => [...prev, ...newImagePreviews]);
   };
-  
+
   const removeImage = (index: number) => {
-    const currentImages = form.getValues('images');
-    const currentPreviews = [...imagePreviews];
-
-    URL.revokeObjectURL(currentPreviews[index]); // Clean up memory
-
-    currentImages.splice(index, 1);
-    currentPreviews.splice(index, 1);
-
-    form.setValue('images', currentImages, { shouldValidate: true });
-    setImagePreviews(currentPreviews);
+    remove(index);
   };
+  
+  if (!isUserLoading && !user) {
+    router.push('/login?redirect=/vender');
+    return null;
+  }
 
-  async function onSubmit(values: z.infer<typeof productSchema>) {
-    if (!firestore || !user || !storeId) {
-      toast.error('Loja não encontrada. Verifique se você está logado e se sua loja foi criada corretamente.');
+  if (!storeId) {
+    toast.error('ID da loja é necessário para criar um anúncio.');
+    router.push('/vender');
+    return null;
+  }
+
+  async function onSubmit(values: ProductFormValues) {
+    if (!firestore || !user) {
+      toast.error('Erro de autenticação. Faça login novamente.');
       return;
     }
 
     try {
-      await form.trigger();
-      if (!form.formState.isValid) {
-        toast.error("Por favor, corrija os erros no formulário.");
-        return;
-      }
-      
-      toast.loading('Publicando anúncio...');
-
-      const newImageFiles = values.images.filter((img): img is File => img instanceof File);
-      
-      const newImageUrls = await Promise.all(
-        newImageFiles.map(file => uploadFile(file, `products/${storeId}`))
+      const imageUrls = await Promise.all(
+        values.images.map(image => {
+          if (image instanceof File) {
+            return uploadFile(image, `products/${user.uid}`);
+          }
+          return Promise.resolve(image.imageUrl); // Should not happen in create flow
+        })
       );
-
-      const finalImageObjects: ImagePlaceholder[] = newImageUrls.map(url => ({
-        imageUrl: url,
-        imageHint: values.category.toLowerCase(),
-      }));
       
-      const addons = values.addonGroups?.map(group => ({
-          ...group,
-          id: group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+      const finalImageObjects = imageUrls.map(url => ({
+        imageUrl: url,
+        imageHint: 'product photo' 
       }));
+
 
       await addDoc(collection(firestore, 'products'), {
-        name: values.name,
-        description: values.description,
-        price: values.price,
-        category: values.category,
-        type: 'PRODUCT',
+        ...values,
         images: finalImageObjects,
         storeId: storeId,
         sellerId: user.uid,
-        addons: addons || [],
-        availability: values.availability,
-        createdAt: new Date().toISOString(),
+        type: 'PRODUCT',
+        createdAt: serverTimestamp(),
       });
-      
-      toast.dismiss();
-      toast.success(`O produto "${values.name}" foi publicado com sucesso.`);
-      router.push('/vender');
 
+      toast.success('Produto publicado com sucesso!');
+      router.push('/vender');
     } catch (error) {
-      console.error('Error creating product:', error);
-      toast.dismiss();
+      console.error('Error saving product:', error);
       toast.error('Não foi possível salvar o produto. Tente novamente.');
     }
   }
 
-  if (isLoadingPage) {
-    return (
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-        <header className="flex items-center border-b p-4">
-          <Button variant="ghost" size="icon" disabled><ArrowLeft /></Button>
-          <h1 className="mx-auto font-headline text-xl">Anunciar Produto</h1>
-          <div className="w-10"></div>
-        </header>
-        <main className="flex flex-1 items-center justify-center p-4">
-          <PageLoader className="mx-auto h-10 w-10 animate-spin text-primary" />
-        </main>
-      </div>
-    );
-  }
+  const { isSubmitting } = form.formState;
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender/selecionar-tipo">
+          <Link href={`/vender/novo-anuncio?storeId=${storeId}`}>
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Anunciar Produto</h1>
+        <h1 className="mx-auto font-headline text-xl">Novo Produto</h1>
         <div className="w-10"></div>
       </header>
+
       <main className="flex-1 overflow-y-auto p-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="images"
-              render={() => (
-                <FormItem>
-                  <FormLabel>
-                    Fotos do Produto ({imagePreviews.length}/{MAX_IMAGES})
-                  </FormLabel>
-                  <FormControl>
-                    <div className="grid grid-cols-3 gap-2">
-                      {imagePreviews.map((src, index) => (
-                        <div key={index} className="relative aspect-square">
-                          <Image
-                            src={src}
-                            alt={`Preview ${index}`}
-                            fill
-                            className="rounded-md object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -right-2 -top-2 h-6 w-6 rounded-full"
-                            onClick={() => removeImage(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      {imagePreviews.length < MAX_IMAGES && (
-                        <div
-                          className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            ref={fileInputRef}
-                            className="hidden"
-                            onChange={handleImageChange}
-                          />
-                          <div className="text-center">
-                            <Upload className="mx-auto h-8 w-8" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    A primeira foto será a capa.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             
+            {/* Basic Info */}
             <FormField
               control={form.control}
               name="name"
@@ -326,132 +192,153 @@ export default function NewProductPage() {
                 <FormItem>
                   <FormLabel>Nome do Produto</FormLabel>
                   <FormControl>
-                    <Input placeholder={"Ex: Pão Artesanal"} {...field} />
+                    <Input placeholder="Ex: Bolo de Fubá com Goiabada" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição Detalhada</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={"Descreva os detalhes do seu produto..."}
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preço (R$)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder={"Ex: 15.50"}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Preço (R$)</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
+                        <Input type="number" step="0.01" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {mockCategories.filter(c => c.type === 'PRODUCT').map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {mockCategories.filter(c => c.type === 'PRODUCT').map(cat => (
+                            <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
+             <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Descrição (Opcional)</FormLabel>
+                    <FormControl>
+                        <Textarea placeholder="Detalhes que ajudam o cliente a escolher seu produto." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+
+            {/* Images */}
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Imagens do Produto</FormLabel>
+                  <FormControl>
+                    <div className="rounded-lg border border-dashed p-6 text-center">
+                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                      <label
+                        htmlFor="file-upload"
+                        className="mt-2 block text-sm font-medium text-primary hover:underline cursor-pointer"
+                      >
+                        <span>Clique para enviar</span>
+                        <input
+                          id="file-upload"
+                          name="file-upload"
+                          type="file"
+                          className="sr-only"
+                          multiple
+                          onChange={handleImageChange}
+                          accept="image/*"
+                        />
+                      </label>
+                      <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, GIF até 10MB</p>
+                    </div>
+                  </FormControl>
+                   <FormMessage />
+                  {fields.length > 0 && (
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      {fields.map((field, index) => (
+                        <div key={field.id} className="relative group">
+                          <Image
+                            src={URL.createObjectURL(field as any)}
+                            alt={`Preview ${index}`}
+                            width={100}
+                            height={100}
+                            className="h-24 w-24 rounded-md object-cover"
+                          />
+                           <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-80 group-hover:opacity-100 transition-opacity"
+                           >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </FormItem>
               )}
             />
 
+            {/* Availability */}
             <FormField
               control={form.control}
               name="availability"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Disponibilidade</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a disponibilidade" />
+                        <SelectValue placeholder="Como este produto estará disponível?" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        <SelectItem value="available">Disponível (em estoque)</SelectItem>
-                        <SelectItem value="on_demand">Sob Encomenda</SelectItem>
-                        <SelectItem value="unavailable">Indisponível</SelectItem>
+                      <SelectItem value="available">Pronta entrega</SelectItem>
+                      <SelectItem value="on_demand">Sob encomenda</SelectItem>
+                      <SelectItem value="unavailable">Indisponível</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    Isso define se o cliente pode comprar na hora ou se precisa encomendar.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <div className="space-y-4 rounded-lg border p-4">
-              <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
-              <p className="text-sm text-muted-foreground">
-                Adicione opções para o seu produto, como tamanhos, bordas de pizza, ou adicionais.
-              </p>
-              {addonGroups.map((group, groupIndex) => (
-                <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Grupo de Complementos
-              </Button>
-            </div>
-            
             <Button
               type="submit"
               className="w-full"
               size="lg"
-              disabled={form.formState.isSubmitting || isLoadingPage}
+              disabled={isSubmitting}
             >
-              {form.formState.isSubmitting
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publicando...</>
-                : `Publicar Produto`}
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting ? 'Publicando anúncio...' : 'Publicar Anúncio'}
             </Button>
           </form>
         </Form>
@@ -460,116 +347,10 @@ export default function NewProductPage() {
   );
 }
 
-function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, removeGroup: (index: number) => void}) {
-  const { control } = useFormContext<z.infer<typeof productSchema>>();
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: `addonGroups.${groupIndex}.addons`
-  });
-
-  return (
-    <div className="rounded-lg border bg-background p-4 space-y-4 relative">
-        <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 right-2 h-7 w-7 text-muted-foreground"
-            onClick={() => removeGroup(groupIndex)}
-        >
-            <X className="h-4 w-4" />
-        </Button>
-        
-        <FormField
-            control={control}
-            name={`addonGroups.${groupIndex}.title`}
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>Título do Grupo</FormLabel>
-                <FormControl>
-                <Input placeholder="Ex: Tamanho da Pizza" {...field} />
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        <FormField
-            control={control}
-            name={`addonGroups.${groupIndex}.type`}
-            render={({ field }) => (
-            <FormItem className="space-y-3">
-                <FormLabel>Tipo de Seleção</FormLabel>
-                <FormControl>
-                <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="flex items-center gap-4"
-                >
-                    <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                            <RadioGroupItem value="single" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Seleção Única</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                            <RadioGroupItem value="multiple" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Múltipla Escolha</FormLabel>
-                    </FormItem>
-                </RadioGroup>
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-
-        <div className="space-y-2">
-            <Label>Complementos</Label>
-            {fields.map((addon, addonIndex) => (
-                <div key={addon.id} className="flex items-center gap-2">
-                    <FormField
-                        control={control}
-                        name={`addonGroups.${groupIndex}.addons.${addonIndex}.name`}
-                        render={({ field }) => (
-                        <FormItem className="flex-1">
-                            <FormControl>
-                            <Input placeholder="Ex: Borda de Catupiry" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={control}
-                        name={`addonGroups.${groupIndex}.addons.${addonIndex}.price`}
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                                <div className="relative">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
-                                    <Input type="number" step="0.01" className="pl-7 w-28" placeholder="Preço" {...field} />
-                                </div>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(addonIndex)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                </div>
-            ))}
-             <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => append({ name: '', price: 0 })}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Complemento
-              </Button>
-        </div>
-    </div>
-  );
+export default function NewProductPageWrapper() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>}>
+            <NewProductPage />
+        </Suspense>
+    )
 }

@@ -253,30 +253,6 @@
         "shippingAddress"
       ]
     },
-    "ServiceRequest": {
-        "title": "ServiceRequest",
-        "type": "object",
-        "description": "Represents a service request on the platform.",
-        "properties": {
-            "id": { "type": "string" },
-            "customerId": { "type": "string" },
-            "storeId": { "type": "string" },
-            "serviceId": { "type": "string" },
-            "serviceName": { "type": "string" },
-            "orderType": { "type": "string", "enum": ["SERVICE_REQUEST"], "description": "Defines the type of order."},
-            "requestDate": { "type": "string", "format": "date-time" },
-            "status": {
-                "type": "string",
-                "enum": ["Solicitação recebida", "Em conversa", "Orçamento enviado", "Em execução", "Concluído", "Cancelado"]
-            },
-            "shippingAddress": { "$ref": "#/backend/entities/Address" },
-            "phone": { "type": "string" },
-            "sellerHasUnread": { "type": "boolean" },
-            "buyerHasUnread": { "type": "boolean" },
-            "lastMessageTimestamp": { "type": "string", "format": "date-time"}
-        },
-        "required": [ "id", "customerId", "storeId", "serviceId", "serviceName", "requestDate", "status", "shippingAddress" ]
-    },
     "OrderItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OrderItem",
@@ -396,22 +372,6 @@
             {
               "name": "orderId",
               "description": "The unique identifier for the order."
-            }
-          ]
-        }
-      },
-       {
-        "path": "serviceRequests/{requestId}",
-        "definition": {
-          "entityName": "ServiceRequest",
-          "schema": {
-            "$ref": "#/backend/entities/ServiceRequest"
-          },
-          "description": "Stores all service requests placed on the platform.",
-          "params": [
-            {
-              "name": "requestId",
-              "description": "The unique identifier for the service request."
             }
           ]
         }
