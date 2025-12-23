@@ -4,29 +4,33 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, User as UserIcon, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, Send, User as UserIcon, Phone, MapPin, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, collection, addDoc, serverTimestamp, query, orderBy, limit, writeBatch } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import StatusUpdater from '@/components/vender/StatusUpdater';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
-import StatusUpdater from '@/components/vender/StatusUpdater';
 
 interface Message {
+  id: string;
   senderId: string;
   text: string;
-  timestamp: string;
-  isRead: boolean;
+  timestamp: {
+    seconds: number;
+    nanoseconds: number;
+  } | Date;
 }
 
 interface Address {
@@ -52,7 +56,7 @@ interface Order {
   totalAmount: number;
   customerId: string; 
   storeId: string;
-  messages?: Message[];
+  messages?: any[]; // Legacy field for migration
   sellerHasUnread?: boolean;
   buyerHasUnread?: boolean;
   shippingAddress?: Address;
@@ -66,16 +70,65 @@ export default function OrderDetailPage() {
   const { firestore, user, isUserLoading } = useFirebase();
   const [newMessage, setNewMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSeller, setIsSeller] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // --- Data Fetching ---
   const orderRef = useMemoFirebase(() => {
     if (!firestore || !id) return null;
     return doc(firestore, 'orders', id as string);
   }, [firestore, id]);
 
-  const { data: order, isLoading, error } = useDoc<WithId<Order>>(orderRef);
-  const [isSeller, setIsSeller] = useState(false);
+  const { data: order, isLoading: isOrderLoading, error: orderError } = useDoc<WithId<Order>>(orderRef);
+  
+  const messagesQuery = useMemoFirebase(() => {
+    if (!orderRef) return null;
+    return query(collection(orderRef, 'messages'), orderBy('timestamp', 'asc'), limit(50));
+  }, [orderRef]);
 
+  const { data: messages, isLoading: areMessagesLoading } = useCollection<Message>(messagesQuery);
+  
+  // --- Migration Logic ---
+  useEffect(() => {
+    const migrateLegacyMessages = async () => {
+        if (!firestore || !orderRef || !order || !order.messages || order.messages.length === 0) {
+            return;
+        }
+
+        toast.loading('Atualizando estrutura do chat...');
+        
+        try {
+            const batch = writeBatch(firestore);
+            const messagesColRef = collection(orderRef, 'messages');
+
+            order.messages.forEach((msg: any) => {
+                const newMsgRef = doc(messagesColRef);
+                batch.set(newMsgRef, {
+                    ...msg,
+                    timestamp: new Date(msg.timestamp) // Convert ISO string to Firebase Timestamp
+                });
+            });
+
+            // After adding all messages to the new subcollection, remove the old array
+            batch.update(orderRef, { messages: [] }); // Or delete(field) if you prefer
+            
+            await batch.commit();
+            toast.dismiss();
+            toast.success('Chat atualizado com sucesso!');
+        } catch (err) {
+            toast.dismiss();
+            toast.error('Não foi possível atualizar a estrutura do chat.');
+            console.error("Error migrating messages:", err);
+        }
+    };
+
+    if (order) {
+        migrateLegacyMessages();
+    }
+  }, [order, orderRef, firestore]);
+  
+
+  // --- User & Role Logic ---
   useEffect(() => {
     const checkSeller = async () => {
         if (user && firestore && order?.storeId) {
@@ -95,18 +148,14 @@ export default function OrderDetailPage() {
     }
   }, [user, firestore, order, isUserLoading]);
 
-
-  const isChatEnabled = order?.messages !== undefined;
-
+  // --- Effects for UI ---
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    if (isChatEnabled) {
-        scrollToBottom();
-    }
-  }, [order?.messages, isChatEnabled]);
+      scrollToBottom();
+  }, [messages]);
 
   // Mark order as read when viewing
   useEffect(() => {
@@ -117,7 +166,7 @@ export default function OrderDetailPage() {
 
     if (isBuyer && order.buyerHasUnread) {
         payload = { buyerHasUnread: false };
-    } else if (!isBuyer && order.sellerHasUnread) {
+    } else if (isSeller && order.sellerHasUnread) {
         payload = { sellerHasUnread: false };
     }
 
@@ -126,24 +175,24 @@ export default function OrderDetailPage() {
     }
   }, [order, user, orderRef, isSeller]);
   
-  
+  // --- Event Handlers ---
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
-    if (!firestore || !user || !orderRef || !newMessage.trim() || !isChatEnabled) return;
+    if (!firestore || !user || !orderRef || !newMessage.trim()) return;
     
     setIsSubmitting(true);
 
-    const message: Message = {
+    const messagesColRef = collection(orderRef, 'messages');
+    
+    const messagePayload = {
       senderId: user.uid,
       text: newMessage.trim(),
-      timestamp: new Date().toISOString(),
-      isRead: false,
+      timestamp: serverTimestamp(),
     };
-
+    
     const isBuyer = user.uid === order?.customerId;
     const updatePayload = {
-      messages: arrayUnion(message),
-      lastMessageTimestamp: new Date().toISOString(),
+      lastMessageTimestamp: serverTimestamp(),
       ...(isBuyer 
          ? { sellerHasUnread: true }
          : { buyerHasUnread: true }
@@ -151,15 +200,16 @@ export default function OrderDetailPage() {
     };
 
     try {
+      await addDoc(messagesColRef, messagePayload);
       await updateDoc(orderRef, updatePayload);
       setNewMessage('');
     } catch (err) {
       console.error("Error sending message: ", err);
       
       const permissionError = new FirestorePermissionError({
-        path: orderRef.path,
-        operation: 'update',
-        requestResourceData: updatePayload,
+        path: messagesColRef.path,
+        operation: 'create',
+        requestResourceData: messagePayload,
       });
 
       errorEmitter.emit('permission-error', permissionError);
@@ -170,12 +220,14 @@ export default function OrderDetailPage() {
     }
   };
 
+  // --- Render Logic ---
+  const isLoading = isOrderLoading || isUserLoading;
 
-  if (isLoading || isUserLoading) {
+  if (isLoading) {
     return <OrderDetailSkeleton />;
   }
 
-  if (error || !order) {
+  if (orderError || !order) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center p-4 text-center">
         <h2 className="text-2xl font-bold">Pedido não encontrado</h2>
@@ -194,6 +246,16 @@ export default function OrderDetailPage() {
      return null;
   }
   
+  // Convert Firestore Timestamp or Date object to a consistent Date object for formatting
+  const formatTimestamp = (ts: Message['timestamp']): Date => {
+      if (ts instanceof Date) {
+          return ts;
+      }
+      if (ts && typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
+          return new Date(ts.seconds * 1000 + ts.nanoseconds / 1000000);
+      }
+      return new Date(); // Fallback
+  }
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -254,17 +316,17 @@ export default function OrderDetailPage() {
             </Card>
         )}
 
-        {isChatEnabled && (
         <Card>
             <CardHeader>
                 <CardTitle>Mensagens</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 h-64 overflow-y-auto pr-2">
-                {order.messages && order.messages.length === 0 ? (
+                {areMessagesLoading && <Loader2 className="animate-spin mx-auto"/>}
+                {!areMessagesLoading && messages && messages.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">Nenhuma mensagem ainda. Envie a primeira!</p>
                 ) : (
-                    order.messages && order.messages.map((msg, index) => (
-                        <div key={index} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? "justify-end" : "justify-start")}>
+                    messages && messages.map((msg) => (
+                        <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? "justify-end" : "justify-start")}>
                            {msg.senderId !== user?.uid && (
                              <Avatar className="h-8 w-8">
                                 <AvatarFallback>{isBuyer ? 'V' : 'C'}</AvatarFallback>
@@ -275,8 +337,8 @@ export default function OrderDetailPage() {
                                 msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted"
                             )}>
                                 <p>{msg.text}</p>
-                                <p className={cn("text-xs mt-1", msg.senderId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground/70")}>
-                                    {format(new Date(msg.timestamp), "HH:mm")}
+                                <p className={cn("text-xs mt-1 text-right", msg.senderId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground/70")}>
+                                    {format(formatTimestamp(msg.timestamp), "HH:mm")}
                                 </p>
                            </div>
                         </div>
@@ -285,10 +347,8 @@ export default function OrderDetailPage() {
                 <div ref={messagesEndRef} />
             </CardContent>
         </Card>
-        )}
       </main>
       
-      {isChatEnabled && (
       <footer className="border-t bg-card p-2">
         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
             <Input 
@@ -299,11 +359,10 @@ export default function OrderDetailPage() {
                 disabled={isSubmitting}
             />
             <Button type="submit" size="icon" disabled={!newMessage.trim() || isSubmitting}>
-                <Send className="h-5 w-5"/>
+                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin"/> : <Send className="h-5 w-5"/>}
             </Button>
         </form>
       </footer>
-      )}
     </div>
   );
 }
@@ -323,6 +382,4 @@ const OrderDetailSkeleton = () => (
         <Skeleton className="h-10 w-full" />
       </footer>
     </div>
-)
-
-    
+);

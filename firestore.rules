@@ -70,7 +70,7 @@ service cloud.firestore {
 
       // Allow buyer to only update their 'buyerHasUnread' status or send messages
       function isBuyerUpdating() {
-        let allowedFields = ['buyerHasUnread', 'messages', 'lastMessageTimestamp', 'sellerHasUnread'];
+        let allowedFields = ['buyerHasUnread', 'lastMessageTimestamp', 'sellerHasUnread'];
         let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
         
         return isOrderCustomer()
@@ -80,7 +80,7 @@ service cloud.firestore {
       
       // Allow seller to update status, their 'sellerHasUnread' status, or send messages
       function isSellerUpdating() {
-        let allowedFields = ['status', 'sellerHasUnread', 'messages', 'lastMessageTimestamp', 'buyerHasUnread'];
+        let allowedFields = ['status', 'sellerHasUnread', 'lastMessageTimestamp', 'buyerHasUnread'];
         let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
 
         return isOrderSeller() 
@@ -98,6 +98,17 @@ service cloud.firestore {
       // Split update rules for buyer and seller for better security
       allow update: if isBuyerUpdating() || isSellerUpdating();
       allow delete: if false;
+
+       // --- NEW SUBCOLLECTION RULES FOR MESSAGES ---
+      match /messages/{messageId} {
+        // Only participants of the order can read messages
+        allow get, list: if isOrderParticipant();
+        // Only participants can write messages
+        // And the senderId of the new message must be their own UID
+        allow create: if isOrderParticipant() && isCreatingOwn('senderId');
+        // Messages are immutable once created
+        allow update, delete: if false;
+      }
     }
 
     match /serviceRequests/{requestId} {
