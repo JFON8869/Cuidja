@@ -6,10 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  ArrowLeft,
-  Loader2,
-} from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import {
   collection,
   addDoc,
@@ -49,10 +46,6 @@ const serviceSchema = z.object({
   attendanceType: z.enum(['presencial', 'online', 'ambos'], {
     required_error: 'Selecione o tipo de atendimento.',
   }),
-  images: z
-    .any()
-    .array()
-    .optional(),
 });
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
@@ -62,7 +55,8 @@ interface ServiceFormProps {
 }
 
 export function ServiceForm({ serviceId }: ServiceFormProps) {
-  const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
+  const { user, firestore, isUserLoading, store, isStoreLoading } =
+    useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(!!serviceId);
@@ -75,7 +69,6 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
       name: '',
       description: '',
       price: 0,
-      images: [],
     },
   });
 
@@ -118,7 +111,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         description: values.description || '',
         price: Number(values.price),
         attendanceType: values.attendanceType,
-        images: [], // Images are removed
+        images: [], // Images are not part of service form
         storeId: store.id,
         sellerId: user.uid,
         type: 'SERVICE' as const,
@@ -128,10 +121,13 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
 
       if (isEditing && serviceId) {
         const docRef = doc(firestore, 'products', serviceId);
-        await updateDoc(docRef, {...dataToSave, updatedAt: serverTimestamp()});
+        await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
         toast.success('Serviço atualizado com sucesso!');
       } else {
-        await addDoc(collection(firestore, 'products'), {...dataToSave, createdAt: serverTimestamp()});
+        await addDoc(collection(firestore, 'products'), {
+          ...dataToSave,
+          createdAt: serverTimestamp(),
+        });
         toast.success('Serviço publicado com sucesso!');
       }
 
@@ -252,7 +248,11 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {isSubmitting ? 'Publicando...' : (isEditing ? 'Salvar Alterações' : 'Publicar Serviço')}
+              {isSubmitting
+                ? 'Publicando...'
+                : isEditing
+                ? 'Salvar Alterações'
+                : 'Publicar Serviço'}
             </Button>
           </form>
         </Form>

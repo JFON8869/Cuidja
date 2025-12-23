@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, useFormContext, FormProvider } from 'react-hook-form';
+import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -50,7 +50,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
-
+import { AddonGroupForm } from './AddonGroupForm';
 
 const addonSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -70,10 +70,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
   availability: z.enum(['available', 'on_demand', 'unavailable']),
-  images: z
-    .any()
-    .array()
-    .optional(),
+  images: z.any().array().optional(),
   addonGroups: z.array(addonGroupSchema).optional(),
 });
 
@@ -84,7 +81,8 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ productId }: ProductFormProps) {
-  const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
+  const { user, firestore, isUserLoading, store, isStoreLoading } =
+    useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(!!productId);
@@ -142,16 +140,6 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
   }, [firestore, productId, form, router, isEditing]);
 
-
-  const {
-    fields: addonGroupFields,
-    append: appendAddonGroup,
-    remove: removeAddonGroup,
-  } = useFieldArray({
-    control: form.control,
-    name: 'addonGroups',
-  });
-
   const handleSuggestCategory = async () => {
     const name = form.getValues('name');
     const description = form.getValues('description');
@@ -176,7 +164,9 @@ export function ProductForm({ productId }: ProductFormProps) {
         form.setValue('category', result.category, { shouldValidate: true });
         toast.success(`Categoria sugerida: ${result.category}`);
       } else {
-        toast.error(`A sugestão "${result.category}" não é uma categoria válida.`);
+        toast.error(
+          `A sugestão "${result.category}" não é uma categoria válida.`
+        );
       }
     } catch (error) {
       console.error('Error suggesting category:', error);
@@ -200,7 +190,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        images: [], // Images are removed
+        images: [],
         addonGroups: values.addonGroups || [],
         storeId: store.id,
         sellerId: user.uid,
@@ -347,7 +337,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                 )}
               />
             </div>
-            
+
             <Separator />
 
             <FormField
@@ -382,37 +372,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             />
 
             <Separator />
-
-            <div>
-              <Label className="text-base">Complementos</Label>
-              <p className="text-sm text-muted-foreground mb-4">
-                Ofereça extras como borda recheada, mais queijo, etc.
-              </p>
-              <div className="space-y-4">
-                {addonGroupFields.map((group, groupIndex) => (
-                  <AddonGroupForm
-                    key={group.id}
-                    groupIndex={groupIndex}
-                    removeAddonGroup={removeAddonGroup}
-                  />
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4"
-                onClick={() =>
-                  appendAddonGroup({
-                    title: '',
-                    type: 'single',
-                    addons: [{ name: '', price: 0 }],
-                  })
-                }
-              >
-                <PlusCircle className="mr-2" /> Adicionar Grupo de Complementos
-              </Button>
-            </div>
-
+            <AddonGroupForm />
             <Separator />
 
             <Button
@@ -429,126 +389,6 @@ export function ProductForm({ productId }: ProductFormProps) {
           </form>
         </FormProvider>
       </main>
-    </div>
-  );
-}
-
-function AddonGroupForm({
-  groupIndex,
-  removeAddonGroup,
-}: {
-  groupIndex: number;
-  removeAddonGroup: (index: number) => void;
-}) {
-  const { control } = useFormContext<ProductFormValues>();
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: `addonGroups.${groupIndex}.addons`,
-  });
-
-  return (
-    <div className="relative space-y-4 rounded-lg border p-4">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
-        onClick={() => removeAddonGroup(groupIndex)}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-      <FormField
-        control={control}
-        name={`addonGroups.${groupIndex}.title`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Título do Grupo</FormLabel>
-            <FormControl>
-              <Input {...field} placeholder="Ex: Borda" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={control}
-        name={`addonGroups.${groupIndex}.type`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Tipo de Seleção</FormLabel>
-            <FormControl>
-              <RadioGroup
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                className="flex gap-4"
-              >
-                <FormItem className="flex items-center space-x-2">
-                  <RadioGroupItem value="single" id={`single-${groupIndex}`} />
-                  <Label htmlFor={`single-${groupIndex}`}>Única Escolha</Label>
-                </FormItem>
-                <FormItem className="flex items-center space-x-2">
-                  <RadioGroupItem value="multiple" id={`multiple-${groupIndex}`} />
-                  <Label htmlFor={`multiple-${groupIndex}`}>Múltipla Escolha</Label>
-                </FormItem>
-              </RadioGroup>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-      <div>
-        <Label>Opções</Label>
-        <div className="mt-2 space-y-2">
-          {fields.map((addon, addonIndex) => (
-            <div key={addon.id} className="flex items-end gap-2">
-              <FormField
-                control={control}
-                name={`addonGroups.${groupIndex}.addons.${addonIndex}.name`}
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Input {...field} placeholder="Ex: Catupiry" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name={`addonGroups.${groupIndex}.addons.${addonIndex}.price`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        placeholder="Preço"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(addonIndex)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          onClick={() => append({ name: '', price: 0 })}
-        >
-          Adicionar Opção
-        </Button>
-      </div>
     </div>
   );
 }
