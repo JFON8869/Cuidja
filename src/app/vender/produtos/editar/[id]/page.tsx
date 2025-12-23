@@ -66,7 +66,7 @@ const productSchema = z.object({
     .string({ required_error: 'Selecione uma categoria.' })
     .min(1, 'Selecione uma categoria.'),
   images: z
-    .array(z.union([imageSchema, z.any()])) // Allow File objects or our image schema
+    .array(z.any())
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
   addonGroups: z.array(addonGroupSchema).optional(),
@@ -80,7 +80,16 @@ export default function EditProductPage() {
 
   const [isLoading, setIsLoading] = React.useState(true);
   const [productName, setProductName] = React.useState('');
+  
+  // State to manage all image previews (both existing URLs and new blob URLs)
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
+  
+  // State to track just the files newly added by the user
+  const [newImageFiles, setNewImageFiles] = React.useState<File[]>([]);
+  
+  // State to track the original image objects from Firestore
+  const [existingImages, setExistingImages] = React.useState<ImagePlaceholder[]>([]);
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -113,18 +122,19 @@ export default function EditProductPage() {
             return;
           }
 
+          const existingImagesData = product.images || [];
+
           form.reset({
             name: product.name,
             description: product.description || '',
             price: product.price,
             category: product.category,
-            images: product.images || [], // Load existing images
+            images: existingImagesData, 
             addonGroups: product.addons || []
           });
           setProductName(product.name);
-          setImagePreviews(
-            product.images?.map((img: ImagePlaceholder) => img.imageUrl) || []
-          );
+          setExistingImages(existingImagesData);
+          setImagePreviews(existingImagesData.map((img: ImagePlaceholder) => img.imageUrl));
         } else {
           toast.error('Produto não encontrado');
           router.push('/vender/produtos');
@@ -135,32 +145,40 @@ export default function EditProductPage() {
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const currentImages = form.getValues('images') || [];
-    const currentPreviews = imagePreviews;
-    const totalImages = currentPreviews.length + files.length;
+    const totalImages = imagePreviews.length + files.length;
 
     if (totalImages > MAX_IMAGES) {
-      toast.error(`Você só pode adicionar mais ${MAX_IMAGES - currentPreviews.length} imagens.`);
+      toast.error(`Você só pode adicionar mais ${MAX_IMAGES - imagePreviews.length} imagens.`);
       return;
     }
 
-    const newImageFiles = [...currentImages, ...files];
-    form.setValue('images', newImageFiles, { shouldValidate: true });
-
-    const newImagePreviews = files.map((file) => URL.createObjectURL(file));
-    setImagePreviews((prev) => [...prev, ...newImagePreviews]);
+    setNewImageFiles(prev => [...prev, ...files]);
+    
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews]);
   };
 
   const removeImage = (index: number) => {
-    const currentImages = form.getValues('images');
-    const currentPreviews = [...imagePreviews];
+    const targetPreview = imagePreviews[index];
+    
+    // Check if it's a blob URL (a new file)
+    if (targetPreview.startsWith('blob:')) {
+        const fileIndexToRemove = newImageFiles.findIndex(file => URL.createObjectURL(file) === targetPreview);
+        if (fileIndexToRemove > -1) {
+            setNewImageFiles(prev => prev.filter((_, i) => i !== fileIndexToRemove));
+        }
+    } else { // It's an existing image URL from Firestore
+        setExistingImages(prev => prev.filter(img => img.imageUrl !== targetPreview));
+    }
 
-    currentImages.splice(index, 1);
-    currentPreviews.splice(index, 1);
-
-    form.setValue('images', currentImages, { shouldValidate: true });
-    setImagePreviews(currentPreviews);
+    // Update the visual preview
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
+  
+  // Update the form's 'images' value whenever the previews change to satisfy validation
+  React.useEffect(() => {
+     form.setValue('images', imagePreviews, { shouldValidate: true });
+  }, [imagePreviews, form]);
 
   async function onSubmit(values: z.infer<typeof productSchema>) {
     if (!firestore || !id) return;
@@ -168,24 +186,16 @@ export default function EditProductPage() {
     const productRef = doc(firestore, 'products', id as string);
     
     // This is a placeholder for real file upload.
-    // In a real app, you would upload the File objects and get back URLs.
-    const newImageUrls = values.images.map((img, index) => {
-      // Check if it's an existing image object with imageUrl
-      if (typeof img.imageUrl === 'string') {
-        return img;
-      }
-      // It's a new File object, use its corresponding preview URL as a placeholder
-      // In a real app, this `img` would be uploaded and you'd get a URL.
-      // The preview URL needs to be found from the imagePreviews state
-      const previewUrl = imagePreviews.find(p => p.startsWith('blob:'))
-      return {
-        // This is a simplified mapping. A more robust solution might
-        // involve tracking files and their previews in a more linked way.
-        // For this context, we'll assume the order is maintained.
-        imageUrl: imagePreviews[index], 
+    // In a real app, you would upload the newImageFiles and get back URLs.
+    const newUploadedImages: ImagePlaceholder[] = newImageFiles.map(file => ({
+        // In a real app, this would be the URL from Firebase Storage.
+        // For now, we'll use a placeholder. This URL won't work long-term.
+        imageUrl: `https://picsum.photos/seed/${Math.random()}/600/600`, 
         imageHint: values.category.toLowerCase(),
-      };
-    });
+    }));
+
+    // Combine the kept existing images with the newly "uploaded" ones.
+    const finalImages = [...existingImages, ...newUploadedImages];
 
     const finalAddonGroups = values.addonGroups?.map(group => ({
         ...group,
@@ -199,7 +209,7 @@ export default function EditProductPage() {
         price: values.price,
         category: values.category,
         addons: finalAddonGroups || [],
-        images: newImageUrls, // Update with the combined list of old and new images
+        images: finalImages, // Use the correctly merged list of images.
       });
 
       toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
@@ -255,7 +265,7 @@ export default function EditProductPage() {
                   <FormControl>
                     <div className="grid grid-cols-3 gap-2">
                       {imagePreviews.map((src, index) => (
-                        <div key={index} className="relative aspect-square">
+                        <div key={src + index} className="relative aspect-square">
                           <Image
                             src={src}
                             alt={`Preview ${index}`}
@@ -531,5 +541,4 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
-
     
