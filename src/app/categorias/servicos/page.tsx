@@ -31,38 +31,20 @@ export default function ServicesCategoryPage() {
       setIsLoading(true);
 
       try {
-        // 1. Find all products that are of type 'SERVICE'
-        const servicesQuery = query(
-          collection(firestore, 'products'), 
-          where('type', '==', 'SERVICE')
+        // Find all stores that offer services.
+        const storesQuery = query(
+          collection(firestore, 'stores'), 
+          where('categories', 'array-contains', 'Serviços')
         );
-        const servicesSnapshot = await getDocs(servicesQuery);
+        const storesSnapshot = await getDocs(storesQuery);
 
-        if (servicesSnapshot.empty) {
+        if (storesSnapshot.empty) {
           setServiceProviders([]);
           setIsLoading(false);
           return;
         }
 
-        // 2. Get unique store IDs from these services
-        const storeIds = [
-          ...new Set(servicesSnapshot.docs.map((doc) => doc.data().storeId)),
-        ];
-
-        if (storeIds.length === 0) {
-          setServiceProviders([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // 3. Fetch the store documents for each unique storeId
-        const storePromises = storeIds.map((id) =>
-          getDoc(doc(firestore, 'stores', id as string))
-        );
-        const storeDocs = await Promise.all(storePromises);
-
-        const providers = storeDocs
-          .filter((doc) => doc.exists())
+        const providers = storesSnapshot.docs
           .map((doc) => ({
             id: doc.id,
             ...doc.data(),

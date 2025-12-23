@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,11 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  ArrowLeft,
-  Loader2,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import {
   collection,
   addDoc,
@@ -22,6 +19,7 @@ import {
   query,
   where,
   getDocs,
+  arrayUnion,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -64,20 +62,26 @@ interface ProductFormProps {
   productId?: string;
 }
 
-// Function to update the store's categories list
+// Function to update the store's categories list based on its products
 const updateUserStoreCategories = async (firestore: any, storeId: string) => {
-    const productsRef = collection(firestore, 'products');
-    const q = query(productsRef, where('storeId', '==', storeId), where('type', '==', 'PRODUCT'));
+  const productsRef = collection(firestore, 'products');
+  const q = query(
+    productsRef,
+    where('storeId', '==', storeId),
+    where('type', '==', 'PRODUCT')
+  );
 
-    const querySnapshot = await getDocs(q);
-    const categories = new Set(querySnapshot.docs.map(doc => doc.data().category));
-    
-    const storeRef = doc(firestore, 'stores', storeId);
-    await updateDoc(storeRef, {
-        categories: Array.from(categories)
-    });
+  const querySnapshot = await getDocs(q);
+  // Using a Set to get unique category names
+  const categories = new Set(
+    querySnapshot.docs.map((doc) => doc.data().category)
+  );
+
+  const storeRef = doc(firestore, 'stores', storeId);
+  await updateDoc(storeRef, {
+    categories: Array.from(categories),
+  });
 };
-
 
 export function ProductForm({ productId }: ProductFormProps) {
   const { user, firestore, isUserLoading, store, isStoreLoading } =
@@ -172,7 +176,7 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
   };
 
- async function onSubmit(values: ProductFormValues) {
+  async function onSubmit(values: ProductFormValues) {
     if (!firestore || !user || !store) {
       toast.error('É necessário ter uma loja para criar um anúncio.');
       return;
@@ -180,8 +184,7 @@ export function ProductForm({ productId }: ProductFormProps) {
 
     setIsSubmitting(true);
     let success = false;
-    let redirectUrl = '/vender/produtos';
-
+    
     try {
       const dataToSave = {
         name: values.name,
@@ -189,7 +192,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        addons: [],
+        addons: [], // Ensure addons is an empty array
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,
@@ -202,10 +205,10 @@ export function ProductForm({ productId }: ProductFormProps) {
       } else {
         await addDoc(collection(firestore, 'products'), dataToSave);
       }
-      
+
       await updateUserStoreCategories(firestore, store.id);
       success = true;
-      
+
     } catch (error) {
       console.error('Error saving product:', error);
       toast.error('Não foi possível salvar o produto. Tente novamente.');
@@ -213,8 +216,8 @@ export function ProductForm({ productId }: ProductFormProps) {
       setIsSubmitting(false);
       if (success) {
         toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
-        router.push(redirectUrl);
-        router.refresh(); // Force refresh to reflect changes
+        router.push('/vender/produtos');
+        router.refresh();
       }
     }
   }
@@ -373,7 +376,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             />
 
             <Separator />
-            
+
             <Button
               type="submit"
               className="w-full"
