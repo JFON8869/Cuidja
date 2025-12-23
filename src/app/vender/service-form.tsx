@@ -14,6 +14,9 @@ import {
   doc,
   getDoc,
   updateDoc,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -53,6 +56,20 @@ type ServiceFormValues = z.infer<typeof serviceSchema>;
 interface ServiceFormProps {
   serviceId?: string;
 }
+
+// Function to update the store's categories list
+const updateUserStoreCategories = async (firestore: any, storeId: string) => {
+    const productsRef = collection(firestore, 'products');
+    const q = query(productsRef, where('storeId', '==', storeId), where('type', '==', 'PRODUCT'));
+
+    const querySnapshot = await getDocs(q);
+    const categories = new Set(querySnapshot.docs.map(doc => doc.data().category));
+    
+    const storeRef = doc(firestore, 'stores', storeId);
+    await updateDoc(storeRef, {
+        categories: Array.from(categories)
+    });
+};
 
 export function ServiceForm({ serviceId }: ServiceFormProps) {
   const { user, firestore, isUserLoading, store, isStoreLoading } =
@@ -131,7 +148,10 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         toast.success('Serviço publicado com sucesso!');
       }
 
+      await updateUserStoreCategories(firestore, store.id);
+
       router.push('/vender/servicos');
+      router.refresh();
     } catch (error) {
       console.error('Error saving service:', error);
       toast.error('Não foi possível salvar o serviço. Tente novamente.');
@@ -221,6 +241,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>

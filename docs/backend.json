@@ -88,6 +88,11 @@
         "name": { "type": "string" },
         "address": {"type": "string"},
         "logoUrl": {"type": "string", "format": "uri"},
+        "categories": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "A list of product categories offered by the store."
+        },
         "operatingHours": {
           "type": "object",
           "properties": {
@@ -126,6 +131,10 @@
         "sellerId": {
           "type": "string",
           "description": "Reference to User (Seller). (Relationship: User 1:N Product)"
+        },
+        "storeId": {
+            "type": "string",
+            "description": "Reference to Store."
         },
         "name": {
           "type": "string",
@@ -175,6 +184,7 @@
       "required": [
         "id",
         "sellerId",
+        "storeId",
         "name",
         "description",
         "price",

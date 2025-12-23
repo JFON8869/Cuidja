@@ -18,6 +18,10 @@ import {
   doc,
   getDoc,
   updateDoc,
+  writeBatch,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -52,6 +56,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
   availability: z.enum(['available', 'on_demand', 'unavailable']),
+  addons: z.array(z.any()).optional(), // Keep this for potential future use
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -59,6 +64,21 @@ type ProductFormValues = z.infer<typeof productSchema>;
 interface ProductFormProps {
   productId?: string;
 }
+
+// Function to update the store's categories list
+const updateUserStoreCategories = async (firestore: any, storeId: string) => {
+    const productsRef = collection(firestore, 'products');
+    const q = query(productsRef, where('storeId', '==', storeId), where('type', '==', 'PRODUCT'));
+
+    const querySnapshot = await getDocs(q);
+    const categories = new Set(querySnapshot.docs.map(doc => doc.data().category));
+    
+    const storeRef = doc(firestore, 'stores', storeId);
+    await updateDoc(storeRef, {
+        categories: Array.from(categories)
+    });
+};
+
 
 export function ProductForm({ productId }: ProductFormProps) {
   const { user, firestore, isUserLoading, store, isStoreLoading } =
@@ -77,6 +97,7 @@ export function ProductForm({ productId }: ProductFormProps) {
       description: '',
       price: 0,
       availability: 'available',
+      addons: [],
     },
   });
 
@@ -101,6 +122,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             const productData = docSnap.data() as Product;
             form.reset({
               ...productData,
+              addons: productData.addons || [],
             });
           } else {
             toast.error('Produto não encontrado.');
@@ -153,7 +175,7 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
   };
 
-  async function onSubmit(values: ProductFormValues) {
+ async function onSubmit(values: ProductFormValues) {
     if (!firestore || !user || !store) {
       toast.error('É necessário ter uma loja para criar um anúncio.');
       return;
@@ -167,7 +189,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        addons: [],
+        addons: values.addons || [],
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,
@@ -184,8 +206,12 @@ export function ProductForm({ productId }: ProductFormProps) {
         });
         toast.success('Produto publicado com sucesso!');
       }
+      
+      // Update the store's category list
+      await updateUserStoreCategories(firestore, store.id);
 
       router.push('/vender/produtos');
+      router.refresh(); // Force refresh to reflect changes
     } catch (error) {
       console.error('Error saving product:', error);
       toast.error('Não foi possível salvar o produto. Tente novamente.');
@@ -348,7 +374,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             />
 
             <Separator />
-
+            
             <Button
               type="submit"
               className="w-full"

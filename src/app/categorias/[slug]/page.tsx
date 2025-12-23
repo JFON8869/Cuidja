@@ -11,8 +11,6 @@ import {
   query,
   where,
   getDocs,
-  doc,
-  getDoc,
   DocumentData,
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +24,7 @@ interface StoreDocument {
   name: string;
   logoUrl?: string;
   operatingHours?: OperatingHours;
+  categories?: string[];
 }
 
 export default function CategoryPage() {
@@ -66,33 +65,20 @@ export default function CategoryPage() {
       setIsLoading(true);
 
       try {
-        // 1. Find all products in the specified category and ensure they are of type 'PRODUCT'
-        const productsQuery = query(
-          collection(firestore, 'products'),
-          where('category', '==', categoryName),
-          where('type', '==', 'PRODUCT')
+        // Query stores that contain the category name in their `categories` array field
+        const storesQuery = query(
+          collection(firestore, 'stores'),
+          where('categories', 'array-contains', categoryName)
         );
-        const productsSnapshot = await getDocs(productsQuery);
+        const storesSnapshot = await getDocs(storesQuery);
 
-        // 2. Get unique store IDs from these products
-        const storeIds = [
-          ...new Set(productsSnapshot.docs.map((doc) => doc.data().storeId)),
-        ];
-
-        if (storeIds.length === 0) {
+        if (storesSnapshot.empty) {
           setStores([]);
           setIsLoading(false);
           return;
         }
 
-        // 3. Fetch the store documents for each unique storeId
-        const storePromises = storeIds.map((id) =>
-          getDoc(doc(firestore, 'stores', id as string))
-        );
-        const storeDocs = await Promise.all(storePromises);
-
-        const fetchedStores = storeDocs
-          .filter((doc) => doc.exists())
+        const fetchedStores = storesSnapshot.docs
           .map((doc) => ({
             id: doc.id,
             ...doc.data(),
