@@ -56,7 +56,6 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
   availability: z.enum(['available', 'on_demand', 'unavailable']),
-  addons: z.array(z.any()).optional(), // Keep this for potential future use
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -97,7 +96,6 @@ export function ProductForm({ productId }: ProductFormProps) {
       description: '',
       price: 0,
       availability: 'available',
-      addons: [],
     },
   });
 
@@ -122,7 +120,6 @@ export function ProductForm({ productId }: ProductFormProps) {
             const productData = docSnap.data() as Product;
             form.reset({
               ...productData,
-              addons: productData.addons || [],
             });
           } else {
             toast.error('Produto não encontrado.');
@@ -182,6 +179,9 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
 
     setIsSubmitting(true);
+    let success = false;
+    let redirectUrl = '/vender/produtos';
+
     try {
       const dataToSave = {
         name: values.name,
@@ -189,34 +189,33 @@ export function ProductForm({ productId }: ProductFormProps) {
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        addons: values.addons || [],
+        addons: [],
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,
+        createdAt: serverTimestamp(),
       };
 
       if (isEditing && productId) {
         const docRef = doc(firestore, 'products', productId);
         await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
-        toast.success('Produto atualizado com sucesso!');
       } else {
-        await addDoc(collection(firestore, 'products'), {
-          ...dataToSave,
-          createdAt: serverTimestamp(),
-        });
-        toast.success('Produto publicado com sucesso!');
+        await addDoc(collection(firestore, 'products'), dataToSave);
       }
       
-      // Update the store's category list
       await updateUserStoreCategories(firestore, store.id);
-
-      router.push('/vender/produtos');
-      router.refresh(); // Force refresh to reflect changes
+      success = true;
+      
     } catch (error) {
       console.error('Error saving product:', error);
       toast.error('Não foi possível salvar o produto. Tente novamente.');
     } finally {
       setIsSubmitting(false);
+      if (success) {
+        toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
+        router.push(redirectUrl);
+        router.refresh(); // Force refresh to reflect changes
+      }
     }
   }
 

@@ -123,6 +123,9 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
     }
 
     setIsSubmitting(true);
+    let success = false;
+    const redirectUrl = '/vender/servicos';
+
     try {
       const dataToSave = {
         name: values.name,
@@ -134,29 +137,29 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         type: 'SERVICE' as const,
         category: 'Serviços',
         availability: 'on_demand' as const,
+        createdAt: serverTimestamp(),
       };
 
       if (isEditing && serviceId) {
         const docRef = doc(firestore, 'products', serviceId);
         await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
-        toast.success('Serviço atualizado com sucesso!');
       } else {
-        await addDoc(collection(firestore, 'products'), {
-          ...dataToSave,
-          createdAt: serverTimestamp(),
-        });
-        toast.success('Serviço publicado com sucesso!');
+        await addDoc(collection(firestore, 'products'), dataToSave);
       }
 
       await updateUserStoreCategories(firestore, store.id);
+      success = true;
 
-      router.push('/vender/servicos');
-      router.refresh();
     } catch (error) {
       console.error('Error saving service:', error);
       toast.error('Não foi possível salvar o serviço. Tente novamente.');
     } finally {
       setIsSubmitting(false);
+      if (success) {
+        toast.success(isEditing ? 'Serviço atualizado com sucesso!' : 'Serviço publicado com sucesso!');
+        router.push(redirectUrl);
+        router.refresh();
+      }
     }
   }
 
