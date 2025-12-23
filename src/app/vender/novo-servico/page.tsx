@@ -2,13 +2,16 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft,
   Loader2,
+  Image as ImageIcon,
+  X,
 } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
@@ -24,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
+import { uploadFile } from '@/lib/storage';
 import {
   Form,
   FormControl,
@@ -34,11 +38,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
+const MAX_IMAGES = 3;
+
 const serviceSchema = z.object({
   name: z.string().min(3, 'O nome do serviço é obrigatório.'),
   description: z.string().min(10, "A descrição é obrigatória.").optional(),
   price: z.coerce.number().min(0, 'O preço deve ser 0 (a combinar) ou maior.'),
   attendanceType: z.enum(['presencial', 'online', 'ambos'], { required_error: "Selecione o tipo de atendimento."}),
+  images: z
+    .any()
+    .array()
+    .min(1, 'Adicione pelo menos uma imagem.')
+    .max(MAX_IMAGES, `Você pode adicionar no máximo ${MAX_IMAGES} imagens.`),
 });
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
@@ -54,7 +65,13 @@ function NewServicePage() {
       name: '',
       description: '',
       price: 0,
+      images: [],
     },
+  });
+  
+  const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
+    control: form.control,
+    name: 'images',
   });
 
   useEffect(() => {
@@ -64,6 +81,31 @@ function NewServicePage() {
       router.push('/vender/loja');
     }
   }, [isUserLoading, user, isStoreLoading, store, router]);
+  
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const currentImageCount = imageFields.length;
+      const availableSlots = MAX_IMAGES - currentImageCount;
+
+      if (files.length > availableSlots) {
+          toast.error(`Você pode adicionar no máximo ${availableSlots} mais imagem(ns).`);
+          return;
+      }
+      
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+          toast.error(`"${file.name}" não é uma imagem válida.`);
+          continue;
+        }
+        if (file.size > 2 * 1024 * 1024) { // 2MB
+          toast.error(`A imagem "${file.name}" é muito grande (max 2MB).`);
+          continue;
+        }
+        appendImage(file);
+      }
+    }
+  };
 
   if (isUserLoading || isStoreLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
@@ -85,20 +127,31 @@ function NewServicePage() {
     
     setIsSubmitting(true);
     try {
-        // Services have a generic placeholder image by default
-        const serviceImage = {
-            imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzZXJ2aWNlfGVufDB8fHx8MTc3MzM5NzAyNHww&ixlib=rb-4.1.0&q=80&w=1080',
-            imageHint: 'professional service'
+        const newImageFiles = values.images.filter((image: any): image is File => image instanceof File);
+        
+        const uploadPromises = newImageFiles.map(file => uploadFile(file, `services/${user.uid}/${Date.now()}-${file.name}`));
+        const newImageUrls = await Promise.all(uploadPromises);
+
+        const newImageObjects = newImageUrls.map(url => ({
+            imageUrl: url,
+            imageHint: 'professional service' 
+        }));
+
+        if (newImageObjects.length === 0) {
+            form.setError('images', { type: 'manual', message: 'Adicione pelo menos uma imagem.' });
+            setIsSubmitting(false);
+            return;
         }
 
         await addDoc(collection(firestore, 'products'), {
             ...values,
+            price: Number(values.price),
+            images: newImageObjects,
             storeId: store.id,
             sellerId: user.uid,
             type: 'SERVICE',
-            category: 'Serviços', // Legacy category for services
-            availability: 'on_demand', // Services are always on demand
-            images: [serviceImage],
+            category: 'Serviços',
+            availability: 'on_demand',
             createdAt: serverTimestamp(),
         });
 
@@ -113,7 +166,7 @@ function NewServicePage() {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/vender/novo-anuncio">
@@ -151,6 +204,66 @@ function NewServicePage() {
                     <Textarea placeholder="Descreva o que você faz, sua experiência e o que está incluso." {...field} rows={5} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="images"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Imagens do Serviço</FormLabel>
+                   <FormDescription>Adicione fotos do seu trabalho ou que representem o serviço.</FormDescription>
+                  <FormControl>
+                    <div className="rounded-lg border border-dashed p-6 text-center">
+                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                       <label
+                        htmlFor="file-upload"
+                        className={`mt-2 block text-sm font-medium text-primary ${imageFields.length >= MAX_IMAGES ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:underline'}`}
+                      >
+                        <span>{imageFields.length >= MAX_IMAGES ? 'Limite de imagens atingido' : 'Clique para enviar'}</span>
+                        <input
+                          id="file-upload"
+                          name="file-upload"
+                          type="file"
+                          className="sr-only"
+                          multiple
+                          onChange={handleImageChange}
+                          accept="image/*"
+                          disabled={imageFields.length >= MAX_IMAGES}
+                        />
+                      </label>
+                      <p className="mt-1 text-xs text-muted-foreground">PNG, JPG até 2MB. Máximo de {MAX_IMAGES} imagens.</p>
+                    </div>
+                  </FormControl>
+                   <FormMessage />
+                  {imageFields.length > 0 && (
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      {imageFields.map((field, index) => {
+                          const src = field instanceof File ? URL.createObjectURL(field) : (field as any)?.imageUrl;
+                          if (!src) return null;
+                          return (
+                            <div key={field.id} className="relative group aspect-square h-auto w-full">
+                              <Image
+                                  src={src}
+                                  alt={`Preview ${index}`}
+                                  fill
+                                  sizes="(max-width: 640px) 33vw, 100px"
+                                  className="rounded-md object-cover"
+                                />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-80 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </FormItem>
               )}
             />
