@@ -25,12 +25,12 @@ service cloud.firestore {
     
     // Checks if the requesting user is the owner of a document via a denormalized field.
     function isDocumentOwner(doc, fieldName) {
-      return isSignedIn() && resource != null && request.auth.uid == doc[fieldName];
+      return isSignedIn() && request.auth.uid == doc[fieldName];
     }
     
     // Checks if the requesting user is the seller of a product/service via a denormalized field.
     function isResourceSeller(doc) {
-      return isSignedIn() && resource != null && request.auth.uid == doc.sellerId;
+      return isSignedIn() && request.auth.uid == doc.sellerId;
     }
 
     // NEW HELPER: Checks if the user is the seller by looking up the store owner.
@@ -63,7 +63,6 @@ service cloud.firestore {
       }
 
       function isOrderSeller() {
-        // V3: Use the denormalized sellerId field for efficiency
         return isDocumentOwner(resource.data, 'sellerId');
       }
       
@@ -78,9 +77,7 @@ service cloud.firestore {
       allow list: if false; // Globally deny listing. Queries need filters.
 
       match /messages/{messageId} {
-        // Any participant can read the chat history.
         allow get, list: if isSignedIn() && isOrderParticipant();
-        // A user can only send messages as themselves in a chat they are part of.
         allow create: if isSignedIn() && isOrderParticipant() && isCreatingOwn('senderId');
         allow update, delete: if false;
       }

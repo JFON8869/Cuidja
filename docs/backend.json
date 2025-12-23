@@ -219,21 +219,26 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents a product order on the platform.",
+      "description": "Represents a product order or service request on the platform.",
       "properties": {
         "id": { "type": "string" },
         "customerId": { "type": "string" },
+        "sellerId": { "type": "string" },
         "storeId": { "type": "string" },
-        "orderType": { "type": "string", "enum": ["PURCHASE"], "description": "Defines the type of order."},
+        "orderType": { "type": "string", "enum": ["PURCHASE", "SERVICE_REQUEST"], "description": "Defines the type of order."},
         "items": {
           "type": "array",
           "items": { "$ref": "#/backend/entities/OrderItem" }
         },
+        "serviceId": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
         "orderDate": { "type": "string", "format": "date-time" },
         "totalAmount": { "type": "number" },
         "status": {
           "type": "string",
-          "enum": ["Pendente", "Confirmado", "Em Preparo", "Saiu para Entrega", "Entregue", "Cancelado"]
+          "enum": ["Pendente", "Confirmado", "Em Preparo", "Saiu para Entrega", "Entregue", "Cancelado", "Solicitação Recebida", "Em Conversa", "Orçamento Enviado", "Em Execução", "Concluído"]
         },
         "isUrgent": { "type": "boolean" },
         "shippingAddress": { "$ref": "#/backend/entities/Address" },
@@ -246,11 +251,8 @@
         "id",
         "customerId",
         "storeId",
-        "items",
         "orderDate",
-        "totalAmount",
-        "status",
-        "shippingAddress"
+        "status"
       ]
     },
     "OrderItem": {
@@ -367,7 +369,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores all product orders placed on the platform.",
+          "description": "Stores all product orders and service requests on the platform.",
           "params": [
             {
               "name": "orderId",

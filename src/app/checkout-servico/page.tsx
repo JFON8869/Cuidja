@@ -26,7 +26,6 @@ import {
 } from '@/components/ui/form';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Suspense, useEffect, useState } from 'react';
-import { Product } from '@/lib/data';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 const serviceRequestSchema = z.object({
@@ -99,13 +98,12 @@ function ServiceCheckoutPage() {
         customerName: values.name,
         customerPhone: values.phone,
         status: 'Solicitação Recebida',
-        requestDate: serverTimestamp(),
+        orderDate: serverTimestamp(),
         sellerHasUnread: true,
         buyerHasUnread: false,
         lastMessageTimestamp: serverTimestamp(),
       });
       
-      // Add the initial message if provided
       if (values.message) {
         const messagesCol = collection(firestore, 'orders', docRef.id, 'messages');
         await addDoc(messagesCol, {

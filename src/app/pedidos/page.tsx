@@ -25,7 +25,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
@@ -38,7 +37,6 @@ interface Order {
   id: string;
   orderType: 'PURCHASE' | 'SERVICE_REQUEST';
   orderDate?: { toDate: () => Date };
-  requestDate?: { toDate: () => Date };
   status: string;
   totalAmount?: number;
   items?: OrderItem[];
@@ -61,17 +59,14 @@ export default function MyOrdersPage() {
     const fetchOrdersAndStores = async () => {
       setIsLoading(true);
       try {
-        // Find stores where the user is the owner
         const sellerStoresQuery = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
         const sellerStoresSnap = await getDocs(sellerStoresQuery);
         const sellerStoreIds = sellerStoresSnap.docs.map(doc => doc.id);
 
-        // Build the query
         const ordersRef = collection(firestore, 'orders');
         let ordersQuery;
 
         if (sellerStoreIds.length > 0) {
-            // User is a seller, fetch orders for their stores OR orders they created
             ordersQuery = query(ordersRef, 
                 or(
                     where('customerId', '==', user.uid),
@@ -80,7 +75,6 @@ export default function MyOrdersPage() {
                 orderBy('orderDate', 'desc')
             );
         } else {
-            // User is only a buyer, fetch only their orders
             ordersQuery = query(ordersRef, where('customerId', '==', user.uid), orderBy('orderDate', 'desc'));
         }
 
@@ -91,14 +85,10 @@ export default function MyOrdersPage() {
         })) as Order[];
         setOrders(fetchedOrders);
 
-        // Fetch store details for all unique store IDs
-        const storeIds = [
-          ...new Set(fetchedOrders.map((order) => order.storeId)),
-        ];
+        const storeIds = [...new Set(fetchedOrders.map((order) => order.storeId))];
         if (storeIds.length > 0) {
           const fetchedStores: Record<string, { name: string }> = {};
           const storeChunks = [];
-          // Firestore 'in' query limit is 30
           for (let i = 0; i < storeIds.length; i += 30) {
             storeChunks.push(storeIds.slice(i, i + 30));
           }
@@ -145,7 +135,7 @@ export default function MyOrdersPage() {
       <div className="space-y-4">
         {orderList.map((order) => {
           const isPurchase = order.orderType === 'PURCHASE';
-          const date = isPurchase ? order.orderDate?.toDate() : order.requestDate?.toDate();
+          const date = order.orderDate?.toDate();
           const title = isPurchase ? (order.items?.[0]?.name || 'Pedido') : order.serviceName;
           const storeName = stores[order.storeId]?.name || 'Loja não encontrada';
 
@@ -158,7 +148,7 @@ export default function MyOrdersPage() {
                         <CardTitle className="flex items-center gap-2 text-lg">
                            {isPurchase ? <Package size={20}/> : <Wrench size={20}/>}
                            {title}
-                           {order.items && order.items.length > 1 && ` + ${order.items.length - 1} item(s)`}
+                           {isPurchase && order.items && order.items.length > 1 && ` + ${order.items.length - 1} item(s)`}
                         </CardTitle>
                         <CardDescription>{storeName}</CardDescription>
                     </div>
@@ -169,7 +159,7 @@ export default function MyOrdersPage() {
                   <p className="text-muted-foreground">
                     {date ? format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Data indisponível'}
                   </p>
-                  {isPurchase && order.totalAmount && (
+                  {isPurchase && order.totalAmount != null && (
                     <p className="font-bold text-primary">
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
