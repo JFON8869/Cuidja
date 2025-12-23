@@ -51,10 +51,14 @@ const addonGroupSchema = z.object({
   addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento.'),
 });
 
-const imageSchema = z.object({
-  imageUrl: z.string(),
-  imageHint: z.string(),
-});
+const imageSchema = z.union([
+    z.object({
+        imageUrl: z.string(),
+        imageHint: z.string(),
+    }),
+    z.any().refine(val => val instanceof File, "Deve ser um arquivo de imagem.")
+]);
+
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -66,11 +70,13 @@ const productSchema = z.object({
     .string({ required_error: 'Selecione uma categoria.' })
     .min(1, 'Selecione uma categoria.'),
   images: z
-    .array(z.any())
+    .array(imageSchema)
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
   addonGroups: z.array(addonGroupSchema).optional(),
 });
+
+type FormValues = z.infer<typeof productSchema>;
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -81,18 +87,9 @@ export default function EditProductPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [productName, setProductName] = React.useState('');
   
-  // State to manage all image previews (both existing URLs and new blob URLs)
-  const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
-  
-  // State to track just the files newly added by the user
-  const [newImageFiles, setNewImageFiles] = React.useState<File[]>([]);
-  
-  // State to track the original image objects from Firestore
-  const [existingImages, setExistingImages] = React.useState<ImagePlaceholder[]>([]);
-
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const form = useForm<z.infer<typeof productSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
@@ -102,7 +99,12 @@ export default function EditProductPage() {
       addonGroups: [],
     },
   });
-  
+
+  const { fields: images, append: appendImage, remove: removeImage } = useFieldArray({
+    control: form.control,
+    name: "images"
+  });
+
   const { fields: addonGroups, append: appendAddonGroup, remove: removeAddonGroup } = useFieldArray({
     control: form.control,
     name: "addonGroups",
@@ -133,8 +135,6 @@ export default function EditProductPage() {
             addonGroups: product.addons || []
           });
           setProductName(product.name);
-          setExistingImages(existingImagesData);
-          setImagePreviews(existingImagesData.map((img: ImagePlaceholder) => img.imageUrl));
         } else {
           toast.error('Produto não encontrado');
           router.push('/vender/produtos');
@@ -145,57 +145,37 @@ export default function EditProductPage() {
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const totalImages = imagePreviews.length + files.length;
+    const currentImages = form.getValues('images');
+    const totalImages = currentImages.length + files.length;
 
     if (totalImages > MAX_IMAGES) {
-      toast.error(`Você só pode adicionar mais ${MAX_IMAGES - imagePreviews.length} imagens.`);
+      toast.error(`Você pode adicionar no máximo ${MAX_IMAGES - currentImages.length} imagens.`);
       return;
     }
-
-    setNewImageFiles(prev => [...prev, ...files]);
     
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    setImagePreviews(prev => [...prev, ...newPreviews]);
-  };
-
-  const removeImage = (index: number) => {
-    const targetPreview = imagePreviews[index];
-    
-    // Check if it's a blob URL (a new file)
-    if (targetPreview.startsWith('blob:')) {
-        const fileIndexToRemove = newImageFiles.findIndex(file => URL.createObjectURL(file) === targetPreview);
-        if (fileIndexToRemove > -1) {
-            setNewImageFiles(prev => prev.filter((_, i) => i !== fileIndexToRemove));
-        }
-    } else { // It's an existing image URL from Firestore
-        setExistingImages(prev => prev.filter(img => img.imageUrl !== targetPreview));
-    }
-
-    // Update the visual preview
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    files.forEach(file => appendImage(file));
   };
   
-  // Update the form's 'images' value whenever the previews change to satisfy validation
-  React.useEffect(() => {
-     form.setValue('images', imagePreviews, { shouldValidate: true });
-  }, [imagePreviews, form]);
-
-  async function onSubmit(values: z.infer<typeof productSchema>) {
+  async function onSubmit(values: FormValues) {
     if (!firestore || !id) return;
     
     const productRef = doc(firestore, 'products', id as string);
     
-    // This is a placeholder for real file upload.
-    // In a real app, you would upload the newImageFiles and get back URLs.
-    const newUploadedImages: ImagePlaceholder[] = newImageFiles.map(file => ({
-        // In a real app, this would be the URL from Firebase Storage.
-        // For now, we'll use a placeholder. This URL won't work long-term.
-        imageUrl: `https://picsum.photos/seed/${Math.random()}/600/600`, 
-        imageHint: values.category.toLowerCase(),
-    }));
-
-    // Combine the kept existing images with the newly "uploaded" ones.
-    const finalImages = [...existingImages, ...newUploadedImages];
+    // Process images: keep existing ones, "upload" new ones
+    const finalImages: ImagePlaceholder[] = [];
+    for (const img of values.images) {
+      if (img instanceof File) {
+        // This is a placeholder for real file upload.
+        // In a real app, you would upload the file and get a URL.
+        finalImages.push({
+          imageUrl: `https://picsum.photos/seed/${Math.random()}/600/600`, // Placeholder URL
+          imageHint: values.category.toLowerCase(),
+        });
+      } else {
+        // This is an existing image object, keep it
+        finalImages.push(img);
+      }
+    }
 
     const finalAddonGroups = values.addonGroups?.map(group => ({
         ...group,
@@ -209,7 +189,7 @@ export default function EditProductPage() {
         price: values.price,
         category: values.category,
         addons: finalAddonGroups || [],
-        images: finalImages, // Use the correctly merged list of images.
+        images: finalImages,
       });
 
       toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
@@ -237,6 +217,13 @@ export default function EditProductPage() {
       </div>
     );
   }
+  
+  const getImagePreviewUrl = (image: any): string => {
+    if (image instanceof File) {
+        return URL.createObjectURL(image);
+    }
+    return image.imageUrl;
+  }
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -260,14 +247,14 @@ export default function EditProductPage() {
               render={() => (
                 <FormItem>
                   <FormLabel>
-                    Fotos do Produto ({imagePreviews.length}/{MAX_IMAGES})
+                    Fotos do Produto ({images.length}/{MAX_IMAGES})
                   </FormLabel>
                   <FormControl>
                     <div className="grid grid-cols-3 gap-2">
-                      {imagePreviews.map((src, index) => (
-                        <div key={src + index} className="relative aspect-square">
+                      {images.map((image, index) => (
+                        <div key={image.id} className="relative aspect-square">
                           <Image
-                            src={src}
+                            src={getImagePreviewUrl(image)}
                             alt={`Preview ${index}`}
                             fill
                             className="rounded-md object-cover"
@@ -283,7 +270,7 @@ export default function EditProductPage() {
                           </Button>
                         </div>
                       ))}
-                      {imagePreviews.length < MAX_IMAGES && (
+                      {images.length < MAX_IMAGES && (
                         <div
                           className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
                           onClick={() => fileInputRef.current?.click()}
@@ -429,7 +416,7 @@ export default function EditProductPage() {
 
 // Sub-component for managing an addon group
 function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, removeGroup: (index: number) => void}) {
-  const { control } = useFormContext<z.infer<typeof productSchema>>();
+  const { control } = useFormContext<FormValues>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: `addonGroups.${groupIndex}.addons`
