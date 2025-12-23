@@ -153,7 +153,7 @@ export const mockBanners: Banner[] = [
     title: 'Os Mais Pedidos',
     subtitle: 'Confira os produtos populares!',
     image: findImage('banner-bread-cheese'),
-    link: '/mais-vendidos',
+    link: '#',
   },
   {
     id: 'banner-4',
