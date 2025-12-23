@@ -33,23 +33,29 @@ export default function SearchPage() {
       setIsLoading(false);
       return;
     }
+    const normalizedQuery = searchQuery.trim().toLowerCase();
     setIsLoading(true);
     setHasSearched(true);
     try {
       const productsRef = collection(firestore, 'products');
+      
+      // Since Firestore doesn't support case-insensitive `contains` search natively,
+      // we perform a range query on a pre-normalized field or fetch and filter client-side.
+      // Assuming no pre-normalized field, we'll fetch a broader range and filter.
       const q = query(
         productsRef,
-        orderBy('name'),
-        startAt(searchQuery.toLowerCase()),
-        endAt(searchQuery.toLowerCase() + '\uf8ff')
+        orderBy('name')
+        // We can't do a perfect "contains" search, but we can do "starts with"
+        // startAt(normalizedQuery),
+        // endAt(normalizedQuery + '\uf8ff')
       );
 
       const querySnapshot = await getDocs(q);
       const fetchedProducts: WithId<Product>[] = [];
       querySnapshot.forEach((doc) => {
         const productData = doc.data() as Product;
-        // Secondary client-side filter since Firestore case-insensitive search is limited
-        if (productData.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        // Client-side filtering for "contains"
+        if (productData.name.toLowerCase().includes(normalizedQuery)) {
           fetchedProducts.push({ id: doc.id, ...productData });
         }
       });

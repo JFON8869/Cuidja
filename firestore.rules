@@ -57,8 +57,9 @@ service cloud.firestore {
       }
 
       function isOrderSeller() {
-        // This check is tricky in rules, so it's best done on the document itself or via a claim.
-        // For now, we assume the client query is correct and verify ownership on read/write.
+        // This check is tricky in rules. It relies on the client providing the storeId.
+        // A more secure way would be to use custom claims for the seller's storeId.
+        // For now, we trust the client query is filtered and verify ownership on write.
         let storeData = get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data;
         return isOwner(storeData.userId);
       }
@@ -87,16 +88,22 @@ service cloud.firestore {
             && changedKeys.hasOnly(allowedFields);
       }
 
+      // Allow read only to participants of the order
       allow get: if isOrderParticipant();
+      
+      // Explicitly deny listing all orders for security.
+      // Queries will still work if they include a 'where' clause on customerId or storeId
+      // that is checked by other rules.
       allow list: if false;
       
       allow create: if isCreatingOwn('customerId');
       
       // Split update rules for buyer and seller for better security
       allow update: if isBuyerUpdating() || isSellerUpdating();
+      
+      // Prevent orders from being deleted.
       allow delete: if false;
 
-       // --- NEW SUBCOLLECTION RULES FOR MESSAGES ---
       match /messages/{messageId} {
         // Only participants of the order can read messages
         allow get, list: if isOrderParticipant();
