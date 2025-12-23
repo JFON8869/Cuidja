@@ -18,6 +18,7 @@ import { StoreCard } from '@/components/store/StoreCard';
 import { useEffect, useState, useMemo } from 'react';
 import { allCategories } from '@/lib/categories';
 import { OperatingHours } from '@/lib/data';
+import BottomNav from '@/components/layout/BottomNav';
 
 interface StoreDocument {
   id: string;
@@ -111,7 +112,7 @@ export default function CategoryPage() {
   );
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/home">
@@ -145,6 +146,7 @@ export default function CategoryPage() {
           </div>
         )}
       </main>
+      <BottomNav />
     </div>
   );
 }

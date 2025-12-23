@@ -11,6 +11,7 @@ import { useFirebase } from '@/firebase';
 import { StoreCard } from '@/components/store/StoreCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OperatingHours } from '@/lib/data';
+import BottomNav from '@/components/layout/BottomNav';
 
 interface StoreDocument {
   id: string;
@@ -77,7 +78,7 @@ export default function ServicesCategoryPage() {
 
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/home">
@@ -111,6 +112,7 @@ export default function ServicesCategoryPage() {
           </div>
         )}
       </main>
+      <BottomNav />
     </div>
   );
 }
