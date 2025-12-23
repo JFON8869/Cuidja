@@ -61,13 +61,13 @@ export function OperatingHoursForm({ store }: OperatingHoursFormProps) {
   const form = useForm<OperatingHoursFormValues>({
     resolver: zodResolver(operatingHoursSchema),
     defaultValues: {
-      sun: store.operatingHours?.sun || { isOpen: false, open: '09:00', close: '18:00' },
-      mon: store.operatingHours?.mon || { isOpen: true, open: '09:00', close: '18:00' },
-      tue: store.operatingHours?.tue || { isOpen: true, open: '09:00', close: '18:00' },
-      wed: store.operatingHours?.wed || { isOpen: true, open: '09:00', close: '18:00' },
-      thu: store.operatingHours?.thu || { isOpen: true, open: '09:00', close: '18:00' },
-      fri: store.operatingHours?.fri || { isOpen: true, open: '09:00', close: '18:00' },
-      sat: store.operatingHours?.sat || { isOpen: true, open: '09:00', close: '12:00' },
+      sun: store.operatingHours?.sun || { isOpen: false, open: '08:00', close: '18:00' },
+      mon: store.operatingHours?.mon || { isOpen: true, open: '08:00', close: '18:00' },
+      tue: store.operatingHours?.tue || { isOpen: true, open: '08:00', close: '18:00' },
+      wed: store.operatingHours?.wed || { isOpen: true, open: '08:00', close: '18:00' },
+      thu: store.operatingHours?.thu || { isOpen: true, open: '08:00', close: '18:00' },
+      fri: store.operatingHours?.fri || { isOpen: true, open: '08:00', close: '18:00' },
+      sat: store.operatingHours?.sat || { isOpen: true, open: '08:00', close: '18:00' },
     },
   });
 
