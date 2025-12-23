@@ -26,7 +26,6 @@ import {
   Tooltip,
 } from 'recharts';
 import { useFirebase } from '@/firebase';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const salesData = [
   { name: 'Jan', sales: 65 },
@@ -94,8 +93,12 @@ const WelcomeSellPage = () => (
   </div>
 );
 
+interface SellerDashboardProps {
+  storeId: string;
+}
+
 // Componente para vendedores com loja criada (Painel)
-const SellerDashboard = () => (
+const SellerDashboard = ({ storeId }: SellerDashboardProps) => (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
@@ -202,29 +205,46 @@ const SellerDashboard = () => (
 
 export default function SellPage() {
   const { user, firestore, isUserLoading } = useFirebase();
-  const [hasStore, setHasStore] = useState<boolean | null>(null);
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStore() {
-      if (!firestore || !user) {
-        setHasStore(false);
+      if (isUserLoading) return;
+      if (!user) {
+        // Not logged in, can treat as "no store"
+        setIsLoading(false);
+        return;
+      };
+      if (!firestore) {
+        // Firestore not ready
+        setIsLoading(false);
         return;
       }
       
       const storesRef = collection(firestore, 'stores');
       const q = query(storesRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
       
-      setHasStore(!querySnapshot.empty);
+      try {
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            setStoreId(querySnapshot.docs[0].id);
+        } else {
+            setStoreId(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user store:", error);
+        setStoreId(null);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
-    if (!isUserLoading) {
-      fetchStore();
-    }
+    fetchStore();
   }, [user, firestore, isUserLoading]);
 
   // Loading state
-  if (isUserLoading || hasStore === null) {
+  if (isLoading) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -232,5 +252,6 @@ export default function SellPage() {
     );
   }
 
-  return hasStore ? <SellerDashboard /> : <WelcomeSellPage />;
+  // If a storeId was found, show the dashboard, otherwise show the welcome/onboarding page.
+  return storeId ? <SellerDashboard storeId={storeId} /> : <WelcomeSellPage />;
 }

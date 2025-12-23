@@ -1,11 +1,11 @@
+
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, MoreVertical, PlusCircle, Trash, Loader2, AlertTriangle } from 'lucide-react';
 import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection, WithId } from '@/firebase/firestore/use-collection';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +44,7 @@ export default function MyProductsPage() {
     return query(
       collection(firestore, 'products'),
       where('sellerId', '==', user.uid),
-      where('category', '!=', 'Serviços') // Exclude services
+      where('type', '==', 'PRODUCT') 
     );
   }, [firestore, user]);
 
@@ -73,13 +72,13 @@ export default function MyProductsPage() {
     [...Array(3)].map((_, i) => (
         <Card key={i}>
             <CardContent className="flex items-center gap-4 p-4">
-                <Skeleton className="h-16 w-16 rounded-md" />
+                <div className="h-16 w-16 rounded-md bg-muted animate-pulse" />
                 <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-3 w-1/4" />
+                    <div className="h-4 w-3/4 bg-muted animate-pulse" />
+                    <div className="h-4 w-1/2 bg-muted animate-pulse" />
+                    <div className="h-3 w-1/4 bg-muted animate-pulse" />
                 </div>
-                <Skeleton className="h-8 w-8" />
+                <div className="h-8 w-8 bg-muted animate-pulse" />
             </CardContent>
         </Card>
     ))
@@ -107,15 +106,35 @@ export default function MyProductsPage() {
             myProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden">
                 <CardContent className="flex items-center gap-4 p-4">
-                  <Image
-                    src={product.images[0]?.imageUrl || '/placeholder.png'}
-                    alt={product.name}
-                    width={64}
-                    height={64}
-                    className="h-16 w-16 rounded-md border object-cover aspect-square"
-                  />
+                  {product.images && product.images.length > 0 ? (
+                    <Image
+                      src={product.images[0]?.imageUrl || '/placeholder.png'}
+                      alt={product.name}
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 rounded-md border object-cover aspect-square"
+                    />
+                  ) : (
+                     <div className="h-16 w-16 rounded-md border bg-muted flex items-center justify-center">
+                        <PlusCircle className="h-6 w-6 text-muted-foreground" />
+                     </div>
+                  )}
                   <div className="flex-1">
-                    <h3 className="font-semibold">{product.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{product.name}</h3>
+                      {(!product.type || !product.availability) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Anúncio legado. Edite para atualizar.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                     <p className="text-sm text-primary">
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
@@ -123,7 +142,7 @@ export default function MyProductsPage() {
                       }).format(product.price)}
                     </p>
                     <p className="text-xs text-muted-foreground capitalize">
-                        {product.availability === 'available' ? 'Em estoque' : product.availability === 'on_demand' ? 'Sob encomenda' : 'Indisponível'}
+                        {(product.availability === 'available' ? 'Em estoque' : product.availability === 'on_demand' ? 'Sob encomenda' : 'Indisponível') || 'Disponibilidade não definida'}
                     </p>
                   </div>
                     <DropdownMenu>
@@ -195,3 +214,12 @@ export default function MyProductsPage() {
     </>
   );
 }
+
+// Re-add Tooltip components as they were likely removed if the file was deleted.
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+

@@ -33,8 +33,7 @@ import {
 } from '@/components/ui/select';
 import { mockCategories } from '@/lib/data';
 import { useFirebase } from '@/firebase';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
+import { Loader2 as PageLoader } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { uploadFile } from '@/lib/storage';
@@ -81,32 +80,46 @@ export default function NewProductPage() {
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [storeId, setStoreId] = React.useState<string | null>(null);
-  const [isStoreLoading, setStoreLoading] = React.useState(true);
+  const [isLoadingPage, setIsLoadingPage] = React.useState(true);
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     async function fetchStoreId() {
       if (isUserLoading) return;
-      if (!firestore || !user) {
-        setStoreLoading(false);
+      
+      if (!user) {
+        toast.error('Você precisa estar logado para anunciar.');
+        router.push('/login?redirect=/vender/novo-produto');
         return;
       }
-      setStoreLoading(true);
+      
+      if (!firestore) {
+          setIsLoadingPage(false);
+          return;
+      }
+
       const storesRef = collection(firestore, 'stores');
       const q = query(storesRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setStoreId(querySnapshot.docs[0].id);
-      } else {
-        toast.error('Você precisa criar uma loja antes de anunciar.');
-        router.push('/vender/loja');
+      
+      try {
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          setStoreId(querySnapshot.docs[0].id);
+        } else {
+          toast.error('Você precisa criar uma loja antes de anunciar.');
+          router.push('/vender/loja');
+        }
+      } catch (error) {
+        console.error("Error fetching storeId:", error);
+        toast.error("Não foi possível verificar sua loja. Tente novamente.");
+        router.push('/vender');
+      } finally {
+        setIsLoadingPage(false);
       }
-      setStoreLoading(false);
     }
-    if (!isUserLoading) {
-      fetchStoreId();
-    }
+    fetchStoreId();
   }, [firestore, user, isUserLoading, router]);
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -147,6 +160,8 @@ export default function NewProductPage() {
     const currentImages = form.getValues('images');
     const currentPreviews = [...imagePreviews];
 
+    URL.revokeObjectURL(currentPreviews[index]); // Clean up memory
+
     currentImages.splice(index, 1);
     currentPreviews.splice(index, 1);
 
@@ -156,15 +171,19 @@ export default function NewProductPage() {
 
   async function onSubmit(values: z.infer<typeof productSchema>) {
     if (!firestore || !user || !storeId) {
-      toast.error('Você precisa ter uma loja para criar um anúncio.');
+      toast.error('Loja não encontrada. Verifique se você está logado e se sua loja foi criada corretamente.');
       return;
     }
 
-    const isSubmitting = form.formState.isSubmitting;
-    if (isSubmitting) return;
-
     try {
+      await form.trigger();
+      if (!form.formState.isValid) {
+        toast.error("Por favor, corrija os erros no formulário.");
+        return;
+      }
+      
       toast.loading('Publicando anúncio...');
+
       const imageUrls = await Promise.all(
         values.images.map((file: File) => 
           uploadFile(file, `products/${storeId}`)
@@ -206,16 +225,16 @@ export default function NewProductPage() {
     }
   }
 
-  if (isUserLoading || isStoreLoading) {
+  if (isLoadingPage) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
         <header className="flex items-center border-b p-4">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="mx-auto h-6 w-48" />
+          <Button variant="ghost" size="icon" disabled><ArrowLeft /></Button>
+          <h1 className="mx-auto font-headline text-xl">Anunciar Produto</h1>
           <div className="w-10"></div>
         </header>
-        <main className="flex-1 space-y-6 p-4">
-          <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
+        <main className="flex flex-1 items-center justify-center p-4">
+          <PageLoader className="mx-auto h-10 w-10 animate-spin text-primary" />
         </main>
       </div>
     );
@@ -426,7 +445,7 @@ export default function NewProductPage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={form.formState.isSubmitting}
+              disabled={form.formState.isSubmitting || isLoadingPage}
             >
               {form.formState.isSubmitting
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publicando...</>

@@ -47,18 +47,25 @@ export default function NewServicePage() {
   const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [storeId, setStoreId] = React.useState<string | null>(null);
-  const [isStoreLoading, setStoreLoading] = React.useState(true);
+  const [isLoadingPage, setIsLoadingPage] = React.useState(true);
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     async function fetchStoreId() {
       if (isUserLoading) return;
-      if (!firestore || !user) {
-        setStoreLoading(false);
+
+      if (!user) {
+        toast.error('Você precisa estar logado para anunciar.');
+        router.push('/login');
         return;
       }
-      setStoreLoading(true);
+      
+      if (!firestore) {
+          setIsLoadingPage(false);
+          return;
+      }
+
       const storesRef = collection(firestore, 'stores');
       const q = query(storesRef, where('userId', '==', user.uid));
       const querySnapshot = await getDocs(q);
@@ -68,11 +75,9 @@ export default function NewServicePage() {
         toast.error('Você precisa criar uma loja antes de anunciar.');
         router.push('/vender/loja');
       }
-      setStoreLoading(false);
+      setIsLoadingPage(false);
     }
-    if (!isUserLoading) {
-      fetchStoreId();
-    }
+    fetchStoreId();
   }, [firestore, user, isUserLoading, router]);
 
   const form = useForm<z.infer<typeof serviceSchema>>({
@@ -115,7 +120,7 @@ export default function NewServicePage() {
 
   async function onSubmit(values: z.infer<typeof serviceSchema>) {
     if (!firestore || !user || !storeId) {
-      toast.error('Você precisa ter uma loja para criar um anúncio.');
+      toast.error('Loja não encontrada. Verifique se você está logado e se sua loja foi criada corretamente.');
       return;
     }
 
@@ -161,7 +166,7 @@ export default function NewServicePage() {
     }
   }
 
-  if (isUserLoading || isStoreLoading) {
+  if (isLoadingPage) {
     return (
       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
         <header className="flex items-center border-b p-4">
@@ -169,7 +174,7 @@ export default function NewServicePage() {
           <Skeleton className="mx-auto h-6 w-48" />
           <div className="w-10"></div>
         </header>
-        <main className="flex-1 space-y-6 p-4">
+        <main className="flex flex-1 items-center justify-center p-4">
           <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
         </main>
       </div>
@@ -336,7 +341,7 @@ export default function NewServicePage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={form.formState.isSubmitting}
+              disabled={form.formState.isSubmitting || isLoadingPage}
             >
               {form.formState.isSubmitting
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publicando...</>
