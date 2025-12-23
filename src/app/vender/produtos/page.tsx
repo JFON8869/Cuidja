@@ -18,7 +18,8 @@ import {
   where,
   getDocs,
   doc,
-  deleteDoc
+  deleteDoc,
+  orderBy
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -41,42 +42,34 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 
 export default function SellerProductsPage() {
-  const { user, firestore, isUserLoading } = useFirebase();
+  const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
   const [products, setProducts] = useState<WithId<Product>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [storeId, setStoreId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isUserLoading || !firestore || !user) {
-        if(!isUserLoading) setIsLoading(false);
+    // Don't fetch until we have the user and the store object
+    if (isUserLoading || isStoreLoading) {
+        return;
+    }
+    // if there's a user but no store, the main /vender page will redirect.
+    // this check prevents fetching if the component renders before redirect.
+    if (!user || !store) {
+        setIsLoading(false);
         return;
     }
 
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        const storesQuery = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
-        const storesSnapshot = await getDocs(storesQuery);
-        
-        if (storesSnapshot.empty) {
-            toast.error("Você precisa criar uma loja primeiro.");
-            setProducts([]);
-            setIsLoading(false);
-            return;
-        }
-
-        const currentStoreId = storesSnapshot.docs[0].id;
-        setStoreId(currentStoreId);
-
         const productsQuery = query(
           collection(firestore, 'products'),
-          where('storeId', '==', currentStoreId),
-          where('type', '==', 'PRODUCT')
+          where('storeId', '==', store.id),
+          where('type', '==', 'PRODUCT'),
+          orderBy('createdAt', 'desc')
         );
 
         const productsSnapshot = await getDocs(productsQuery);
@@ -92,7 +85,7 @@ export default function SellerProductsPage() {
     };
 
     fetchProducts();
-  }, [user, firestore, isUserLoading]);
+  }, [user, firestore, isUserLoading, store, isStoreLoading]);
 
   const handleDelete = async (productId: string) => {
     if (!firestore) return;
@@ -118,7 +111,7 @@ export default function SellerProductsPage() {
         </Button>
         <h1 className="mx-auto font-headline text-xl">Meus Produtos</h1>
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/vender/novo-produto?storeId=${storeId}`}>
+          <Link href={`/vender/novo-anuncio`}>
             <PlusCircle />
           </Link>
         </Button>
@@ -130,7 +123,7 @@ export default function SellerProductsPage() {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : products.length === 0 ? (
-          <div className="flex flex-col h-full items-center justify-center p-4 text-center">
+          <div className="flex h-full flex-col items-center justify-center p-4 text-center">
              <Package className="w-16 h-16 text-muted-foreground mb-4"/>
             <h2 className="text-2xl font-bold">Nenhum produto cadastrado</h2>
             <p className="text-muted-foreground mb-4">
@@ -141,19 +134,9 @@ export default function SellerProductsPage() {
           <div className="divide-y">
             {products.map(product => (
                  <div key={product.id} className="p-4 flex items-center gap-4">
-                    {product.images && product.images.length > 0 ? (
-                        <Image 
-                            src={product.images[0]?.imageUrl || 'https://picsum.photos/seed/placeholder/100'}
-                            alt={product.name}
-                            width={64}
-                            height={64}
-                            className="rounded-md object-cover w-16 h-16 border"
-                        />
-                    ) : (
-                         <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
-                            <Package className="h-8 w-8 text-muted-foreground"/>
-                        </div>
-                    )}
+                    <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
+                        <Package className="h-8 w-8 text-muted-foreground"/>
+                    </div>
                     <div className="flex-1">
                         <p className="font-semibold">{product.name}</p>
                         <p className="text-sm text-primary font-bold">

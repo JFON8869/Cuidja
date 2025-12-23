@@ -18,7 +18,8 @@ import {
   where,
   getDocs,
   doc,
-  deleteDoc
+  deleteDoc,
+  orderBy
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -41,41 +42,30 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 export default function SellerServicesPage() {
-  const { user, firestore, isUserLoading } = useFirebase();
+  const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
   const [services, setServices] = useState<WithId<Product>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [storeId, setStoreId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isUserLoading || !firestore || !user) {
-        if(!isUserLoading) setIsLoading(false);
-        return;
+    if (isUserLoading || isStoreLoading) {
+      return;
+    }
+    if (!user || !store) {
+      setIsLoading(false);
+      return;
     }
 
     const fetchServices = async () => {
       setIsLoading(true);
       try {
-        const storesQuery = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
-        const storesSnapshot = await getDocs(storesQuery);
-        
-        if (storesSnapshot.empty) {
-            toast.error("Você precisa criar uma loja primeiro.");
-            setServices([]);
-            setIsLoading(false);
-            return;
-        }
-
-        const currentStoreId = storesSnapshot.docs[0].id;
-        setStoreId(currentStoreId);
-
         const servicesQuery = query(
           collection(firestore, 'products'),
-          where('storeId', '==', currentStoreId),
-          where('type', '==', 'SERVICE')
+          where('storeId', '==', store.id),
+          where('type', '==', 'SERVICE'),
+          orderBy('createdAt', 'desc')
         );
 
         const servicesSnapshot = await getDocs(servicesQuery);
@@ -91,7 +81,7 @@ export default function SellerServicesPage() {
     };
 
     fetchServices();
-  }, [user, firestore, isUserLoading]);
+  }, [user, firestore, isUserLoading, store, isStoreLoading]);
 
   const handleDelete = async (serviceId: string) => {
     if (!firestore) return;
@@ -117,7 +107,7 @@ export default function SellerServicesPage() {
         </Button>
         <h1 className="mx-auto font-headline text-xl">Meus Serviços</h1>
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/vender/novo-servico?storeId=${storeId}`}>
+          <Link href={`/vender/novo-anuncio`}>
             <PlusCircle />
           </Link>
         </Button>
@@ -140,19 +130,9 @@ export default function SellerServicesPage() {
           <div className="divide-y">
             {services.map(service => (
                  <div key={service.id} className="p-4 flex items-center gap-4">
-                    {service.images && service.images.length > 0 ? (
-                        <Image 
-                            src={service.images[0]?.imageUrl || 'https://picsum.photos/seed/placeholder/100'}
-                            alt={service.name}
-                            width={64}
-                            height={64}
-                            className="rounded-md object-cover w-16 h-16 border"
-                        />
-                     ) : (
-                        <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
-                           <Wrench className="h-8 w-8 text-muted-foreground"/>
-                       </div>
-                    )}
+                    <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
+                        <Wrench className="h-8 w-8 text-muted-foreground"/>
+                    </div>
                     <div className="flex-1">
                         <p className="font-semibold">{service.name}</p>
                         <p className="text-sm text-primary font-bold">
