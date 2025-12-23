@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -43,6 +43,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { CreateStorePrompt } from '@/components/vender/CreateStorePrompt';
+
+const MAX_IMAGES = 3;
 
 const addonSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -62,17 +65,19 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
   availability: z.enum(['available', 'on_demand', 'unavailable']),
-  images: z.any().array().min(1, 'Adicione pelo menos uma imagem.'),
+  images: z
+    .any()
+    .array()
+    .min(1, 'Adicione pelo menos uma imagem.')
+    .max(MAX_IMAGES, `Você pode adicionar no máximo ${MAX_IMAGES} imagens.`),
   addonGroups: z.array(addonGroupSchema).optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
 function NewProductPage() {
-  const { user, firestore, isUserLoading } = useFirebase();
+  const { user, firestore, isUserLoading, store } = useFirebase();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const storeId = searchParams.get('storeId');
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -102,26 +107,25 @@ function NewProductPage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const existingFileNames = imageFields
-        .map(field => (field as any instanceof File ? (field as any).name : null))
-        .filter(Boolean);
+        const files = Array.from(e.target.files);
+        const totalImages = imageFields.length + files.length;
 
-      files.forEach(file => {
-        if (!file.type.startsWith('image/')) {
-          toast.error(`"${file.name}" não é uma imagem válida.`);
-          return;
+        if (totalImages > MAX_IMAGES) {
+            toast.error(`Você só pode ter no máximo ${MAX_IMAGES} imagens.`);
+            return;
         }
-        if (file.size > 2 * 1024 * 1024) {
-          toast.error(`"${file.name}" é muito grande (max 2MB).`);
-          return;
-        }
-        if (existingFileNames.includes(file.name)) {
-          toast.error(`A imagem "${file.name}" já foi adicionada.`);
-          return;
-        }
-        appendImage(file);
-      });
+
+        files.forEach(file => {
+            if (!file.type.startsWith('image/')) {
+                toast.error(`"${file.name}" não é uma imagem válida.`);
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) { // 2MB
+                toast.error(`A imagem "${file.name}" é muito grande (max 2MB).`);
+                return;
+            }
+            appendImage(file);
+        });
     }
   };
   
@@ -132,18 +136,18 @@ function NewProductPage() {
   }, [isUserLoading, user, router]);
 
 
-  if (!storeId) {
-    toast.error('ID da loja é necessário para criar um anúncio.');
-    router.push('/vender');
-    return null;
+  if (!isUserLoading && !store) {
+    return <CreateStorePrompt />;
   }
+  
+  const storeId = store?.id;
 
   async function onSubmit(values: ProductFormValues) {
-    if (!firestore || !user) {
-      toast.error('Erro de autenticação. Faça login novamente.');
+    if (!firestore || !user || !storeId) {
+      toast.error('É necessário ter uma loja para criar um anúncio.');
       return;
     }
-
+    
     try {
         const newImageFiles = values.images.filter((image: any): image is File => image instanceof File);
         
@@ -155,7 +159,10 @@ function NewProductPage() {
             imageHint: 'product photo' 
         }));
 
-        const finalImageObjects = [...newImageObjects];
+        if (newImageObjects.length === 0) {
+            form.setError('images', { type: 'manual', message: 'Adicione pelo menos uma imagem.' });
+            return;
+        }
 
         const addonGroups = values.addonGroups?.map(group => ({
             ...group,
@@ -164,7 +171,8 @@ function NewProductPage() {
 
         await addDoc(collection(firestore, 'products'), {
             ...values,
-            images: finalImageObjects,
+            price: Number(values.price),
+            images: newImageObjects,
             addonGroups: addonGroups || [],
             storeId: storeId,
             sellerId: user.uid,
@@ -183,10 +191,10 @@ function NewProductPage() {
   const { isSubmitting } = form.formState;
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/vender/novo-anuncio?storeId=${storeId}`}>
+          <Link href={`/vender/novo-anuncio`}>
             <ArrowLeft />
           </Link>
         </Button>
@@ -259,11 +267,11 @@ function NewProductPage() {
                   <FormControl>
                     <div className="rounded-lg border border-dashed p-6 text-center">
                       <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <label
+                       <label
                         htmlFor="file-upload"
-                        className="mt-2 block text-sm font-medium text-primary hover:underline cursor-pointer"
+                        className={`mt-2 block text-sm font-medium text-primary ${imageFields.length >= MAX_IMAGES ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:underline'}`}
                       >
-                        <span>Clique para enviar</span>
+                        <span>{imageFields.length >= MAX_IMAGES ? 'Limite de imagens atingido' : 'Clique para enviar'}</span>
                         <input
                           id="file-upload"
                           name="file-upload"
@@ -272,28 +280,28 @@ function NewProductPage() {
                           multiple
                           onChange={handleImageChange}
                           accept="image/*"
+                          disabled={imageFields.length >= MAX_IMAGES}
                         />
                       </label>
-                      <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, GIF até 2MB</p>
+                      <p className="mt-1 text-xs text-muted-foreground">PNG, JPG até 2MB. Máximo de {MAX_IMAGES} imagens.</p>
                     </div>
                   </FormControl>
                    <FormMessage />
                   {imageFields.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-4">
                       {imageFields.map((field, index) => {
-                          const file = field as unknown as File;
-                          const src = file instanceof File ? URL.createObjectURL(file) : '';
+                          const src = field instanceof File ? URL.createObjectURL(field) : (field as any)?.imageUrl;
                           return (
                             <div key={field.id} className="relative group">
-                              {src && (
+                              {src ? (
                                 <Image
                                   src={src}
                                   alt={`Preview ${index}`}
                                   width={100}
                                   height={100}
-                                  className="h-24 w-24 rounded-md object-cover"
+                                  className="h-24 w-24 rounded-md object-cover" // h-6rem w-6rem
                                 />
-                              )}
+                              ) : null}
                               <button
                                 type="button"
                                 onClick={() => removeImage(index)}
