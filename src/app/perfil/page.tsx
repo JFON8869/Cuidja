@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,7 +15,12 @@ import {
   ChevronRight,
   Shield,
   Cloud,
+  Broom,
+  Loader2,
 } from 'lucide-react';
+import { collection, getDocs, writeBatch } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
+
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
@@ -37,8 +42,9 @@ const aboutItems = [
 ]
 
 export default function ProfilePage() {
-  const { auth, user, isUserLoading } = useFirebase();
+  const { auth, user, isUserLoading, firestore } = useFirebase();
   const router = useRouter();
+  const [isCleaning, setIsCleaning] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -50,6 +56,47 @@ export default function ProfilePage() {
     if (auth) {
       await auth.signOut();
       router.push('/home');
+    }
+  };
+
+  const handleCleanup = async () => {
+    if (!firestore) {
+        toast.error("O banco de dados não está disponível.");
+        return;
+    }
+    setIsCleaning(true);
+    toast.loading("Limpando itens antigos...");
+
+    try {
+        const productsRef = collection(firestore, "products");
+        const querySnapshot = await getDocs(productsRef);
+        const batch = writeBatch(firestore);
+        let deletedCount = 0;
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            // The condition to identify an "old" item. We'll say if it doesn't have a category, it's old.
+            if (!data.category) {
+                batch.delete(doc.ref);
+                deletedCount++;
+            }
+        });
+
+        if (deletedCount > 0) {
+            await batch.commit();
+            toast.dismiss();
+            toast.success(`${deletedCount} iten(s) antigo(s) removido(s) com sucesso!`);
+        } else {
+            toast.dismiss();
+            toast.info("Nenhum item antigo para remover foi encontrado.");
+        }
+
+    } catch (error) {
+        console.error("Cleanup error:", error);
+        toast.dismiss();
+        toast.error("Ocorreu um erro durante a limpeza.");
+    } finally {
+        setIsCleaning(false);
     }
   };
 
@@ -130,14 +177,22 @@ export default function ProfilePage() {
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Sobre o App</h3>
         </div>
 
-         <div className="flex flex-col">
+         <div className="flex flex-col border-b">
             {aboutItems.map((item) => (
-                <Link href={item.href} key={item.href} className="border-b p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors">
+                <Link href={item.href} key={item.href} className="border-t p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors">
                     <item.icon className="w-5 h-5 text-muted-foreground" />
                     <span className="flex-1 text-base">{item.label}</span>
                     <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </Link>
             ))}
+            <div className="border-t p-4 flex items-center gap-4">
+                <Broom className="w-5 h-5 text-muted-foreground" />
+                <span className="flex-1 text-base">Limpar Dados Antigos</span>
+                <Button onClick={handleCleanup} disabled={isCleaning} size="sm" variant="destructive">
+                    {isCleaning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Limpar
+                </Button>
+            </div>
         </div>
 
 
