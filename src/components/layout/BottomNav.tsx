@@ -43,13 +43,10 @@ export default function BottomNav() {
     }
 
     const checkNotifications = async () => {
-      let unreadFound = false;
-      const ordersRef = collection(firestore, 'orders');
-
       try {
         // Query 1: Check for unread notifications as a buyer
         const buyerQuery = query(
-          ordersRef,
+          collection(firestore, 'orders'),
           where('customerId', '==', user.uid),
           where('buyerHasUnread', '==', true),
           limit(1)
@@ -60,17 +57,17 @@ export default function BottomNav() {
           return;
         }
 
-        // Query 2: Check if user is a seller
+        // Query 2: Check if user is a seller by fetching their stores
         const storesRef = collection(firestore, 'stores');
-        const storeQuery = query(storesRef, where('userId', '==', user.uid), limit(1));
+        const storeQuery = query(storesRef, where('userId', '==', user.uid));
         const storeSnapshot = await getDocs(storeQuery);
+        const storeIds = storeSnapshot.docs.map(doc => doc.id);
         
-        if (!storeSnapshot.empty) {
-            const storeId = storeSnapshot.docs[0].id;
+        if (storeIds.length > 0) {
             // Query 3: If they are a seller, check for unread notifications
             const sellerQuery = query(
-                ordersRef,
-                where('storeId', '==', storeId),
+                collection(firestore, 'orders'),
+                where('storeId', 'in', storeIds),
                 where('sellerHasUnread', '==', true),
                 limit(1)
             );
@@ -91,7 +88,7 @@ export default function BottomNav() {
     };
 
     // Use an interval to periodically check for notifications
-    const interval = setInterval(checkNotifications, 10000); // Check every 10 seconds
+    const interval = setInterval(checkNotifications, 30000); // Check every 30 seconds
     checkNotifications(); // Initial check
 
     return () => clearInterval(interval); // Cleanup interval

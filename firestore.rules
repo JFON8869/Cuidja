@@ -88,9 +88,7 @@ service cloud.firestore {
       }
 
       allow get: if isOrderParticipant();
-      // Users can list their own orders as a customer, or orders for their store as a seller.
-      // This rule enforces that the query MUST include a where clause for 'customerId' or 'storeId'.
-      allow list: if isSignedIn() && (request.query.where.customerId == request.auth.uid || request.query.where.storeId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.storeIds);
+      allow list: if false;
       
       allow create: if isCreatingOwn('customerId');
       
