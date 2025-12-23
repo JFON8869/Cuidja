@@ -43,7 +43,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreateStorePrompt } from '@/components/vender/CreateStorePrompt';
+import { useRouter as useNavigationRouter } from 'next/navigation';
 
 const MAX_IMAGES = 3;
 
@@ -109,9 +109,10 @@ function NewProductPage() {
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login?redirect=/vender');
+    } else if (!isStoreLoading && !store) {
+      router.push('/vender/loja');
     }
-  }, [isUserLoading, user, router]);
-
+  }, [isUserLoading, user, isStoreLoading, store, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -141,9 +142,14 @@ function NewProductPage() {
   if (isUserLoading || isStoreLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
-
+  
+  // This is a safeguard, the useEffect should handle redirection.
   if (!store) {
-    return <CreateStorePrompt />;
+     return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Redirecionando para a criação da loja...</p>
+      </div>
+    );
   }
 
   async function onSubmit(values: ProductFormValues) {
@@ -299,13 +305,13 @@ function NewProductPage() {
                           const src = field instanceof File ? URL.createObjectURL(field) : field?.imageUrl;
                           if (!src) return null;
                           return (
-                            <div key={field.id} className="relative group">
+                            <div key={field.id} className="relative group aspect-square h-auto w-full">
                               <Image
                                   src={src}
                                   alt={`Preview ${index}`}
-                                  width={100}
-                                  height={100}
-                                  className="h-24 w-24 rounded-md object-cover"
+                                  fill
+                                  sizes="(max-width: 640px) 33vw, 100px"
+                                  className="rounded-md object-cover"
                                 />
                               <button
                                 type="button"
@@ -514,5 +520,3 @@ export default function NewProductPageWrapper() {
         </Suspense>
     )
 }
-
-    

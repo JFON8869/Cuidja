@@ -36,7 +36,9 @@ export default function VenderPage() {
   }
 
   if (!store) {
-    return <CreateStorePrompt />;
+    // This is the "Activate Seller Account" screen, which is the create store form.
+    router.push('/vender/loja');
+    return <VenderSkeleton />;
   }
 
   return <SellerDashboard store={store} />;

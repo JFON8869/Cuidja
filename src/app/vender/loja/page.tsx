@@ -96,9 +96,8 @@ const getDefaultOperatingHours = () => {
 };
 
 export default function StoreFormPage() {
-  const { user, firestore, isUserLoading } = useFirebase();
+  const { user, firestore, isUserLoading, store: existingStore } = useFirebase();
   const router = useRouter();
-  const [store, setStore] = useState<Store | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -121,28 +120,16 @@ export default function StoreFormPage() {
       return;
     }
 
-    const fetchStore = async () => {
-      if (!firestore || !user) return;
-      setIsLoading(true);
-      const q = query(
-        collection(firestore, 'stores'),
-        where('userId', '==', user.uid)
-      );
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const storeDoc = querySnapshot.docs[0];
-        const storeData = { id: storeDoc.id, ...storeDoc.data() } as Store;
-        setStore(storeData);
+    if (existingStore) {
         form.reset({
-          ...storeData,
+          ...existingStore,
+          logoUrl: existingStore.logoUrl || null,
           operatingHours:
-            storeData.operatingHours || getDefaultOperatingHours(),
+            existingStore.operatingHours || getDefaultOperatingHours(),
         });
-      }
-      setIsLoading(false);
-    };
-    fetchStore();
-  }, [user, firestore, isUserLoading, router, form]);
+    }
+    setIsLoading(false);
+  }, [user, isUserLoading, existingStore, router, form]);
 
   const onSubmit = async (values: StoreFormValues) => {
     if (!user || !firestore) {
@@ -154,17 +141,12 @@ export default function StoreFormPage() {
     try {
       let finalLogoUrl;
 
-      // Case 1: A new file is being uploaded.
       if (values.logoUrl instanceof File) {
         finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}/${Date.now()}`);
-      } 
-      // Case 2: The logo was removed (value is null or empty string).
-      else if (!values.logoUrl) {
-        finalLogoUrl = "";
-      } 
-      // Case 3: The logo is an existing URL string (no changes).
-      else {
+      } else if (typeof values.logoUrl === 'string') {
         finalLogoUrl = values.logoUrl;
+      } else {
+        finalLogoUrl = "";
       }
 
       const dataToSave = { 
@@ -172,13 +154,13 @@ export default function StoreFormPage() {
           logoUrl: finalLogoUrl,
        };
 
-      if (store) {
+      if (existingStore) {
         // Update existing store
-        const storeRef = doc(firestore, 'stores', store.id);
+        const storeRef = doc(firestore, 'stores', existingStore.id);
         await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Create new store
+        // Create new store (seller activation)
         const newStoreRef = doc(collection(firestore, 'stores'));
         const newStore = {
           ...dataToSave,
@@ -187,7 +169,7 @@ export default function StoreFormPage() {
           createdAt: serverTimestamp(),
         };
         await setDoc(newStoreRef, newStore);
-        toast.success('Sua loja foi criada!');
+        toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
       router.push('/vender');
     } catch (error) {
@@ -213,6 +195,18 @@ export default function StoreFormPage() {
     }
   };
 
+  const getPreviewUrl = () => {
+    if (logoValue instanceof File) {
+      return URL.createObjectURL(logoValue);
+    }
+    if (typeof logoValue === 'string') {
+      return logoValue;
+    }
+    return null;
+  };
+
+  const previewUrl = getPreviewUrl();
+
 
   if (isLoading || isUserLoading) {
     return (
@@ -225,15 +219,18 @@ export default function StoreFormPage() {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-12 shadow-2xl">
       <header className="flex items-center border-b p-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender">
-            <ArrowLeft />
-          </Link>
-        </Button>
+        {existingStore && (
+            <Button variant="ghost" size="icon" asChild>
+                <Link href="/vender">
+                    <ArrowLeft />
+                </Link>
+            </Button>
+        )}
         <h1 className="mx-auto font-headline text-xl">
-          {store ? 'Editar Loja' : 'Criar Sua Loja'}
+          {existingStore ? 'Editar Loja' : 'Ative sua Conta de Vendedor'}
         </h1>
-        <div className="w-10"></div>
+        {/* Spacer to keep title centered */}
+        <div className="w-10"></div> 
       </header>
 
       <main className="flex-1 overflow-y-auto p-4">
@@ -242,12 +239,12 @@ export default function StoreFormPage() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {store ? 'Atualize os dados' : 'Informações da Loja'}
+                  {existingStore ? 'Atualize os dados' : 'Informações da Loja'}
                 </CardTitle>
                 <CardDescription>
-                  {store
+                  {existingStore
                     ? 'Mantenha as informações da sua loja sempre atualizadas.'
-                    : 'Estes são os dados que seus clientes verão. Capriche!'}
+                    : 'Este é o primeiro passo para começar a vender. Capriche!'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -263,14 +260,10 @@ export default function StoreFormPage() {
                             htmlFor="logo-upload"
                             className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 hover:bg-gray-50"
                           >
-                            {logoValue ? (
+                            {previewUrl ? (
                               <div className="relative">
                                 <Image
-                                  src={
-                                    logoValue instanceof File
-                                      ? URL.createObjectURL(logoValue)
-                                      : logoValue
-                                  }
+                                  src={previewUrl}
                                   alt="Prévia da logo"
                                   width={100}
                                   height={100}
@@ -280,7 +273,7 @@ export default function StoreFormPage() {
                                   type="button"
                                   onClick={(e) => {
                                       e.preventDefault();
-                                      form.setValue('logoUrl', null);
+                                      form.setValue('logoUrl', null, { shouldDirty: true });
                                   }}
                                   className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-80 transition-opacity hover:opacity-100"
                                 >
@@ -371,7 +364,7 @@ export default function StoreFormPage() {
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {store ? 'Salvar Alterações' : 'Criar Loja e Ir para o Painel'}
+              {existingStore ? 'Salvar Alterações' : 'Criar Loja e Ativar Conta'}
             </Button>
           </form>
         </Form>

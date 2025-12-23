@@ -12,29 +12,30 @@ import { useFirebase } from '@/firebase';
 
 function NewAdPage() {
     const router = useRouter();
-    const { store } = useFirebase();
+    const { store, isStoreLoading, isUserLoading } = useFirebase();
 
-    if (!store) {
-        // This should theoretically not happen if the user gets to this page
-        // as the main /vender page should have redirected. But as a safeguard:
-        router.push('/vender');
+    if (isUserLoading || isStoreLoading) {
         return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     }
-
-    const storeId = store.id;
+    
+    // This is a safeguard. The main /vender page should handle redirection.
+    if (!store) {
+        router.push('/vender/loja');
+        return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
+    }
     
     const options = [
         {
             title: "Anunciar um Produto",
             description: "Para itens físicos como comidas, artesanato, etc.",
             icon: Package,
-            href: `/vender/novo-produto` // No longer need storeId in query param
+            href: `/vender/novo-produto`
         },
         {
             title: "Oferecer um Serviço",
             description: "Para trabalhos como aulas, consertos, consultoria, etc.",
             icon: Wrench,
-            href: `/vender/novo-servico` // No longer need storeId in query param
+            href: `/vender/novo-servico`
         }
     ]
 

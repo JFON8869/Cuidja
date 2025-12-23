@@ -33,7 +33,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { CreateStorePrompt } from '@/components/vender/CreateStorePrompt';
 
 const serviceSchema = z.object({
   name: z.string().min(3, 'O nome do serviço é obrigatório.'),
@@ -61,16 +60,22 @@ function NewServicePage() {
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login?redirect=/vender');
+    } else if (!isStoreLoading && !store) {
+      router.push('/vender/loja');
     }
-  }, [isUserLoading, user, router]);
+  }, [isUserLoading, user, isStoreLoading, store, router]);
 
   if (isUserLoading || isStoreLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
-
+  
   if (!store) {
-    return <CreateStorePrompt />;
-  }
+    return (
+     <div className="flex h-screen items-center justify-center">
+       <p>Redirecionando para a criação da loja...</p>
+     </div>
+   );
+ }
 
   async function onSubmit(values: ServiceFormValues) {
     if (!firestore || !user || !store) {
