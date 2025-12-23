@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, PlusCircle, User, ShoppingCart, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useFirebase } from '@/firebase';
+import { collection, query, where, getDocs, or } from 'firebase/firestore';
 
 const navItems = [
   { href: '/home', label: 'Início', icon: Home },
@@ -52,31 +51,44 @@ export default function BottomNav() {
       
       let unreadFound = false;
 
-      // Check for unread buyer notifications
-      const buyerQuery = query(collection(firestore, 'orders'), where('customerId', '==', user.uid), where('buyerHasUnread', '==', true));
-      const buyerSnapshot = await getDocs(buyerQuery);
-      if (!buyerSnapshot.empty) {
-        unreadFound = true;
+      // Build queries
+      const buyerUnreadQuery = where('customerId', '==', user.uid);
+      const buyerHasUnreadClause = where('buyerHasUnread', '==', true);
+      
+      let finalQuery;
+      
+      // If user is also a seller, check their stores too
+      if (storeIds.length > 0) {
+        const sellerUnreadQuery = where('storeId', 'in', storeIds);
+        const sellerHasUnreadClause = where('sellerHasUnread', '==', true);
+        
+        finalQuery = query(
+            collection(firestore, 'orders'),
+            or(
+                // Is the buyer and has unread messages
+                where('customerId', '==', user.uid),
+                where('buyerHasUnread', '==', true),
+                // Is the seller and has unread messages
+                where('storeId', 'in', storeIds),
+                where('sellerHasUnread', '==', true)
+            )
+        );
+
+      } else {
+        // Only check for buyer notifications
+        finalQuery = query(collection(firestore, 'orders'), buyerUnreadQuery, buyerHasUnreadClause);
+      }
+        
+      try {
+        const snapshot = await getDocs(finalQuery);
+        unreadFound = !snapshot.empty;
+      } catch (e) {
+          // This can happen if the `or` query is complex and needs an index.
+          // For now, we'll just log it and default to no notifications.
+          console.error("Failed to check for notifications, likely needs a Firestore index:", e);
+          unreadFound = false;
       }
 
-      // Check for unread seller/provider notifications if the user has stores
-      if (!unreadFound && storeIds.length > 0) {
-        const sellerQuery = query(collection(firestore, 'orders'), where('storeId', 'in', storeIds), where('sellerHasUnread', '==', true));
-        const sellerSnapshot = await getDocs(sellerQuery);
-        if (!sellerSnapshot.empty) {
-            unreadFound = true;
-        }
-      }
-      
-      // Check for unread service requests for providers
-       if (!unreadFound) {
-        const requestQuery = query(collection(firestore, 'serviceRequests'), where('providerId', '==', user.uid), where('providerHasUnread', '==', true));
-        const requestSnapshot = await getDocs(requestQuery);
-        if (!requestSnapshot.empty) {
-          unreadFound = true;
-        }
-       }
-       
       setHasNotifications(unreadFound);
     };
 

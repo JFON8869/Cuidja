@@ -2,13 +2,13 @@
 import Link from 'next/link';
 import { ArrowLeft, Bell, Package, Wrench, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { useCollection, WithId } from '@/firebase/firestore/use-collection';
+import { WithId } from '@/firebase/firestore/use-collection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -28,18 +28,10 @@ interface Order extends WithId<any> {
   buyerHasUnread?: boolean;
   storeId: string;
   customerId: string;
+  items: { name: string }[];
 }
 
-interface ServiceRequest extends WithId<any> {
-    id: string;
-    requestDate: string;
-    serviceName: string;
-    status: string;
-    providerId: string;
-    providerHasUnread?: boolean;
-}
-
-type Notification = (Order | ServiceRequest) & {type: 'order' | 'request'};
+type Notification = Order & {type: 'order'};
 
 export default function NotificationsPage() {
   const { firestore, user, isUserLoading } = useFirebase();
@@ -82,21 +74,13 @@ export default function NotificationsPage() {
             );
         }
 
-        const serviceRequestsQuery = query(
-          collection(firestore, 'serviceRequests'),
-          where('providerId', '==', user.uid),
-          where('providerHasUnread', '==', true)
-        );
-
         // --- Step 2: Execute all queries in parallel ---
         const [
             buyerOrdersSnapshot,
-            sellerOrdersSnapshot,
-            serviceRequestsSnapshot
+            sellerOrdersSnapshot
         ] = await Promise.all([
             getDocs(buyerOrdersQuery),
             sellerOrdersQuery ? getDocs(sellerOrdersQuery) : Promise.resolve({ docs: [] }),
-            getDocs(serviceRequestsQuery)
         ]);
 
         // --- Step 3: Process and combine results ---
@@ -107,17 +91,13 @@ export default function NotificationsPage() {
         sellerOrdersSnapshot.docs.forEach(doc => {
           fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
         });
-
-        serviceRequestsSnapshot.forEach(doc => {
-          fetchedNotifications.push({ ...(doc.data() as ServiceRequest), id: doc.id, type: 'request' });
-        });
         
         // --- Step 4: Sort combined notifications by date on the client-side ---
         const uniqueNotifications = Array.from(new Map(fetchedNotifications.map(n => [n.id, n])).values());
         
         uniqueNotifications.sort((a, b) => {
-            const dateA = new Date((a as any).orderDate || (a as any).requestDate);
-            const dateB = new Date((b as any).orderDate || (b as any).requestDate);
+            const dateA = new Date(a.orderDate);
+            const dateB = new Date(b.orderDate);
             return dateB.getTime() - dateA.getTime();
         });
 
@@ -192,36 +172,35 @@ export default function NotificationsPage() {
             notifications && notifications.length > 0 ? (
                 <div className="divide-y">
                     {notifications.map(notification => {
-                        const isOrder = notification.type === 'order';
-                        const href = isOrder ? `/pedidos/${notification.id}` : `/vender/solicitacoes/${notification.id}`;
-                        const isSellerNotification = (isOrder && (notification as Order).customerId !== user?.uid) || !isOrder;
-                        const date = isOrder ? (notification as Order).orderDate : (notification as ServiceRequest).requestDate;
+                        const href = `/pedidos/${notification.id}`;
+                        const isSellerNotification = notification.customerId !== user?.uid;
+                        const isServiceRequest = notification.status === 'Solicitação de Contato';
 
                         return (
                         <Link href={href} key={notification.id} className="flex items-start gap-4 p-4 hover:bg-muted/50 transition-colors">
                             <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                                {isOrder ? <Package className="h-5 w-5 text-primary" /> : <Wrench className="h-5 w-5 text-primary" />}
+                                {isServiceRequest ? <Wrench className="h-5 w-5 text-primary" /> : <Package className="h-5 w-5 text-primary" />}
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm">
                                     {isSellerNotification ? (
-                                        isOrder ? (
+                                        isServiceRequest ? (
                                             <>
-                                                Você recebeu um novo pedido! <span className="font-bold">#{(notification as Order).id.substring(0,7)}</span>.
+                                                Nova solicitação para o serviço <span className="font-bold">{notification.items[0]?.name}</span>.
                                             </>
                                         ) : (
                                             <>
-                                                Nova solicitação para o serviço <span className="font-bold">{(notification as ServiceRequest).serviceName}</span>.
+                                                Você recebeu um novo pedido! <span className="font-bold">#{notification.id.substring(0,7)}</span>.
                                             </>
                                         )
                                     ) : (
                                         <>
-                                            O status do seu pedido <span className="font-bold">#{(notification as Order).id.substring(0,7)}</span> foi atualizado para <span className="font-semibold text-accent">{(notification as Order).status}</span>.
+                                            O status do seu pedido <span className="font-bold">#{notification.id.substring(0,7)}</span> foi atualizado para <span className="font-semibold text-accent">{notification.status}</span>.
                                         </>
                                     )}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR })}
+                                    {formatDistanceToNow(new Date(notification.orderDate), { addSuffix: true, locale: ptBR })}
                                 </p>
                             </div>
                         </Link>
