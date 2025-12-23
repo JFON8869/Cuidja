@@ -552,5 +552,3 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
-
-    
