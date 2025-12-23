@@ -58,56 +58,71 @@ export default function NotificationsPage() {
       try {
         const fetchedNotifications: Notification[] = [];
 
-        // 1. Get unread orders where user is the BUYER
-        const buyerOrdersQuery = query(
-          collection(firestore, 'orders'),
-          where('customerId', '==', user.uid),
-          where('buyerHasUnread', '==', true)
-        );
-        const buyerOrdersSnapshot = await getDocs(buyerOrdersQuery);
-        buyerOrdersSnapshot.forEach(doc => {
-          fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
-        });
-        
-        // 2. Get unread orders where user is the SELLER (via store ownership)
+        // --- Step 1: Fetch all related data in parallel ---
+
+        // Find stores this user owns
         const storesRef = collection(firestore, 'stores');
         const storeQuery = query(storesRef, where('userId', '==', user.uid));
         const storeSnapshot = await getDocs(storeQuery);
         const storeIds = storeSnapshot.docs.map(doc => doc.id);
 
+        // Build all queries
+        const buyerOrdersQuery = query(
+          collection(firestore, 'orders'),
+          where('customerId', '==', user.uid),
+          where('buyerHasUnread', '==', true)
+        );
+        
+        let sellerOrdersQuery = null;
         if (storeIds.length > 0) {
-            const sellerOrdersQuery = query(
+            sellerOrdersQuery = query(
               collection(firestore, 'orders'),
               where('storeId', 'in', storeIds),
               where('sellerHasUnread', '==', true)
             );
-            const sellerOrdersSnapshot = await getDocs(sellerOrdersQuery);
-            sellerOrdersSnapshot.forEach(doc => {
-              fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
-            });
         }
-            
-        // 3. Get unread service requests where user is the PROVIDER
+
         const serviceRequestsQuery = query(
           collection(firestore, 'serviceRequests'),
           where('providerId', '==', user.uid),
           where('providerHasUnread', '==', true)
         );
-        const serviceRequestsSnapshot = await getDocs(serviceRequestsQuery);
+
+        // --- Step 2: Execute all queries in parallel ---
+        const [
+            buyerOrdersSnapshot,
+            sellerOrdersSnapshot,
+            serviceRequestsSnapshot
+        ] = await Promise.all([
+            getDocs(buyerOrdersQuery),
+            sellerOrdersQuery ? getDocs(sellerOrdersQuery) : Promise.resolve({ docs: [] }),
+            getDocs(serviceRequestsQuery)
+        ]);
+
+        // --- Step 3: Process and combine results ---
+        buyerOrdersSnapshot.forEach(doc => {
+          fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
+        });
+
+        sellerOrdersSnapshot.docs.forEach(doc => {
+          fetchedNotifications.push({ ...(doc.data() as Order), id: doc.id, type: 'order' });
+        });
+
         serviceRequestsSnapshot.forEach(doc => {
           fetchedNotifications.push({ ...(doc.data() as ServiceRequest), id: doc.id, type: 'request' });
         });
         
+        // --- Step 4: Sort combined notifications by date on the client-side ---
+        const uniqueNotifications = Array.from(new Map(fetchedNotifications.map(n => [n.id, n])).values());
         
-        // Sort all combined notifications by date on the client-side
-        fetchedNotifications.sort((a, b) => {
+        uniqueNotifications.sort((a, b) => {
             const dateA = new Date((a as any).orderDate || (a as any).requestDate);
             const dateB = new Date((b as any).orderDate || (b as any).requestDate);
             return dateB.getTime() - dateA.getTime();
         });
 
 
-        setNotifications(fetchedNotifications);
+        setNotifications(uniqueNotifications);
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
         toast.error("Erro ao buscar notificações.");
@@ -192,7 +207,7 @@ export default function NotificationsPage() {
                                     {isSellerNotification ? (
                                         isOrder ? (
                                             <>
-                                                Você recebeu um novo pedido! <span className="font-bold">#{notification.id.substring(0,7)}</span>.
+                                                Você recebeu um novo pedido! <span className="font-bold">#{(notification as Order).id.substring(0,7)}</span>.
                                             </>
                                         ) : (
                                             <>
@@ -201,7 +216,7 @@ export default function NotificationsPage() {
                                         )
                                     ) : (
                                         <>
-                                            O status do seu pedido <span className="font-bold">#{notification.id.substring(0,7)}</span> foi atualizado para <span className="font-semibold text-accent">{(notification as Order).status}</span>.
+                                            O status do seu pedido <span className="font-bold">#{(notification as Order).id.substring(0,7)}</span> foi atualizado para <span className="font-semibold text-accent">{(notification as Order).status}</span>.
                                         </>
                                     )}
                                 </p>
