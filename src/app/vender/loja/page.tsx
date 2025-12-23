@@ -43,6 +43,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { OperatingHoursForm } from '@/components/vender/OperatingHoursForm';
 import { uploadFile } from '@/lib/storage';
+import BottomNav from '@/components/layout/BottomNav';
 
 const dayHoursSchema = z.object({
   isOpen: z.boolean(),
@@ -138,45 +139,58 @@ export default function StoreFormPage() {
     }
     
     setIsSubmitting(true);
+    let success = false;
+
     try {
-      let finalLogoUrl;
+      let finalLogoUrl = existingStore?.logoUrl || "";
 
+      // Only upload a new file if one was selected
       if (values.logoUrl instanceof File) {
-        finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}/${Date.now()}`);
-      } else if (typeof values.logoUrl === 'string') {
-        finalLogoUrl = values.logoUrl;
-      } else {
-        finalLogoUrl = "";
+        try {
+           finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}/${Date.now()}_${values.logoUrl.name}`);
+        } catch (uploadError) {
+          console.error("Error uploading logo:", uploadError);
+          toast.error("Erro ao fazer upload da logo.");
+          setIsSubmitting(false);
+          return;
+        }
+      } else if (values.logoUrl === null) {
+          finalLogoUrl = ""; // Handle logo deletion
       }
-
-      const dataToSave = { 
-          ...values,
-          logoUrl: finalLogoUrl,
-       };
 
       if (existingStore) {
         // Update existing store
         const storeRef = doc(firestore, 'stores', existingStore.id);
-        await updateDoc(storeRef, dataToSave);
+        const dataToUpdate = {
+          ...values,
+          logoUrl: finalLogoUrl,
+        };
+        await updateDoc(storeRef, dataToUpdate);
         toast.success('Loja atualizada com sucesso!');
       } else {
         // Create new store (seller activation)
         const newStoreRef = doc(collection(firestore, 'stores'));
         const newStore = {
-          ...dataToSave,
+          ...values,
+          logoUrl: finalLogoUrl,
           id: newStoreRef.id,
           userId: user.uid,
+          categories: [],
           createdAt: serverTimestamp(),
         };
         await setDoc(newStoreRef, newStore);
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
-      router.push('/vender');
+      success = true;
+
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
     } finally {
         setIsSubmitting(false);
+        if (success) {
+          router.push('/vender');
+        }
     }
   };
   
@@ -191,7 +205,7 @@ export default function StoreFormPage() {
         toast.error('A imagem é muito grande. O tamanho máximo é 2MB.');
         return;
       }
-      form.setValue('logoUrl', file);
+      form.setValue('logoUrl', file, { shouldDirty: true });
     }
   };
 
@@ -217,7 +231,7 @@ export default function StoreFormPage() {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-12 shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         {existingStore && (
             <Button variant="ghost" size="icon" asChild>
@@ -369,6 +383,7 @@ export default function StoreFormPage() {
           </form>
         </Form>
       </main>
+      <BottomNav />
     </div>
   );
 }
