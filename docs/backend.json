@@ -191,6 +191,13 @@
             "$ref": "#/backend/entities/OrderItem"
           }
         },
+        "messages": {
+          "type": "array",
+          "description": "Chat messages between buyer and seller for this order.",
+          "items": {
+            "$ref": "#/backend/entities/Message"
+          }
+        },
         "orderDate": {
           "type": "string",
           "format": "date-time"
@@ -200,7 +207,7 @@
         },
         "status": {
           "type": "string",
-          "enum": ["Pendente", "Confirmado", "Em Preparo", "Saiu para Entrega", "Entregue", "Cancelado"]
+          "enum": ["Solicitação de Contato", "Pendente", "Confirmado", "Em Preparo", "Saiu para Entrega", "Entregue", "Cancelado"]
         },
         "isUrgent": {
           "type": "boolean"
@@ -265,6 +272,18 @@
         "quantity": { "type": "number" }
       },
       "required": ["name", "price", "quantity"]
+    },
+    "Message": {
+      "title": "Message",
+      "type": "object",
+      "description": "A single chat message within an order.",
+      "properties": {
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["senderId", "text", "timestamp"]
     }
   },
   "auth": {
@@ -338,6 +357,6 @@
         }
       }
     ],
-    "reasoning": "The data model has been simplified by merging the `Service` entity into the `Product` entity. This unifies the concept of purchasable items, whether they are physical goods or services. The `ServiceRequest` entity and its corresponding collection have been removed, as the standard `Order` flow now handles all transactions. This reduces complexity, streamlines data management, and simplifies security rules."
+    "reasoning": "The data model has been simplified by merging the `Service` entity into the `Product` entity and removing the separate `ServiceRequest` collection. All transactions, whether for products or services, are now handled through the `Order` collection. Service requests are initiated as orders with a specific status (e.g., 'Solicitação de Contato'), unifying the transaction flow. This reduces complexity, streamlines data management, and simplifies security rules by removing the need to manage rules for two separate collections."
   }
 }

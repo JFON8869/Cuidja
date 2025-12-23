@@ -62,6 +62,10 @@ service cloud.firestore {
       }
 
       function isOrderSeller() {
+        // Ensure the storeId exists on the order before trying to access it.
+        if (!('storeId' in resource.data)) {
+          return false;
+        }
         let storeData = get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data;
         return isOwner(storeData.userId);
       }
@@ -70,31 +74,21 @@ service cloud.firestore {
         return isOrderCustomer() || isOrderSeller();
       }
 
-      // Allow buyer to only update their 'buyerHasUnread' status
-      function isBuyerUpdatingReadStatus() {
-        return isOrderCustomer() && request.resource.data.keys().hasOnly(['buyerHasUnread']);
+      // Allow buyer to only update their 'buyerHasUnread' status or send messages
+      function isBuyerUpdating() {
+        return isOrderCustomer() && request.resource.data.keys().hasAny(['buyerHasUnread', 'messages', 'lastMessageTimestamp', 'sellerHasUnread']);
       }
       
-      // Allow seller to update status and their 'sellerHasUnread' status
+      // Allow seller to update status, their 'sellerHasUnread' status, or send messages
       function isSellerUpdating() {
-        return isOrderSeller() && request.resource.data.keys().hasAny(['status', 'sellerHasUnread']);
+        return isOrderSeller() && request.resource.data.keys().hasAny(['status', 'sellerHasUnread', 'messages', 'lastMessageTimestamp', 'buyerHasUnread']);
       }
 
       allow get, list: if isOrderParticipant();
       allow create: if isCreatingOwn('customerId');
-      // Split update rules for buyer and seller for better security
-      allow update: if isBuyerUpdatingReadStatus() || isSellerUpdating();
-      allow delete: if false;
-    }
-    
-    match /serviceRequests/{requestId} {
-      function isRequestParticipant() {
-        return isDocumentOwner(resource.data, 'requesterId') || isDocumentOwner(resource.data, 'providerId');
-      }
       
-      allow get, update: if isRequestParticipant();
-      allow list: if isSignedIn(); // MUST be constrained by 'requesterId' or 'providerId' on client
-      allow create: if isCreatingOwn('requesterId');
+      // Split update rules for buyer and seller for better security
+      allow update: if isBuyerUpdating() || isSellerUpdating();
       allow delete: if false;
     }
   }

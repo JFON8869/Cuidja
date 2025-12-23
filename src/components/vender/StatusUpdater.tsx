@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,7 +15,8 @@ import { toast } from 'react-hot-toast';
 import { WithId } from '@/firebase/firestore/use-doc';
 
 const orderStatusOptions = [
-  'Aguardando Pagamento',
+  'Solicitação de Contato',
+  'Pendente',
   'Confirmado',
   'Em Preparo',
   'Saiu para Entrega',

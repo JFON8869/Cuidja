@@ -25,7 +25,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
-import { Product as Service, SelectedAddon } from '@/lib/data';
+import { Product as Service } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 
@@ -105,35 +105,47 @@ export default function ServiceCheckoutPage() {
     }
     
     try {
-        const serviceRequestsCollection = collection(firestore, 'serviceRequests');
+        const ordersCollection = collection(firestore, 'orders');
         
-        const requestData = {
-            requesterId: user.uid,
-            providerId: service.sellerId, // The actual user ID of the seller
+        const orderData = {
+            customerId: user.uid,
             storeId: storeId,
-            serviceId: service.id,
-            serviceName: service.name,
-            requesterInfo: {
+            items: [{
+                id: service.id,
+                name: service.name,
+                price: service.price,
+                quantity: 1,
+                selectedAddons: []
+            }],
+            totalAmount: service.price,
+            status: 'Solicitação de Contato', // Initial status for a service
+            orderDate: new Date().toISOString(),
+            shippingAddress: {
                 name: values.name,
-                phone: values.phone,
-                address: values.address,
+                street: values.address,
                 city: values.city,
                 zip: values.zip,
+                number: '', // Address field contains number now
             },
-            message: values.message || '',
-            status: 'Pendente', // Initial status
-            requestDate: new Date().toISOString(),
-            providerHasUnread: true,
-            requesterHasUnread: false
+            phone: values.phone,
+            messages: values.message ? [{
+                senderId: user.uid,
+                text: values.message,
+                timestamp: new Date().toISOString(),
+                isRead: false
+            }] : [],
+            sellerHasUnread: true,
+            buyerHasUnread: false
         }
         
-        const docRef = await addDoc(serviceRequestsCollection, requestData);
+        const docRef = await addDoc(ordersCollection, orderData);
 
-        toast.success('Sua solicitação de serviço foi enviada. O prestador entrará em contato.');
+        toast.success('Seu pedido de contato foi enviado! Acompanhe pelo chat.');
         
-        router.push(`/home`);
+        router.push(`/pedidos/${docRef.id}`);
+
     } catch(error) {
-        console.error("Error creating service request: ", error);
+        console.error("Error creating service order: ", error);
         toast.error('Não foi possível solicitar o serviço. Tente novamente.');
     }
   }
@@ -176,7 +188,7 @@ export default function ServiceCheckoutPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft />
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Solicitar Serviço</h1>
+        <h1 className="mx-auto font-headline text-xl">Confirmar Contato</h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
@@ -185,7 +197,7 @@ export default function ServiceCheckoutPage() {
             <section>
               <h2 className="mb-3 flex items-center gap-2 font-headline text-lg">
                 <Briefcase className="h-5 w-5" />
-                Resumo da Solicitação
+                Resumo do Serviço
               </h2>
               <Card>
                 <CardContent className="p-4 space-y-3">
@@ -317,7 +329,7 @@ export default function ServiceCheckoutPage() {
           onClick={form.handleSubmit(onSubmit)}
           disabled={form.formState.isSubmitting || isLoading}
         >
-          {form.formState.isSubmitting ? 'Enviando...' : 'Enviar Solicitação'}
+          {form.formState.isSubmitting ? 'Enviando...' : 'Confirmar Contato e Abrir Chat'}
         </Button>
       </footer>
     </div>

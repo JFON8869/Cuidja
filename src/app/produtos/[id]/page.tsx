@@ -164,7 +164,7 @@ export default function ProductDetailPage() {
                  {isService ? (
                    <Button size="lg" className="w-full" asChild>
                      <Link href={`/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`}>
-                        Solicitar Serviço
+                        Iniciar Contato
                      </Link>
                    </Button>
                  ) : hasOptions ? (
