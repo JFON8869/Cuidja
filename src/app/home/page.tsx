@@ -10,7 +10,7 @@ import Autoplay from 'embla-carousel-autoplay';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product/ProductCard';
-import { mockCategories, mockBanners } from '@/lib/data';
+import { allCategories, mockBanners } from '@/lib/categories';
 import { cn } from '@/lib/utils';
 import {
   Carousel,
@@ -21,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Product } from '@/lib/data';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, limit, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, limit, getDocs, orderBy, where } from 'firebase/firestore';
 
 export default function Home() {
   const [products, setProducts] = React.useState<WithId<Product>[]>([]);
@@ -37,7 +37,12 @@ export default function Home() {
       if (!firestore) return;
       setIsLoading(true);
       try {
-        const productsQuery = query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(20));
+        const productsQuery = query(
+          collection(firestore, 'products'), 
+          where('type', '==', 'PRODUCT'), // Only fetch products
+          orderBy('createdAt', 'desc'), 
+          limit(20)
+        );
         const snapshot = await getDocs(productsQuery);
         const fetchedProducts = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -96,7 +101,7 @@ export default function Home() {
           <section>
             <h2 className="mb-3 font-headline text-xl">Categorias</h2>
             <div className="grid grid-cols-4 gap-4">
-              {mockCategories.map((category) => {
+              {allCategories.map((category) => {
                 const Icon = category.icon;
                 return (
                   <Link

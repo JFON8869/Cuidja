@@ -42,8 +42,10 @@ export default function SearchPage() {
       // Since Firestore doesn't support case-insensitive `contains` search natively,
       // we perform a range query on a pre-normalized field or fetch and filter client-side.
       // Assuming no pre-normalized field, we'll fetch a broader range and filter.
+      // We also filter by type to only show products.
       const q = query(
         productsRef,
+        where('type', '==', 'PRODUCT'),
         orderBy('name')
         // We can't do a perfect "contains" search, but we can do "starts with"
         // startAt(normalizedQuery),

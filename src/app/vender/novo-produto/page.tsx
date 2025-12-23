@@ -31,7 +31,8 @@ import {
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
 import { uploadFile } from '@/lib/storage';
-import { mockCategories, Product } from '@/lib/data';
+import { Product } from '@/lib/data';
+import { productCategories } from '@/lib/categories';
 import {
   Form,
   FormControl,
@@ -196,7 +197,7 @@ function ProductForm() {
       });
       
       // Check if the suggested category is a valid one
-      const validCategory = mockCategories.find(c => c.name === result.category);
+      const validCategory = productCategories.find(c => c.name === result.category);
       if (validCategory) {
         form.setValue('category', result.category, { shouldValidate: true });
         toast.success(`Categoria sugerida: ${result.category}`);
@@ -366,7 +367,7 @@ function ProductForm() {
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {mockCategories.filter(c => c.type === 'PRODUCT').map(cat => (
+                        {productCategories.map(cat => (
                             <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                         ))}
                         </SelectContent>

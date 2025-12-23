@@ -18,8 +18,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoreCard } from '@/components/store/StoreCard';
 import { useEffect, useState, useMemo } from 'react';
-import { mockCategories, OperatingHours } from '@/lib/data';
-import { slugify } from '@/lib/utils';
+import { allCategories } from '@/lib/categories';
+import { OperatingHours } from '@/lib/data';
 
 interface StoreDocument {
   id: string;
@@ -37,18 +37,17 @@ export default function CategoryPage() {
   const [stores, setStores] = useState<StoreDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Find the category object from mockCategories based on the slug.
+  // Find the category object from allCategories based on the slug.
   const category = useMemo(
-    () => mockCategories.find((cat) => cat.slug === slug),
+    () => allCategories.find((cat) => cat.slug === slug),
     [slug]
   );
   
-  // Use the name from the found category object, or format from slug as a fallback.
   const categoryName = useMemo(() => {
     if (category) {
       return category.name;
     }
-    // Fallback logic in case category is not in mockCategories
+    // Fallback logic in case category is not in allCategories
     const decodedSlug = decodeURIComponent(slug).replace(/-/g, ' ');
     return decodedSlug.replace(/\b\w/g, (l) => l.toUpperCase());
   }, [slug, category]);
@@ -67,10 +66,11 @@ export default function CategoryPage() {
       setIsLoading(true);
 
       try {
-        // 1. Find all products in the specified category
+        // 1. Find all products in the specified category and ensure they are of type 'PRODUCT'
         const productsQuery = query(
           collection(firestore, 'products'),
-          where('category', '==', categoryName)
+          where('category', '==', categoryName),
+          where('type', '==', 'PRODUCT')
         );
         const productsSnapshot = await getDocs(productsQuery);
 

@@ -8,11 +8,11 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import { mockCategories } from '@/lib/data';
+import { z } from 'zod';
+import { productCategories } from '@/lib/categories';
 
 // Define the list of valid categories dynamically from the mock data.
-const validCategories = mockCategories.filter(c => c.type === 'PRODUCT').map(c => c.name);
+const validCategories = productCategories.map(c => c.name);
 
 const SuggestCategoryInputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
