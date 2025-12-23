@@ -261,10 +261,13 @@ export function ProductForm({ productId }: ProductFormProps) {
         setIsSubmitting(false);
         return;
       }
-
+      
       const dataToSave = {
-        ...values,
+        name: values.name,
+        description: values.description || '',
         price: Number(values.price),
+        category: values.category,
+        availability: values.availability,
         images: finalImageObjects,
         addonGroups: values.addonGroups?.map((group) => ({
           ...group,

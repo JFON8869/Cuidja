@@ -183,9 +183,11 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
       }
       
       const dataToSave = {
-        ...values,
-        images: finalImageObjects,
+        name: values.name,
+        description: values.description || '',
         price: Number(values.price),
+        attendanceType: values.attendanceType,
+        images: finalImageObjects,
         storeId: store.id,
         sellerId: user.uid,
         type: 'SERVICE' as const,
