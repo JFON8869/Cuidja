@@ -134,6 +134,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         await addDoc(collection(firestore, 'products'), { ...dataToSave, createdAt: serverTimestamp() });
       }
 
+      // Atomically add the "Serviços" category to the store's list of categories
       const storeRef = doc(firestore, 'stores', store.id);
       await updateDoc(storeRef, {
           categories: arrayUnion('Serviços')

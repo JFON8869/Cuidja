@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Loader2, Sparkles, Trash2, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import {
   collection,
   addDoc,
@@ -14,9 +14,7 @@ import {
   doc,
   getDoc,
   updateDoc,
-  query,
-  where,
-  getDocs,
+  arrayUnion,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -60,31 +58,6 @@ type ProductFormValues = z.infer<typeof productSchema>;
 interface ProductFormProps {
   productId?: string;
 }
-
-const updateUserStoreCategories = async (firestore: any, storeId: string) => {
-  if (!firestore || !storeId) return;
-  const productsRef = collection(firestore, 'products');
-  const q = query(
-    productsRef,
-    where('storeId', '==', storeId),
-    where('type', '==', 'PRODUCT')
-  );
-
-  try {
-    const querySnapshot = await getDocs(q);
-    const categories = new Set(
-      querySnapshot.docs.map((doc) => doc.data().category)
-    );
-
-    const storeRef = doc(firestore, 'stores', storeId);
-    await updateDoc(storeRef, {
-      categories: Array.from(categories),
-    });
-  } catch (error) {
-    console.error('Failed to update store categories:', error);
-    throw error;
-  }
-};
 
 export function ProductForm({ productId }: ProductFormProps) {
   const { user, firestore, auth, isUserLoading, store, isStoreLoading } =
@@ -200,7 +173,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             description: values.description || '',
             price: Number(values.price),
             storeId: store.id,
-            sellerId: uid,
+            sellerId: uid, 
             type: 'PRODUCT' as const,
             addons: [], 
         };
@@ -212,7 +185,12 @@ export function ProductForm({ productId }: ProductFormProps) {
             await addDoc(collection(firestore, 'products'), { ...dataToSave, createdAt: serverTimestamp() });
         }
 
-        await updateUserStoreCategories(firestore, store.id);
+        // Atomically add the product's category to the store's list of categories
+        const storeRef = doc(firestore, 'stores', store.id);
+        await updateDoc(storeRef, {
+            categories: arrayUnion(values.category)
+        });
+
         success = true;
 
     } catch (error) {
