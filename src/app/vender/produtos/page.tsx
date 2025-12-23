@@ -29,14 +29,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Product } from '@/lib/data';
 
 
-interface Product extends WithId<any> {
-    name: string;
-    price: number;
-    images: { imageUrl: string }[];
-    category: string;
-}
+interface ProductItem extends WithId<Product> {}
 
 export default function MyProductsPage() {
   const { user, firestore, isUserLoading } = useFirebase();
@@ -53,7 +49,7 @@ export default function MyProductsPage() {
     );
   }, [firestore, user]);
 
-  const { data: myProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
+  const { data: myProducts, isLoading: areProductsLoading, error } = useCollection<ProductItem>(productsQuery);
   const isLoading = isUserLoading || areProductsLoading;
 
   const handleDelete = async () => {
@@ -100,7 +96,7 @@ export default function MyProductsPage() {
           </Button>
           <h1 className="mx-auto font-headline text-xl">Meus Produtos</h1>
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/vender/novo-produto">
+            <Link href="/vender/selecionar-tipo">
               <PlusCircle />
             </Link>
           </Button>
@@ -126,8 +122,9 @@ export default function MyProductsPage() {
                         currency: 'BRL',
                       }).format(product.price)}
                     </p>
-                    {/* Placeholder for stock */}
-                    <p className="text-xs text-muted-foreground">Estoque: --</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                        {product.availability === 'available' ? 'Em estoque' : product.availability === 'on_demand' ? 'Sob encomenda' : 'Indisponível'}
+                    </p>
                   </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

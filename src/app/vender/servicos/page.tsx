@@ -93,7 +93,7 @@ export default function MyServicesPage() {
           </Button>
           <h1 className="mx-auto font-headline text-xl">Meus Serviços</h1>
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/vender/novo-produto">
+            <Link href="/vender/selecionar-tipo">
               <PlusCircle />
             </Link>
           </Button>
@@ -105,7 +105,7 @@ export default function MyServicesPage() {
               <Card key={service.id} className="overflow-hidden">
                 <CardContent className="flex items-center gap-4 p-4">
                   <Image
-                    src={service.images[0]?.imageUrl || '/placeholder.png'}
+                    src={service.images[0]?.imageUrl || 'https://picsum.photos/seed/service/64'}
                     alt={service.name}
                     width={64}
                     height={64}
@@ -114,7 +114,7 @@ export default function MyServicesPage() {
                   <div className="flex-1">
                     <h3 className="font-semibold">{service.name}</h3>
                     <p className="text-sm text-primary">
-                      {`Taxa de contato: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}`}
+                      {`Taxa: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}`}
                     </p>
                   </div>
                   <DropdownMenu>
@@ -154,7 +154,7 @@ export default function MyServicesPage() {
                 Anuncie seu primeiro serviço para vê-lo aqui.
               </p>
               <Button asChild>
-                  <Link href="/vender/novo-produto">
+                  <Link href="/vender/novo-servico">
                       <PlusCircle className="mr-2" />
                       Anunciar serviço
                   </Link>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -31,6 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo } from 'react';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { Loader2 } from 'lucide-react';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -47,14 +47,14 @@ const checkoutSchema = z.object({
 export default function CheckoutPage() {
   const { cart, total, clearCart } = useCart();
   const router = useRouter();
-  const { firestore, user } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userData } = useDoc(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
   const firstProductInCart = cart.length > 0 ? cart[0] : null;
   const storeId = firstProductInCart?.storeId;
@@ -77,27 +77,25 @@ export default function CheckoutPage() {
   });
   
   useEffect(() => {
-    // Pre-fill form when user data is loaded
     if (userData) {
       const defaultAddress = userData.addresses && userData.addresses.length > 0 ? userData.addresses[0] : null;
       form.reset({
-        name: userData.name || '',
-        phone: userData.phone || '',
+        name: userData.name || user?.displayName || '',
+        phone: userData.phone || user?.phoneNumber || '',
         address: defaultAddress ? `${defaultAddress.street}, ${defaultAddress.number}` : '',
         city: defaultAddress?.city || '',
         zip: defaultAddress?.zip || '',
-        paymentMethod: form.getValues('paymentMethod'),
+        paymentMethod: form.getValues('paymentMethod') || 'card',
         isUrgent: form.getValues('isUrgent'),
       });
     } else if (user) {
-      // Fallback to basic user info if firestore data is not available yet
        form.reset({
         name: user.displayName || '',
         phone: user.phoneNumber || '',
         address: '',
         city: '',
         zip: '',
-        paymentMethod: form.getValues('paymentMethod'),
+        paymentMethod: form.getValues('paymentMethod') || 'card',
         isUrgent: form.getValues('isUrgent'),
        });
     }
@@ -105,16 +103,19 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     form.setValue('isUrgent', isUrgentCategory);
-  }, [isUrgentCategory, form])
+  }, [isUrgentCategory, form]);
+  
+  // Effect to redirect if not logged in
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      toast.error('Você precisa estar logado para finalizar a compra.');
+      router.push('/login');
+    }
+  }, [isUserLoading, user, router]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (!firestore || !user) {
-        toast.error('Você precisa estar logado para finalizar a compra.');
-        router.push('/login');
-        return;
-    }
-     if (!storeId) {
-      toast.error('Não foi possível encontrar a loja para este pedido. Tente novamente.');
+    if (!firestore || !user || !storeId) {
+      toast.error('Ocorreu um erro. Verifique seu login e os itens do carrinho.');
       return;
     }
     
@@ -132,28 +133,25 @@ export default function CheckoutPage() {
                 selectedAddons: item.selectedAddons || []
             })),
             totalAmount: total,
-            status: 'Aguardando Pagamento', // Initial status
+            status: 'Aguardando Pagamento', // This status happens before the simulated payment
             orderDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
                 street: values.address,
                 city: values.city,
                 zip: values.zip,
-                number: '', // address field now has street and number
+                number: '', // The 'address' field now contains street and number
             },
             phone: values.phone,
             paymentMethod: values.paymentMethod,
             isUrgent: values.isUrgent,
-            // For seller notification system
             sellerHasUnread: true,
             buyerHasUnread: false,
             messages: []
         };
         
         const docRef = await addDoc(ordersCollection, orderData);
-
         toast.success('Seu pedido foi criado. Redirecionando para o pagamento.');
-        
         clearCart();
         router.push(`/pagamento?orderId=${docRef.id}`);
 
@@ -168,7 +166,15 @@ export default function CheckoutPage() {
     return (item.price * item.quantity) + addonsTotal;
   }
   
-  if (cart.length === 0) {
+  if (isUserLoading || isUserDataLoading) {
+    return (
+        <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+    )
+  }
+
+  if (cart.length === 0 && !isUserLoading) {
     return (
         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
             <h1 className="text-2xl font-bold mb-4">Seu carrinho está vazio</h1>
@@ -270,32 +276,33 @@ export default function CheckoutPage() {
             </section>
             
             <Separator />
-            <FormField
-              control={form.control}
-              name="isUrgent"
-              render={({ field }) => (
-                <FormItem className={cn("flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm", field.value && "border-destructive bg-destructive/10", !isUrgentCategory && 'hidden')}>
-                  <div className="space-y-0.5">
-                    <FormLabel className="flex items-center gap-2">
-                        <Siren className={cn("h-5 w-5", field.value && "text-destructive")}/>
-                        Pedido Urgente
-                    </FormLabel>
-                    <FormDescription>
-                      Prioridade máxima para o vendedor.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={!isUrgentCategory}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
             
-
+            {isUrgentCategory && (
+                <FormField
+                control={form.control}
+                name="isUrgent"
+                render={({ field }) => (
+                    <FormItem className={cn("flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm", field.value && "border-destructive bg-destructive/10")}>
+                    <div className="space-y-0.5">
+                        <FormLabel className="flex items-center gap-2">
+                            <Siren className={cn("h-5 w-5", field.value && "text-destructive")}/>
+                            Pedido Urgente
+                        </FormLabel>
+                        <FormDescription>
+                        Prioridade máxima para o vendedor.
+                        </FormDescription>
+                    </div>
+                    <FormControl>
+                        <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        />
+                    </FormControl>
+                    </FormItem>
+                )}
+                />
+            )}
+            
             <Separator />
 
             <section>
@@ -385,11 +392,9 @@ export default function CheckoutPage() {
           onClick={form.handleSubmit(onSubmit)}
           disabled={form.formState.isSubmitting}
         >
-          {form.formState.isSubmitting ? 'Criando pedido...' : 'Ir para Pagamento'}
+          {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ir para Pagamento'}
         </Button>
       </footer>
     </div>
   );
 }
-
-    

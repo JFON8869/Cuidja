@@ -1,9 +1,8 @@
-
 'use client';
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Briefcase, MapPin } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Briefcase, MapPin, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -72,7 +71,6 @@ export default function ServiceCheckoutPage() {
   });
   
   useEffect(() => {
-    // Pre-fill form when user data is loaded
     if (userData) {
       const defaultAddress = userData.addresses && userData.addresses.length > 0 ? userData.addresses[0] : null;
       form.reset({
@@ -84,7 +82,6 @@ export default function ServiceCheckoutPage() {
         message: form.getValues('message'),
       });
     } else if (user) {
-      // Fallback to basic user info if firestore data is not available yet
       form.reset({
         name: user.displayName || '',
         phone: user.phoneNumber || '',
@@ -95,6 +92,13 @@ export default function ServiceCheckoutPage() {
       });
     }
   }, [userData, user, form]);
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+        toast.error("Você precisa estar logado para solicitar um serviço.");
+        router.push(`/login?redirect=/checkout-servico?serviceId=${serviceId}&storeId=${storeId}`);
+    }
+  }, [isUserLoading, user, router, serviceId, storeId]);
 
   
   async function onSubmit(values: z.infer<typeof serviceCheckoutSchema>) {
@@ -118,14 +122,14 @@ export default function ServiceCheckoutPage() {
                 selectedAddons: []
             }],
             totalAmount: service.price,
-            status: 'Solicitação de Contato', // Initial status for a service
+            status: 'Solicitação de Contato',
             orderDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
                 street: values.address,
                 city: values.city,
                 zip: values.zip,
-                number: '', // Address field contains number now
+                number: '', 
             },
             phone: values.phone,
             messages: values.message ? [{
@@ -139,9 +143,7 @@ export default function ServiceCheckoutPage() {
         }
         
         const docRef = await addDoc(ordersCollection, orderData);
-
         toast.success('Seu pedido de contato foi enviado! Acompanhe pelo chat.');
-        
         router.push(`/pedidos/${docRef.id}`);
 
     } catch(error) {
@@ -329,11 +331,9 @@ export default function ServiceCheckoutPage() {
           onClick={form.handleSubmit(onSubmit)}
           disabled={form.formState.isSubmitting || isLoading}
         >
-          {form.formState.isSubmitting ? 'Enviando...' : 'Confirmar Contato'}
+          {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar Contato'}
         </Button>
       </footer>
     </div>
   );
 }
-
-    

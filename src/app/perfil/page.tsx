@@ -15,7 +15,6 @@ import {
   ChevronRight,
   Shield,
   Cloud,
-  Trash,
   Loader2,
 } from 'lucide-react';
 import { collection, getDocs, writeBatch, query, where } from 'firebase/firestore';
@@ -42,9 +41,8 @@ const aboutItems = [
 ]
 
 export default function ProfilePage() {
-  const { auth, user, isUserLoading, firestore } = useFirebase();
+  const { auth, user, isUserLoading } = useFirebase();
   const router = useRouter();
-  const [isCleaning, setIsCleaning] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -55,52 +53,10 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     if (auth) {
       await auth.signOut();
-      router.push('/home');
+      toast.success('Você saiu da sua conta.');
+      router.push('/login');
     }
   };
-
-  const handleCleanup = async () => {
-    if (!firestore) {
-        toast.error("O banco de dados não está disponível.");
-        return;
-    }
-    setIsCleaning(true);
-    toast.loading("Limpando pedidos antigos sem loja...");
-
-    try {
-        const ordersRef = collection(firestore, "orders");
-        // Query for documents where 'storeId' does NOT exist.
-        // Firestore doesn't have a "does not exist" query, so we query for documents
-        // where storeId is null, as unset fields are treated as null in queries.
-        const q = query(ordersRef, where("storeId", "==", null));
-        
-        const querySnapshot = await getDocs(q);
-        const batch = writeBatch(firestore);
-        let deletedCount = 0;
-
-        querySnapshot.forEach((doc) => {
-            batch.delete(doc.ref);
-            deletedCount++;
-        });
-
-        if (deletedCount > 0) {
-            await batch.commit();
-            toast.dismiss();
-            toast.success(`${deletedCount} pedido(s) órfão(s) removido(s) com sucesso!`);
-        } else {
-            toast.dismiss();
-            toast.info("Nenhum pedido órfão para remover foi encontrado.");
-        }
-
-    } catch (error) {
-        console.error("Cleanup error:", error);
-        toast.dismiss();
-        toast.error("Ocorreu um erro durante a limpeza.");
-    } finally {
-        setIsCleaning(false);
-    }
-  };
-
 
   if (isUserLoading || !user) {
     return (
@@ -187,14 +143,6 @@ export default function ProfilePage() {
                     <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </Link>
             ))}
-            <div className="border-t p-4 flex items-center gap-4">
-                <Trash className="w-5 h-5 text-muted-foreground" />
-                <span className="flex-1 text-base">Limpar Dados Antigos</span>
-                <Button onClick={handleCleanup} disabled={isCleaning} size="sm" variant="destructive">
-                    {isCleaning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Limpar
-                </Button>
-            </div>
         </div>
 
 

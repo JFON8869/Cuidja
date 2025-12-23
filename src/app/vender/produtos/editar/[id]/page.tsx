@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -38,6 +37,12 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { uploadFile } from '@/lib/storage';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+  } from "@/components/ui/accordion"
 
 const MAX_IMAGES = 3;
 
@@ -203,6 +208,7 @@ export default function EditProductPage() {
         toast.dismiss();
         toast.success(`O item "${values.name}" foi atualizado com sucesso.`);
         router.push(isService ? '/vender/servicos' : '/vender/produtos');
+        router.refresh();
 
     } catch (error) {
         console.error('Error updating product: ', error);
@@ -258,7 +264,7 @@ export default function EditProductPage() {
               render={() => (
                 <FormItem>
                   <FormLabel>
-                    Fotos ({images.length}/{MAX_IMAGES})
+                    Fotos ({images.length}/{isService ? 1 : MAX_IMAGES})
                   </FormLabel>
                   <FormControl>
                     <div className="grid grid-cols-3 gap-2">
@@ -281,7 +287,7 @@ export default function EditProductPage() {
                           </Button>
                         </div>
                       ))}
-                      {images.length < MAX_IMAGES && (
+                      {images.length < (isService ? 1 : MAX_IMAGES) && (
                         <div
                           className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-card text-muted-foreground transition hover:bg-muted"
                           onClick={() => fileInputRef.current?.click()}
@@ -302,7 +308,7 @@ export default function EditProductPage() {
                     </div>
                   </FormControl>
                   <FormDescription>
-                    Envie até {MAX_IMAGES} fotos.
+                    Envie até {isService ? 1 : MAX_IMAGES} foto(s).
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -316,7 +322,7 @@ export default function EditProductPage() {
                 <FormItem>
                   <FormLabel>Nome do {isService ? 'Serviço' : 'Produto'}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Pão Artesanal" {...field} />
+                    <Input placeholder={isService ? "Ex: Aula de Violão" : "Ex: Pão Artesanal"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -331,7 +337,7 @@ export default function EditProductPage() {
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Descreva os detalhes do seu produto..."
+                      placeholder="Descreva os detalhes do seu item..."
                       className="resize-none"
                       {...field}
                     />
@@ -355,6 +361,7 @@ export default function EditProductPage() {
                       {...field}
                     />
                   </FormControl>
+                   {isService && <FormDescription>Se for 0, aparecerá como "A combinar".</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}
@@ -387,53 +394,61 @@ export default function EditProductPage() {
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="availability"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Disponibilidade</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a disponibilidade" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="available">Disponível (em estoque)</SelectItem>
-                        <SelectItem value="on_demand">Sob Encomenda</SelectItem>
-                        <SelectItem value="unavailable">Indisponível</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             
-            {!isService && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
-                {addonGroups.map((group, groupIndex) => (
-                  <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Adicionar Grupo de Complementos
-                </Button>
-              </div>
-            </>
-            )}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger>
+                   <span className="text-base text-muted-foreground">Configurações avançadas</span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-6 pt-4">
+
+                  <FormField
+                    control={form.control}
+                    name="availability"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Disponibilidade</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a disponibilidade" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              <SelectItem value="available">Disponível (em estoque)</SelectItem>
+                              <SelectItem value="on_demand">Sob Encomenda</SelectItem>
+                              <SelectItem value="unavailable">Indisponível</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {!isService && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Complementos</h3>
+                    {addonGroups.map((group, groupIndex) => (
+                      <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Adicionar Grupo de Complementos
+                    </Button>
+                  </div>
+                  )}
+
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             <Button
               type="submit"
@@ -452,7 +467,6 @@ export default function EditProductPage() {
   );
 }
 
-// Sub-component for managing an addon group
 function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, removeGroup: (index: number) => void}) {
   const { control } = useFormContext<FormValues>();
   const { fields, append, remove } = useFieldArray({
