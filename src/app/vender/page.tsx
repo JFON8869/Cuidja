@@ -212,7 +212,7 @@ export default function SellPage() {
       }
       
       const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid), where('name', '!=', ''));
+      const q = query(storesRef, where('userId', '==', user.uid));
       const querySnapshot = await getDocs(q);
       
       setHasStore(!querySnapshot.empty);
