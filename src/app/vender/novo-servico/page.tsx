@@ -92,18 +92,33 @@ export default function NewServicePage() {
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const currentImages = form.getValues('images');
-    const totalImages = currentImages.length + files.length;
+    const currentImageFiles = form.getValues('images').filter((img): img is File => img instanceof File);
+    const currentImageNames = new Set(currentImageFiles.map(file => file.name));
+  
+    const validFiles = files.filter(file => {
+      if (currentImageNames.has(file.name)) {
+        toast.error(`A imagem "${file.name}" já foi adicionada.`);
+        return false;
+      }
+      return true;
+    });
 
+    if (validFiles.length === 0) {
+        return;
+    }
+  
+    const currentImages = form.getValues('images');
+    const totalImages = currentImages.length + validFiles.length;
+  
     if (totalImages > MAX_IMAGES) {
       toast.error(`Você só pode adicionar mais ${MAX_IMAGES - currentImages.length} imagem.`);
       return;
     }
-
-    const newImageFiles = [...currentImages, ...files];
+  
+    const newImageFiles = [...currentImages, ...validFiles];
     form.setValue('images', newImageFiles, { shouldValidate: true });
-
-    const newImagePreviews = files.map((file) => URL.createObjectURL(file));
+  
+    const newImagePreviews = validFiles.map((file) => URL.createObjectURL(file));
     setImagePreviews((prev) => [...prev, ...newImagePreviews]);
   };
 

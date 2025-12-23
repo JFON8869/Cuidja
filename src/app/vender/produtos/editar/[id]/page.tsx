@@ -33,7 +33,6 @@ import {
 import { mockCategories, ImagePlaceholder } from '@/lib/data';
 import { useFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { uploadFile } from '@/lib/storage';
@@ -158,12 +157,27 @@ export default function EditProductPage() {
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    if (images.length + files.length > MAX_IMAGES) {
-      toast.error(`Você pode adicionar no máximo ${MAX_IMAGES - images.length} imagens.`);
+    const currentImageFiles = form.getValues('images').filter((img): img is File => img instanceof File);
+    const currentImageNames = new Set(currentImageFiles.map(file => file.name));
+  
+    const validFiles = files.filter(file => {
+      if (currentImageNames.has(file.name)) {
+        toast.error(`A imagem "${file.name}" já foi adicionada.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) {
+        return;
+    }
+
+    if (images.length + validFiles.length > (isService ? 1 : MAX_IMAGES)) {
+      toast.error(`Você pode adicionar no máximo ${isService ? 1 : MAX_IMAGES - images.length} imagem(ns).`);
       return;
     }
     
-    files.forEach(file => appendImage(file));
+    validFiles.forEach(file => appendImage(file));
   };
   
   async function onSubmit(values: FormValues) {
@@ -181,14 +195,12 @@ export default function EditProductPage() {
           if (imageOrFile instanceof File) {
             return uploadFile(imageOrFile, `products/${id as string}`);
           }
-          // If it's already an object with imageUrl, it's an existing image.
           return Promise.resolve(imageOrFile.imageUrl);
         });
 
         const imageUrls = await Promise.all(uploadPromises);
 
         const finalImages: ImagePlaceholder[] = imageUrls.map(url => {
-          // Find original hint if it exists, otherwise create a new one
           const originalImage = values.images.find(img => !(img instanceof File) && img.imageUrl === url);
           return {
             imageUrl: url,
@@ -596,5 +608,3 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
     </div>
   );
 }
-
-    
