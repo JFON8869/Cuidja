@@ -2,6 +2,17 @@
 import type { ImagePlaceholder } from './placeholder-images';
 import { PlaceHolderImages } from './placeholder-images';
 import type { LucideIcon } from 'lucide-react';
+import {
+  Utensils,
+  Beer,
+  ShoppingCart,
+  Palette,
+  Droplets,
+  Dog,
+  HeartPulse,
+  Wrench,
+} from 'lucide-react';
+
 
 // --- V2 Data Model ---
 export type ItemType = 'PRODUCT' | 'SERVICE';
@@ -59,6 +70,7 @@ export interface Store {
   userId: string;
   operatingHours?: OperatingHours;
   address?: string;
+  bannerUrl?: string;
 }
 
 export interface Product {
@@ -74,6 +86,8 @@ export interface Product {
   addons?: AddonGroup[];
   availability: 'available' | 'on_demand' | 'unavailable';
   attendanceType?: 'presencial' | 'online' | 'ambos';
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface SelectedAddon {
@@ -85,13 +99,14 @@ export interface SelectedAddon {
 export interface CartItem extends Product {
     cartItemId?: string;
     selectedAddons?: SelectedAddon[];
+    quantity: number;
 }
 
 export interface Category {
   id: string;
   name:string;
   slug: string;
-  iconUrl: string;
+  icon: LucideIcon;
   type: ItemType;
 }
 
@@ -115,14 +130,14 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const mockCategories: Category[] = [
-  { id: '1', name: 'Restaurantes', slug: 'restaurantes', iconUrl: findImage('category-restaurants').imageUrl, type: 'PRODUCT' },
-  { id: '2', name: 'Bebidas', slug: 'bebidas', iconUrl: findImage('category-drinks').imageUrl, type: 'PRODUCT' },
-  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', iconUrl: findImage('category-market').imageUrl, type: 'PRODUCT' },
-  { id: '4', name: 'Artesanatos', slug: 'artesanatos', iconUrl: findImage('category-crafts').imageUrl, type: 'PRODUCT' },
-  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', iconUrl: findImage('category-gas-water').imageUrl, type: 'PRODUCT' },
-  { id: '6', name: 'Pets', slug: 'pets', iconUrl: findImage('category-pets').imageUrl, type: 'PRODUCT' },
-  { id: '7', name: 'Farmácias', slug: 'farmacias', iconUrl: findImage('category-pharmacy').imageUrl, type: 'PRODUCT' },
-  { id: '8', name: 'Serviços', slug: 'servicos', iconUrl: findImage('category-services').imageUrl, type: 'SERVICE' },
+  { id: '1', name: 'Restaurantes', slug: 'restaurantes', icon: Utensils, type: 'PRODUCT' },
+  { id: '2', name: 'Bebidas', slug: 'bebidas', icon: Beer, type: 'PRODUCT' },
+  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', icon: ShoppingCart, type: 'PRODUCT' },
+  { id: '4', name: 'Artesanatos', slug: 'artesanatos', icon: Palette, type: 'PRODUCT' },
+  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', icon: Droplets, type: 'PRODUCT' },
+  { id: '6', name: 'Pets', slug: 'pets', icon: Dog, type: 'PRODUCT' },
+  { id: '7', name: 'Farmácias', slug: 'farmacias', icon: HeartPulse, type: 'PRODUCT' },
+  { id: '8', name: 'Serviços', slug: 'servicos', icon: Wrench, type: 'SERVICE' },
 ];
 
 export const mockBanners: Banner[] = [

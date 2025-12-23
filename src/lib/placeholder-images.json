@@ -109,54 +109,6 @@
       "imageHint": "professional services"
     },
     {
-      "id": "category-restaurants",
-      "description": "3d restaurant icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/restaurant.png",
-      "imageHint": "restaurant icon"
-    },
-    {
-      "id": "category-drinks",
-      "description": "3d drinks icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/drinks.png",
-      "imageHint": "drinks icon"
-    },
-    {
-      "id": "category-market",
-      "description": "3d market icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/market.png",
-      "imageHint": "market icon"
-    },
-    {
-      "id": "category-crafts",
-      "description": "3d crafts icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/crafts.png",
-      "imageHint": "crafts icon"
-    },
-    {
-      "id": "category-gas-water",
-      "description": "3d gas and water icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/gas-water.png",
-      "imageHint": "gas water"
-    },
-    {
-      "id": "category-pets",
-      "description": "3d pets icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/pets.png",
-      "imageHint": "pets icon"
-    },
-    {
-      "id": "category-pharmacy",
-      "description": "3d pharmacy icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/pharmacy.png",
-      "imageHint": "pharmacy icon"
-    },
-    {
-      "id": "category-services",
-      "description": "3d services icon",
-      "imageUrl": "https://storage.googleapis.com/gemini-studio-assets/ricardo/services.png",
-      "imageHint": "tools icon"
-    },
-    {
       "id": "gardening-service",
       "description": "A well-maintained garden, representing gardening services.",
       "imageUrl": "https://images.unsplash.com/photo-1628102490399-a15f72e9a385?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxnYXJkZW5pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDI0MjI3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
