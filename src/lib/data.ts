@@ -80,7 +80,7 @@ export interface Product {
   price: number;
   storeId: string;
   sellerId: string;
-  images: ImagePlaceholder[];
+  images?: ImagePlaceholder[];
   category: string; // Used for products to define sub-category
   type: ItemType; // PRODUCT or SERVICE
   addons?: AddonGroup[];

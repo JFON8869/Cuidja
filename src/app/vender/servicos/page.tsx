@@ -11,7 +11,6 @@ import {
   Loader2,
   Trash2,
   Edit,
-  Info
 } from 'lucide-react';
 import {
   collection,
@@ -141,13 +140,19 @@ export default function SellerServicesPage() {
           <div className="divide-y">
             {services.map(service => (
                  <div key={service.id} className="p-4 flex items-center gap-4">
-                    <Image 
-                        src={service.images[0]?.imageUrl || 'https://picsum.photos/seed/placeholder/100'}
-                        alt={service.name}
-                        width={64}
-                        height={64}
-                        className="rounded-md object-cover w-16 h-16 border"
-                    />
+                    {service.images && service.images.length > 0 ? (
+                        <Image 
+                            src={service.images[0]?.imageUrl || 'https://picsum.photos/seed/placeholder/100'}
+                            alt={service.name}
+                            width={64}
+                            height={64}
+                            className="rounded-md object-cover w-16 h-16 border"
+                        />
+                     ) : (
+                        <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
+                           <Wrench className="h-8 w-8 text-muted-foreground"/>
+                       </div>
+                    )}
                     <div className="flex-1">
                         <p className="font-semibold">{service.name}</p>
                         <p className="text-sm text-primary font-bold">

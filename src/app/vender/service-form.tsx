@@ -2,16 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft,
   Loader2,
-  Image as ImageIcon,
-  X,
 } from 'lucide-react';
 import {
   collection,
@@ -34,7 +31,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
-import { uploadFile } from '@/lib/storage';
 import { Product } from '@/lib/data';
 import {
   Form,
@@ -46,8 +42,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
-const MAX_IMAGES = 3;
-
 const serviceSchema = z.object({
   name: z.string().min(3, 'O nome do serviço é obrigatório.'),
   description: z.string().min(10, 'A descrição é obrigatória.').optional(),
@@ -58,8 +52,7 @@ const serviceSchema = z.object({
   images: z
     .any()
     .array()
-    .min(1, 'Adicione pelo menos uma imagem.')
-    .max(MAX_IMAGES, `Você pode adicionar no máximo ${MAX_IMAGES} imagens.`),
+    .optional(),
 });
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
@@ -86,15 +79,6 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
     },
   });
 
-  const {
-    fields: imageFields,
-    append: appendImage,
-    remove: removeImage,
-  } = useFieldArray({
-    control: form.control,
-    name: 'images',
-  });
-  
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login?redirect=/vender');
@@ -121,31 +105,6 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
     }
   }, [firestore, serviceId, form, router, isEditing]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const currentImageCount = imageFields.length;
-      const availableSlots = MAX_IMAGES - currentImageCount;
-
-      if (files.length > availableSlots) {
-        toast.error(`Você pode adicionar no máximo ${availableSlots} mais imagem(ns).`);
-        return;
-      }
-
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) {
-          toast.error(`"${file.name}" não é uma imagem válida.`);
-          continue;
-        }
-        if (file.size > 2 * 1024 * 1024) {
-          toast.error(`A imagem "${file.name}" é muito grande (max 2MB).`);
-          continue;
-        }
-        appendImage(file);
-      }
-    }
-  };
-
   async function onSubmit(values: ServiceFormValues) {
     if (!firestore || !user || !store) {
       toast.error('Erro de autenticação ou loja não encontrada.');
@@ -154,39 +113,12 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
 
     setIsSubmitting(true);
     try {
-      const newImageFiles = values.images.filter(
-        (image: any): image is File => image instanceof File
-      );
-      const existingImageObjects = values.images.filter(
-        (image: any) =>
-          typeof image === 'object' && image.imageUrl && !(image instanceof File)
-      );
-
-      const uploadPromises = newImageFiles.map((file) =>
-        uploadFile(file, `services/${user.uid}/${Date.now()}-${file.name}`)
-      );
-      const newImageUrls = await Promise.all(uploadPromises);
-      const newImageObjects = newImageUrls.map((url) => ({
-        imageUrl: url,
-        imageHint: 'professional service',
-      }));
-
-      const finalImageObjects = [...existingImageObjects, ...newImageObjects];
-
-      if (finalImageObjects.length === 0) {
-        form.setError('images', {
-          type: 'manual',
-          message: 'Adicione pelo menos uma imagem.',
-        });
-        throw new Error('Nenhuma imagem fornecida.');
-      }
-      
       const dataToSave = {
         name: values.name,
         description: values.description || '',
         price: Number(values.price),
         attendanceType: values.attendanceType,
-        images: finalImageObjects,
+        images: [], // Images are removed
         storeId: store.id,
         sellerId: user.uid,
         type: 'SERVICE' as const,
@@ -265,84 +197,6 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
                     />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="images"
-              render={() => (
-                <FormItem>
-                  <FormLabel>Imagens do Serviço</FormLabel>
-                  <FormDescription>
-                    Adicione fotos do seu trabalho ou que representem o serviço.
-                  </FormDescription>
-                  <FormControl>
-                    <div className="rounded-lg border border-dashed p-6 text-center">
-                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <label
-                        htmlFor="file-upload"
-                        className={`mt-2 block text-sm font-medium text-primary ${
-                          imageFields.length >= MAX_IMAGES
-                            ? 'cursor-not-allowed opacity-50'
-                            : 'cursor-pointer hover:underline'
-                        }`}
-                      >
-                        <span>
-                          {imageFields.length >= MAX_IMAGES
-                            ? 'Limite de imagens atingido'
-                            : 'Clique para enviar'}
-                        </span>
-                        <input
-                          id="file-upload"
-                          name="file-upload"
-                          type="file"
-                          className="sr-only"
-                          multiple
-                          onChange={handleImageChange}
-                          accept="image/*"
-                          disabled={imageFields.length >= MAX_IMAGES}
-                        />
-                      </label>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        PNG, JPG até 2MB. Máximo de {MAX_IMAGES} imagens.
-                      </p>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                  {imageFields.length > 0 && (
-                    <div className="mt-4 grid grid-cols-3 gap-4">
-                      {imageFields.map((field, index) => {
-                        const src =
-                          field instanceof File
-                            ? URL.createObjectURL(field)
-                            : (field as any)?.imageUrl;
-                        if (!src) return null;
-                        return (
-                          <div
-                            key={field.id}
-                            className="group relative aspect-square h-auto w-full"
-                          >
-                            <Image
-                              src={src}
-                              alt={`Preview ${index}`}
-                              fill
-                              sizes="(max-width: 640px) 33vw, 100px"
-                              className="rounded-md object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-80 transition-opacity group-hover:opacity-100"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </FormItem>
               )}
             />

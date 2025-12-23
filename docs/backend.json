@@ -178,7 +178,6 @@
         "name",
         "description",
         "price",
-        "images",
         "category",
         "availability",
         "type"

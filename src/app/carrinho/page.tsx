@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Loader2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { Separator } from '@/components/ui/separator';
@@ -61,13 +61,19 @@ export default function CartPage() {
           <div className="p-4 space-y-4">
             {cart.map((item) => (
               <div key={item.cartItemId} className="flex items-start gap-4">
-                <Image
-                  src={item.images[0].imageUrl}
-                  alt={item.name}
-                  width={64}
-                  height={64}
-                  className="rounded-md border object-cover aspect-square"
-                />
+                {item.images && item.images.length > 0 ? (
+                    <Image
+                    src={item.images[0].imageUrl}
+                    alt={item.name}
+                    width={64}
+                    height={64}
+                    className="rounded-md border object-cover aspect-square"
+                    />
+                ) : (
+                    <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
+                        <Package className="h-8 w-8 text-muted-foreground"/>
+                    </div>
+                )}
                 <div className="flex-1">
                   <h3 className="font-semibold line-clamp-1">{item.name}</h3>
                    {item.selectedAddons && item.selectedAddons.length > 0 && (

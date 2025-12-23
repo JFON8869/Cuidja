@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useFormContext, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft,
-  Image as ImageIcon,
   PlusCircle,
   Trash2,
   Loader2,
@@ -37,7 +35,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
-import { uploadFile } from '@/lib/storage';
 import { Product } from '@/lib/data';
 import { productCategories } from '@/lib/categories';
 import {
@@ -54,7 +51,6 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
 
-const MAX_IMAGES = 3;
 
 const addonSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -77,8 +73,7 @@ const productSchema = z.object({
   images: z
     .any()
     .array()
-    .min(1, 'Adicione pelo menos uma imagem.')
-    .max(MAX_IMAGES, `Você pode adicionar no máximo ${MAX_IMAGES} imagens.`),
+    .optional(),
   addonGroups: z.array(addonGroupSchema).optional(),
 });
 
@@ -147,14 +142,6 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
   }, [firestore, productId, form, router, isEditing]);
 
-  const {
-    fields: imageFields,
-    append: appendImage,
-    remove: removeImage,
-  } = useFieldArray({
-    control: form.control,
-    name: 'images',
-  });
 
   const {
     fields: addonGroupFields,
@@ -164,33 +151,6 @@ export function ProductForm({ productId }: ProductFormProps) {
     control: form.control,
     name: 'addonGroups',
   });
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const currentImageCount = imageFields.length;
-      const availableSlots = MAX_IMAGES - currentImageCount;
-
-      if (files.length > availableSlots) {
-        toast.error(
-          `Você pode adicionar no máximo ${availableSlots} mais imagem(ns).`
-        );
-        return;
-      }
-
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) {
-          toast.error(`"${file.name}" não é uma imagem válida.`);
-          continue;
-        }
-        if (file.size > 2 * 1024 * 1024) {
-          toast.error(`A imagem "${file.name}" é muito grande (max 2MB).`);
-          continue;
-        }
-        appendImage(file);
-      }
-    }
-  };
 
   const handleSuggestCategory = async () => {
     const name = form.getValues('name');
@@ -234,40 +194,13 @@ export function ProductForm({ productId }: ProductFormProps) {
 
     setIsSubmitting(true);
     try {
-      const newImageFiles = values.images.filter(
-        (image: any): image is File => image instanceof File
-      );
-      const existingImageObjects = values.images.filter(
-        (image: any) =>
-          typeof image === 'object' && image.imageUrl && !(image instanceof File)
-      );
-
-      const uploadPromises = newImageFiles.map((file) =>
-        uploadFile(file, `products/${user.uid}/${Date.now()}-${file.name}`)
-      );
-      const newImageUrls = await Promise.all(uploadPromises);
-      const newImageObjects = newImageUrls.map((url) => ({
-        imageUrl: url,
-        imageHint: 'product photo',
-      }));
-
-      const finalImageObjects = [...existingImageObjects, ...newImageObjects];
-
-      if (finalImageObjects.length === 0) {
-        form.setError('images', {
-          type: 'manual',
-          message: 'Adicione pelo menos uma imagem.',
-        });
-        throw new Error('Nenhuma imagem fornecida.');
-      }
-      
       const dataToSave = {
         name: values.name,
         description: values.description || '',
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        images: finalImageObjects,
+        images: [], // Images are removed
         addonGroups: values.addonGroups || [],
         storeId: store.id,
         sellerId: user.uid,
@@ -414,82 +347,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                 )}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="images"
-              render={() => (
-                <FormItem>
-                  <FormLabel>Imagens do Produto</FormLabel>
-                  <FormControl>
-                    <div className="rounded-lg border border-dashed p-6 text-center">
-                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <label
-                        htmlFor="file-upload"
-                        className={`mt-2 block text-sm font-medium text-primary ${
-                          imageFields.length >= MAX_IMAGES
-                            ? 'cursor-not-allowed opacity-50'
-                            : 'cursor-pointer hover:underline'
-                        }`}
-                      >
-                        <span>
-                          {imageFields.length >= MAX_IMAGES
-                            ? 'Limite de imagens atingido'
-                            : 'Clique para enviar'}
-                        </span>
-                        <input
-                          id="file-upload"
-                          name="file-upload"
-                          type="file"
-                          className="sr-only"
-                          multiple
-                          onChange={handleImageChange}
-                          accept="image/*"
-                          disabled={imageFields.length >= MAX_IMAGES}
-                        />
-                      </label>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        PNG, JPG até 2MB. Máximo de {MAX_IMAGES} imagens.
-                      </p>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                  {imageFields.length > 0 && (
-                    <div className="mt-4 grid grid-cols-3 gap-4">
-                      {imageFields.map((field, index) => {
-                        const src =
-                          field instanceof File
-                            ? URL.createObjectURL(field)
-                            : (field as any)?.imageUrl;
-                        if (!src) return null;
-                        return (
-                          <div
-                            key={field.id}
-                            className="group relative aspect-square h-auto w-full"
-                          >
-                            <Image
-                              src={src}
-                              alt={`Preview ${index}`}
-                              fill
-                              sizes="(max-width: 640px) 33vw, 100px"
-                              className="rounded-md object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-80 transition-opacity group-hover:opacity-100"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </FormItem>
-              )}
-            />
-
+            
             <Separator />
 
             <FormField

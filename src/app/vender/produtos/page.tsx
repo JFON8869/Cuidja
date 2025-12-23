@@ -11,7 +11,6 @@ import {
   Loader2,
   Trash2,
   Edit,
-  Info
 } from 'lucide-react';
 import {
   collection,
@@ -44,7 +43,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function SellerProductsPage() {
@@ -143,13 +141,19 @@ export default function SellerProductsPage() {
           <div className="divide-y">
             {products.map(product => (
                  <div key={product.id} className="p-4 flex items-center gap-4">
-                    <Image 
-                        src={product.images[0]?.imageUrl || 'https://picsum.photos/seed/placeholder/100'}
-                        alt={product.name}
-                        width={64}
-                        height={64}
-                        className="rounded-md object-cover w-16 h-16 border"
-                    />
+                    {product.images && product.images.length > 0 ? (
+                        <Image 
+                            src={product.images[0]?.imageUrl || 'https://picsum.photos/seed/placeholder/100'}
+                            alt={product.name}
+                            width={64}
+                            height={64}
+                            className="rounded-md object-cover w-16 h-16 border"
+                        />
+                    ) : (
+                         <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
+                            <Package className="h-8 w-8 text-muted-foreground"/>
+                        </div>
+                    )}
                     <div className="flex-1">
                         <p className="font-semibold">{product.name}</p>
                         <p className="text-sm text-primary font-bold">

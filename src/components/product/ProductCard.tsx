@@ -23,6 +23,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const { firestore } = useFirebase();
   const [storeName, setStoreName] = useState<string | null>(null);
   const genericServiceImage = PlaceHolderImages.find(p => p.id === 'generic-service');
+  const genericProductImage = PlaceHolderImages.find(p => p.id === 'vegetables');
+
 
   useEffect(() => {
     async function fetchStoreName() {
@@ -40,16 +42,15 @@ export function ProductCard({ product }: ProductCardProps) {
     fetchStoreName();
   }, [firestore, product.storeId]);
   
-  // V2 Data Model Compatibility: Use the new `type` field if it exists,
-  // otherwise fall back to the legacy `category` check.
-  const isService = product.type === 'SERVICE' || (!product.type && product.category === 'Serviços');
+  const isService = product.type === 'SERVICE';
 
   const href = isService 
     ? `/checkout-servico?serviceId=${product.id}&storeId=${product.storeId}`
     : `/produtos/${product.id}`;
 
   const image: ImagePlaceholder | undefined = product.images?.[0];
-  const imageUrl = image?.imageUrl || (isService ? genericServiceImage?.imageUrl : undefined) || 'https://picsum.photos/seed/placeholder/400/400';
+  const defaultImage = isService ? genericServiceImage : genericProductImage;
+  const imageUrl = image?.imageUrl || defaultImage?.imageUrl || 'https://picsum.photos/seed/placeholder/400/400';
   const imageHint = image?.imageHint || (isService ? 'professional service' : 'product photo');
 
 
