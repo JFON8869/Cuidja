@@ -139,58 +139,52 @@ export default function StoreFormPage() {
     }
     
     setIsSubmitting(true);
-    let success = false;
-
+    
     try {
       let finalLogoUrl = existingStore?.logoUrl || "";
 
-      // Only upload a new file if one was selected
+      // Step 1: Handle file upload if a new file is present
       if (values.logoUrl instanceof File) {
-        try {
-           finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}/${Date.now()}_${values.logoUrl.name}`);
-        } catch (uploadError) {
-          console.error("Error uploading logo:", uploadError);
-          toast.error("Erro ao fazer upload da logo.");
-          setIsSubmitting(false);
-          return;
-        }
+        const filePath = `logos/${user.uid}/${Date.now()}_${values.logoUrl.name}`;
+        finalLogoUrl = await uploadFile(values.logoUrl, filePath);
       } else if (values.logoUrl === null) {
           finalLogoUrl = ""; // Handle logo deletion
       }
 
+      // Step 2: Prepare data for Firestore
+      const dataToSave = {
+        ...values,
+        logoUrl: finalLogoUrl,
+        userId: user.uid,
+      };
+
+      // Step 3: Save data to Firestore
       if (existingStore) {
         // Update existing store
         const storeRef = doc(firestore, 'stores', existingStore.id);
-        const dataToUpdate = {
-          ...values,
-          logoUrl: finalLogoUrl,
-        };
-        await updateDoc(storeRef, dataToUpdate);
+        await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
         // Create new store (seller activation)
         const newStoreRef = doc(collection(firestore, 'stores'));
-        const newStore = {
-          ...values,
-          logoUrl: finalLogoUrl,
-          id: newStoreRef.id,
-          userId: user.uid,
-          categories: [],
-          createdAt: serverTimestamp(),
+        const newStoreData = {
+            ...dataToSave,
+            id: newStoreRef.id,
+            categories: [], // Initialize with empty categories
+            createdAt: serverTimestamp(),
         };
-        await setDoc(newStoreRef, newStore);
+        await setDoc(newStoreRef, newStoreData);
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
-      success = true;
+      
+      router.push('/vender');
+      router.refresh(); // Force refresh to get new store data in context
 
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
     } finally {
         setIsSubmitting(false);
-        if (success) {
-          router.push('/vender');
-        }
     }
   };
   
