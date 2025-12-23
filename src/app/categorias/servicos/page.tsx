@@ -31,10 +31,10 @@ export default function ServicesCategoryPage() {
       setIsLoading(true);
 
       try {
-        // 1. Find all products that are in the "Serviços" category
+        // 1. Find all products that are of type 'SERVICE'
         const servicesQuery = query(
           collection(firestore, 'products'), 
-          where('category', '==', 'Serviços')
+          where('type', '==', 'SERVICE')
         );
         const servicesSnapshot = await getDocs(servicesQuery);
 
