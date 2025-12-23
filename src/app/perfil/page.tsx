@@ -18,7 +18,7 @@ import {
   Trash,
   Loader2,
 } from 'lucide-react';
-import { collection, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, query, where } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 
@@ -65,30 +65,31 @@ export default function ProfilePage() {
         return;
     }
     setIsCleaning(true);
-    toast.loading("Limpando itens antigos...");
+    toast.loading("Limpando pedidos antigos sem loja...");
 
     try {
-        const productsRef = collection(firestore, "products");
-        const querySnapshot = await getDocs(productsRef);
+        const ordersRef = collection(firestore, "orders");
+        // Query for documents where 'storeId' does NOT exist.
+        // Firestore doesn't have a "does not exist" query, so we query for documents
+        // where storeId is null, as unset fields are treated as null in queries.
+        const q = query(ordersRef, where("storeId", "==", null));
+        
+        const querySnapshot = await getDocs(q);
         const batch = writeBatch(firestore);
         let deletedCount = 0;
 
         querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // The condition to identify an "old" item. We'll say if it doesn't have a category, it's old.
-            if (!data.category) {
-                batch.delete(doc.ref);
-                deletedCount++;
-            }
+            batch.delete(doc.ref);
+            deletedCount++;
         });
 
         if (deletedCount > 0) {
             await batch.commit();
             toast.dismiss();
-            toast.success(`${deletedCount} iten(s) antigo(s) removido(s) com sucesso!`);
+            toast.success(`${deletedCount} pedido(s) órfão(s) removido(s) com sucesso!`);
         } else {
             toast.dismiss();
-            toast.info("Nenhum item antigo para remover foi encontrado.");
+            toast.info("Nenhum pedido órfão para remover foi encontrado.");
         }
 
     } catch (error) {
@@ -99,6 +100,7 @@ export default function ProfilePage() {
         setIsCleaning(false);
     }
   };
+
 
   if (isUserLoading || !user) {
     return (
