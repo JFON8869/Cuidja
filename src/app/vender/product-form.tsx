@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -192,7 +191,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        addons: [], // Ensure addons is an empty array
+        addons: [], 
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,
@@ -358,7 +357,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Como este produto estará disponível?" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="available">Pronta entrega</SelectItem>
