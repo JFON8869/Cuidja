@@ -15,6 +15,7 @@ import {
   getDoc,
   updateDoc,
   arrayUnion,
+  setDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -39,6 +40,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import BottomNav from '@/components/layout/BottomNav';
 
 const serviceSchema = z.object({
   name: z.string().min(3, 'O nome do serviço é obrigatório.'),
@@ -113,7 +115,6 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
     }
 
     setIsSubmitting(true);
-    let success = false;
     
     try {
       const dataToSave = {
@@ -131,7 +132,8 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         const docRef = doc(firestore, 'products', serviceId);
         await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
       } else {
-        await addDoc(collection(firestore, 'products'), { ...dataToSave, createdAt: serverTimestamp() });
+        const newDocRef = doc(collection(firestore, 'products'));
+        await setDoc(newDocRef, { ...dataToSave, id: newDocRef.id, createdAt: serverTimestamp() });
       }
 
       // Atomically add the "Serviços" category to the store's list of categories
@@ -140,17 +142,15 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
           categories: arrayUnion('Serviços')
       });
       
-      success = true;
+      toast.success(isEditing ? 'Serviço atualizado com sucesso!' : 'Serviço publicado com sucesso!');
+      router.push('/vender/servicos');
+      router.refresh();
 
     } catch (error) {
       console.error('Error saving service:', error);
       toast.error('Não foi possível salvar o serviço. Tente novamente.');
     } finally {
       setIsSubmitting(false);
-       if (success) {
-        toast.success(isEditing ? 'Serviço atualizado com sucesso!' : 'Serviço publicado com sucesso!');
-        router.push('/vender/servicos');
-      }
     }
   }
 
@@ -270,6 +270,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
           </form>
         </Form>
       </main>
+      <BottomNav />
     </div>
   );
 }

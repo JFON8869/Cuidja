@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import BottomNav from '@/components/layout/BottomNav';
 
 const addressSchema = z.object({
   nickname: z.string().min(2, 'O apelido é obrigatório.'),
@@ -146,7 +147,7 @@ export default function AddressesPage() {
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
         <header className="flex items-center border-b p-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/perfil">
@@ -206,6 +207,7 @@ export default function AddressesPage() {
             </div>
           )}
         </main>
+        <BottomNav />
       </div>
       <DialogContent>
         <DialogHeader>

@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
+import BottomNav from '@/components/layout/BottomNav';
 
 
 const productSchema = z.object({
@@ -165,7 +166,6 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
 
     setIsSubmitting(true);
-    let success = false;
 
     try {
         const dataToSave = {
@@ -173,16 +173,17 @@ export function ProductForm({ productId }: ProductFormProps) {
             description: values.description || '',
             price: Number(values.price),
             storeId: store.id,
-            sellerId: uid, 
+            sellerId: uid,
             type: 'PRODUCT' as const,
-            addons: [], 
+            addons: [],
         };
 
         if (isEditing && productId) {
             const docRef = doc(firestore, 'products', productId);
             await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
         } else {
-            await addDoc(collection(firestore, 'products'), { ...dataToSave, createdAt: serverTimestamp() });
+            const newDocRef = doc(collection(firestore, 'products'));
+            await setDoc(newDocRef, { ...dataToSave, id: newDocRef.id, createdAt: serverTimestamp() });
         }
 
         // Atomically add the product's category to the store's list of categories
@@ -191,17 +192,15 @@ export function ProductForm({ productId }: ProductFormProps) {
             categories: arrayUnion(values.category)
         });
 
-        success = true;
+        toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
+        router.push('/vender/produtos');
+        router.refresh();
 
     } catch (error) {
         console.error('Error saving product:', error);
         toast.error('Não foi possível salvar o produto. Tente novamente.');
     } finally {
         setIsSubmitting(false);
-        if (success) {
-            toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
-            router.push('/vender/produtos');
-        }
     }
   }
 
@@ -374,6 +373,7 @@ export function ProductForm({ productId }: ProductFormProps) {
           </form>
         </FormProvider>
       </main>
+      <BottomNav />
     </div>
   );
 }

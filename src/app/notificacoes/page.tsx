@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import React, { useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
+import BottomNav from '@/components/layout/BottomNav';
 
 interface BaseOrder extends WithId<any> {
   id: string;
@@ -132,7 +133,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] shadow-2xl">
+    <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] pb-16 shadow-2xl">
       <header className="flex items-center p-4 border-b">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/home">
@@ -178,6 +179,7 @@ export default function NotificationsPage() {
             )
         )}
       </main>
+      <BottomNav />
     </div>
   );
 }

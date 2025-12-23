@@ -2,10 +2,11 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function FavoritesPage() {
   return (
-    <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] shadow-2xl">
+    <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] pb-16 shadow-2xl">
       <header className="flex items-center p-4 border-b">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/perfil">
@@ -24,6 +25,7 @@ export default function FavoritesPage() {
           <Link href="/home">Começar a procurar</Link>
         </Button>
       </main>
+      <BottomNav />
     </div>
   );
 }
