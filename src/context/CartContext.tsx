@@ -14,19 +14,21 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Helper to get initial cart from localStorage
 const getInitialCart = (): CartItem[] => {
-  if (typeof window !== 'undefined') {
-    const savedCart = localStorage.getItem('cuidja_cart');
-    if (savedCart) {
-      try {
-        return JSON.parse(savedCart);
-      } catch (e) {
-        console.error("Failed to parse cart from localStorage", e);
-        return [];
-      }
-    }
+  // Check if running on the client
+  if (typeof window === 'undefined') {
+    return [];
   }
-  return [];
+  try {
+    const savedCart = localStorage.getItem('cuidja_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  } catch (error) {
+    console.error("Failed to parse cart from localStorage:", error);
+    // If parsing fails, clear the corrupted cart data
+    localStorage.removeItem('cuidja_cart');
+    return [];
+  }
 };
 
 
@@ -34,10 +36,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(getInitialCart);
   const [total, setTotal] = useState(0);
 
+  // Effect to sync cart with localStorage and calculate total
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cuidja_cart', JSON.stringify(cart));
-    }
+    // Persist cart to localStorage
+    localStorage.setItem('cuidja_cart', JSON.stringify(cart));
+    
+    // Calculate new total
     const newTotal = cart.reduce((acc, item) => {
         const addonsTotal = item.selectedAddons?.reduce((addonAcc, addon) => addonAcc + (addon.price * addon.quantity), 0) || 0;
         return acc + (item.price * (item.quantity || 1)) + addonsTotal;
@@ -46,11 +50,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cart]);
 
   const addToCart = (product: Product, selectedAddons: SelectedAddon[] = [], quantity: number = 1) => {
+    // Business rule: only allow items from the same store
     if (cart.length > 0 && cart[0].storeId !== product.storeId) {
-        toast.error('Você só pode adicionar itens da mesma loja ao carrinho.');
+        toast.error('Você só pode adicionar itens da mesma loja ao carrinho. Finalize a compra atual ou esvazie seu carrinho.');
         return;
     }
 
+    // Create a unique ID for the cart item instance
     const cartItemId = `${product.id}-${new Date().getTime()}`;
     
     const newItem: CartItem = { 

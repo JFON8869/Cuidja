@@ -37,6 +37,7 @@ const salesData = [
   { name: 'Jun', sales: 70 },
 ];
 
+// Componente para usuários que ainda não são vendedores
 const WelcomeSellPage = () => (
   <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
      <header className="flex items-center border-b p-4">
@@ -93,62 +94,8 @@ const WelcomeSellPage = () => (
   </div>
 );
 
-export default function SellPage() {
-  const { user, firestore, isUserLoading } = useFirebase();
-  const [store, setStore] = useState<{ id: string } | null>(null);
-  const [isStoreLoading, setStoreLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchStore() {
-      if (!firestore || !user) {
-        if (!isUserLoading) {
-          setStoreLoading(false);
-        }
-        return;
-      }
-      setStoreLoading(true);
-      const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const storeDoc = querySnapshot.docs[0];
-        setStore({ id: storeDoc.id, ...storeDoc.data() } as { id: string });
-      } else {
-        setStore(null);
-      }
-      setStoreLoading(false);
-    }
-    if (!isUserLoading) {
-        fetchStore();
-    }
-  }, [user, firestore, isUserLoading]);
-
-  const isLoading = isStoreLoading || isUserLoading;
-
-  if (isLoading) {
-    return (
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
-        <header className="flex items-center border-b p-4">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="mx-auto h-6 w-40" />
-          <div className="w-10"></div>
-        </header>
-        <main className="flex-1 space-y-6 p-4">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-        </main>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <WelcomeSellPage />;
-  }
-  
-  if (user && !store) {
-     return <WelcomeSellPage />;
-  }
-
-  return (
+// Componente para vendedores com loja criada (Painel)
+const SellerDashboard = () => (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
@@ -250,5 +197,40 @@ export default function SellPage() {
         </Card>
       </main>
     </div>
-  );
+);
+
+
+export default function SellPage() {
+  const { user, firestore, isUserLoading } = useFirebase();
+  const [hasStore, setHasStore] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function fetchStore() {
+      if (!firestore || !user) {
+        setHasStore(false);
+        return;
+      }
+      
+      const storesRef = collection(firestore, 'stores');
+      const q = query(storesRef, where('userId', '==', user.uid), where('name', '!=', ''));
+      const querySnapshot = await getDocs(q);
+      
+      setHasStore(!querySnapshot.empty);
+    }
+
+    if (!isUserLoading) {
+      fetchStore();
+    }
+  }, [user, firestore, isUserLoading]);
+
+  // Loading state
+  if (isUserLoading || hasStore === null) {
+    return (
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return hasStore ? <SellerDashboard /> : <WelcomeSellPage />;
 }
