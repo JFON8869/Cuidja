@@ -1,3 +1,4 @@
+
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
@@ -30,9 +31,10 @@ interface Message {
 
 interface Address {
     name: string;
-    address: string;
+    street: string;
     city: string;
     zip: string;
+    number: string;
 }
 
 interface OrderItem {
@@ -247,7 +249,7 @@ export default function OrderDetailPage() {
                             {order.phone}
                         </p>
                     )}
-                    <p className="pt-2">{order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.zip}</p>
+                    <p className="pt-2">{order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.zip}</p>
                 </CardContent>
             </Card>
         )}
@@ -322,3 +324,5 @@ const OrderDetailSkeleton = () => (
       </footer>
     </div>
 )
+
+    

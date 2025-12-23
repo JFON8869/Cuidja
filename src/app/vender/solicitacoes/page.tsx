@@ -22,12 +22,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-interface ServiceRequest {
+interface Order {
   id: string;
-  requestDate: string;
-  serviceName: string;
+  orderDate: string;
+  items: { name: string }[];
   status: string;
-  providerHasUnread?: boolean;
+  sellerHasUnread?: boolean;
 }
 
 export default function ServiceRequestsPage() {
@@ -36,13 +36,14 @@ export default function ServiceRequestsPage() {
   const requestsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
-      collection(firestore, 'serviceRequests'),
-      where('providerId', '==', user.uid),
-      orderBy('requestDate', 'desc')
+      collection(firestore, 'orders'),
+      where('sellerId', '==', user.uid),
+      where('status', '==', 'Solicitação de Contato'),
+      orderBy('orderDate', 'desc')
     );
   }, [firestore, user]);
 
-  const { data: requests, isLoading } = useCollection<WithId<ServiceRequest>>(
+  const { data: requests, isLoading } = useCollection<WithId<Order>>(
     requestsQuery
   );
 
@@ -92,23 +93,23 @@ export default function ServiceRequestsPage() {
         ) : requests && requests.length > 0 ? (
           <div className="space-y-4 p-4">
             {requests.map((request) => (
-              <Link key={request.id} href={`/vender/solicitacoes/${request.id}`} passHref>
+              <Link key={request.id} href={`/pedidos/${request.id}`} passHref>
                 <Card className="cursor-pointer transition-colors hover:bg-muted/50">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-lg">
-                          {request.serviceName}
+                          {request.items[0]?.name}
                         </CardTitle>
                         <CardDescription>
                           {format(
-                            new Date(request.requestDate),
+                            new Date(request.orderDate),
                             "dd 'de' MMMM 'de' yyyy, 'às' HH:mm",
                             { locale: ptBR }
                           )}
                         </CardDescription>
                       </div>
-                      {request.providerHasUnread && (
+                      {request.sellerHasUnread && (
                         <div className="relative">
                           <Bell className="h-5 w-5 text-accent" />
                           <span className="absolute -right-1 -top-1 flex h-3 w-3">
@@ -147,3 +148,5 @@ export default function ServiceRequestsPage() {
     </div>
   );
 }
+
+    

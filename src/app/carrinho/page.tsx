@@ -11,6 +11,11 @@ import { Separator } from '@/components/ui/separator';
 export default function CartPage() {
   const { cart, removeFromCart, total } = useCart();
 
+  const calculateItemTotal = (item: any) => {
+    const addonsTotal = item.selectedAddons?.reduce((acc: any, addon: any) => acc + (addon.price * addon.quantity), 0) || 0;
+    return (item.price * item.quantity) + addonsTotal;
+  }
+
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
@@ -57,7 +62,7 @@ export default function CartPage() {
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
-                    }).format(item.price)}
+                    }).format(calculateItemTotal(item))}
                   </p>
                 </div>
                 <Button
@@ -92,3 +97,5 @@ export default function CartPage() {
     </div>
   );
 }
+
+    

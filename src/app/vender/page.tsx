@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -177,17 +178,11 @@ export default function SellPage() {
         </Button>
       </header>
       <main className="flex-1 space-y-6 overflow-y-auto p-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Button size="lg" asChild>
             <Link href={'/vender/novo-produto'}>
               <PlusCircle className="mr-2" />
-              Anunciar Produto
-            </Link>
-          </Button>
-           <Button size="lg" asChild variant="secondary">
-            <Link href={'/vender/novo-servico'}>
-              <PlusCircle className="mr-2" />
-              Anunciar Serviço
+              Anunciar Novo Item
             </Link>
           </Button>
         </div>
@@ -303,3 +298,5 @@ export default function SellPage() {
     </div>
   );
 }
+
+    

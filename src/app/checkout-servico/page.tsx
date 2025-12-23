@@ -329,9 +329,11 @@ export default function ServiceCheckoutPage() {
           onClick={form.handleSubmit(onSubmit)}
           disabled={form.formState.isSubmitting || isLoading}
         >
-          {form.formState.isSubmitting ? 'Enviando...' : 'Confirmar Contato e Abrir Chat'}
+          {form.formState.isSubmitting ? 'Enviando...' : 'Confirmar Contato'}
         </Button>
       </footer>
     </div>
   );
 }
+
+    

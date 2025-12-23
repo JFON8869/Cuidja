@@ -47,8 +47,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Recalculate total whenever the cart changes
     const newTotal = cart.reduce((acc, item) => {
-        // The item.price already includes the base price and the addon prices.
-        return acc + item.price;
+        const addonsTotal = item.selectedAddons?.reduce((addonAcc, addon) => addonAcc + (addon.price * addon.quantity), 0) || 0;
+        return acc + (item.price * item.quantity!) + addonsTotal;
     }, 0);
     setTotal(newTotal);
   }, [cart]);
@@ -62,13 +62,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const cartItemId = `${product.id}-${new Date().getTime()}`;
     
-    // Calculate total price for this specific item including its addons
-    const addonsTotal = selectedAddons.reduce((acc, addon) => acc + (addon.price * addon.quantity), 0);
-    const itemPriceWithAddons = product.price + addonsTotal;
-
     const newItem: CartItem = { 
         ...product,
-        price: itemPriceWithAddons, // The price now includes the addons for this specific cart instance
         cartItemId,
         selectedAddons,
         quantity, // Add quantity to the cart item
@@ -99,3 +94,5 @@ export function useCart() {
   }
   return context;
 }
+
+    

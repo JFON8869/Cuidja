@@ -12,10 +12,15 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+    
+    // Validates that the customerId on a new document matches the creator's UID.
+    function isCreatingOwn(fieldName) {
+        return isSignedIn() && request.resource.data[fieldName] == request.auth.uid;
+    }
 
-    // Checks for ownership on an existing document. Used for update/delete.
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    // Validates that the sellerId on a new resource (product/service) matches the creator's UID.
+    function isCreatingOwnResource() {
+        return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
     }
 
     // Checks if the requesting user is the owner of a document via a denormalized field.
@@ -28,16 +33,6 @@ service cloud.firestore {
       return isSignedIn() && resource != null && request.auth.uid == doc.sellerId;
     }
     
-    // Validates that the customerId/requesterId on a new document matches the creator's UID.
-    function isCreatingOwn(fieldName) {
-        return isSignedIn() && request.resource.data[fieldName] == request.auth.uid;
-    }
-
-    // Validates that the sellerId on a new resource (product/service) matches the creator's UID.
-    function isCreatingOwnResource() {
-        return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
-    }
-    
     match /users/{userId} {
       allow get, update, delete: if isOwner(userId);
       allow list: if false; 
@@ -46,7 +41,7 @@ service cloud.firestore {
 
     match /stores/{storeId} {
         allow get, list: if true;
-        allow create: if isOwner(request.resource.data.userId);
+        allow create: if isCreatingOwn('userId');
         allow update, delete: if isOwner(resource.data.userId);
     }
     
@@ -62,10 +57,6 @@ service cloud.firestore {
       }
 
       function isOrderSeller() {
-        // Ensure the storeId exists on the order before trying to access it.
-        if (!('storeId' in resource.data)) {
-          return false;
-        }
         let storeData = get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data;
         return isOwner(storeData.userId);
       }
@@ -76,12 +67,18 @@ service cloud.firestore {
 
       // Allow buyer to only update their 'buyerHasUnread' status or send messages
       function isBuyerUpdating() {
-        return isOrderCustomer() && request.resource.data.keys().hasAny(['buyerHasUnread', 'messages', 'lastMessageTimestamp', 'sellerHasUnread']);
+        let onlyAllowedFields = request.resource.data.keys().removeAll(['buyerHasUnread', 'messages', 'lastMessageTimestamp', 'sellerHasUnread']);
+        return isOrderCustomer() 
+            && request.resource.data.customerId == resource.data.customerId // Can't change customerId
+            && onlyAllowedFields.size() == 0;
       }
       
       // Allow seller to update status, their 'sellerHasUnread' status, or send messages
       function isSellerUpdating() {
-        return isOrderSeller() && request.resource.data.keys().hasAny(['status', 'sellerHasUnread', 'messages', 'lastMessageTimestamp', 'buyerHasUnread']);
+        let onlyAllowedFields = request.resource.data.keys().removeAll(['status', 'sellerHasUnread', 'messages', 'lastMessageTimestamp', 'buyerHasUnread']);
+        return isOrderSeller() 
+            && request.resource.data.customerId == resource.data.customerId // Can't change customerId
+            && onlyAllowedFields.size() == 0;
       }
 
       allow get, list: if isOrderParticipant();
@@ -93,3 +90,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

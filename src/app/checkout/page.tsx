@@ -124,21 +124,22 @@ export default function CheckoutPage() {
         const orderData = {
             customerId: user.uid,
             storeId: storeId,
-            items: cart.map(item => {
-                const { selectedAddons, ...restOfItem } = item;
-                return { 
-                    ...restOfItem, // Spread the rest of the item properties
-                    selectedAddons: selectedAddons || []
-                };
-            }),
+            items: cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                selectedAddons: item.selectedAddons || []
+            })),
             totalAmount: total,
             status: 'Aguardando Pagamento', // Initial status
             orderDate: new Date().toISOString(),
             shippingAddress: {
                 name: values.name,
-                address: values.address,
+                street: values.address,
                 city: values.city,
                 zip: values.zip,
+                number: '', // address field now has street and number
             },
             phone: values.phone,
             paymentMethod: values.paymentMethod,
@@ -146,6 +147,7 @@ export default function CheckoutPage() {
             // For seller notification system
             sellerHasUnread: true,
             buyerHasUnread: false,
+            messages: []
         };
         
         const docRef = await addDoc(ordersCollection, orderData);
@@ -159,6 +161,11 @@ export default function CheckoutPage() {
         console.error("Error placing order: ", error);
         toast.error('Não foi possível finalizar seu pedido. Tente novamente.');
     }
+  }
+
+  const calculateItemTotal = (item: any) => {
+    const addonsTotal = item.selectedAddons?.reduce((acc: any, addon: any) => acc + (addon.price * addon.quantity), 0) || 0;
+    return (item.price * item.quantity) + addonsTotal;
   }
   
   if (cart.length === 0) {
@@ -298,7 +305,7 @@ export default function CheckoutPage() {
                     {cart.map(item => (
                         <div key={item.cartItemId} className="flex justify-between items-start text-sm">
                             <div className="flex-1 pr-4">
-                                <p className="font-semibold line-clamp-1">{item.name}</p>
+                                <p className="font-semibold line-clamp-1">{item.quantity}x {item.name}</p>
                                 {item.selectedAddons && item.selectedAddons.length > 0 && (
                                     <ul className="text-xs text-muted-foreground mt-1">
                                         {item.selectedAddons.map(addon => (
@@ -308,7 +315,7 @@ export default function CheckoutPage() {
                                 )}
                             </div>
                             <span className="text-muted-foreground">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price + (item.selectedAddons?.reduce((acc, a) => acc + (a.price * a.quantity), 0) || 0) )}
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateItemTotal(item))}
                             </span>
                         </div>
                     ))}
@@ -384,3 +391,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
