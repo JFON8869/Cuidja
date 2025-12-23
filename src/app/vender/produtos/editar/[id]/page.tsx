@@ -177,18 +177,24 @@ export default function EditProductPage() {
     try {
         toast.loading('Verificando e enviando imagens...');
         
-        const uploadPromises: Promise<ImagePlaceholder>[] = values.images.map(async (img) => {
-          if (img instanceof File) {
-            const imageUrl = await uploadFile(img, `products/${id}`);
-            return {
-              imageUrl: imageUrl,
-              imageHint: values.category.toLowerCase(),
-            };
+        const uploadPromises = values.images.map((imageOrFile) => {
+          if (imageOrFile instanceof File) {
+            return uploadFile(imageOrFile, `products/${id as string}`);
           }
-          return img as ImagePlaceholder;
+          // If it's already an object with imageUrl, it's an existing image.
+          return Promise.resolve(imageOrFile.imageUrl);
         });
 
-        const finalImages = await Promise.all(uploadPromises);
+        const imageUrls = await Promise.all(uploadPromises);
+
+        const finalImages: ImagePlaceholder[] = imageUrls.map(url => {
+          // Find original hint if it exists, otherwise create a new one
+          const originalImage = values.images.find(img => !(img instanceof File) && img.imageUrl === url);
+          return {
+            imageUrl: url,
+            imageHint: originalImage?.imageHint || values.category.toLowerCase(),
+          };
+        });
 
         const finalAddonGroups = isService ? [] : values.addonGroups?.map(group => ({
             ...group,
@@ -205,31 +211,25 @@ export default function EditProductPage() {
             availability: values.availability,
         };
 
-        updateDoc(productRef, updateData)
-            .then(() => {
-                toast.dismiss();
-                toast.success(`O item "${values.name}" foi atualizado com sucesso.`);
-                router.push(isService ? '/vender/servicos' : '/vender/produtos');
-                router.refresh();
-            })
-            .catch((error) => {
-                toast.dismiss();
-                console.error('Error updating product: ', error);
+        await updateDoc(productRef, updateData)
 
-                const permissionError = new FirestorePermissionError({
-                  path: productRef.path,
-                  operation: 'update',
-                  requestResourceData: updateData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-
-                toast.error('Não foi possível salvar as alterações. Verifique suas permissões.');
-            });
+        toast.dismiss();
+        toast.success(`O item "${values.name}" foi atualizado com sucesso.`);
+        router.push(isService ? '/vender/servicos' : '/vender/produtos');
+        router.refresh();
 
     } catch (error) {
-        console.error('Error during image upload or data preparation: ', error);
         toast.dismiss();
-        toast.error('Não foi possível salvar as alterações. Tente novamente.');
+        console.error('Error during image upload or data preparation: ', error);
+        
+        const permissionError = new FirestorePermissionError({
+          path: productRef.path,
+          operation: 'update',
+          requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        
+        toast.error('Não foi possível salvar as alterações. Verifique suas permissões e tente novamente.');
     }
   }
 

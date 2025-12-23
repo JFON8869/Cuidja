@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -31,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockCategories } from '@/lib/data';
+import { mockCategories, ImagePlaceholder } from '@/lib/data';
 import { useFirebase } from '@/firebase';
 import { Loader2 as PageLoader } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -178,13 +177,17 @@ export default function NewProductPage() {
       
       toast.loading('Publicando anúncio...');
 
-      const imageUrls = await Promise.all(
-        values.images.map((file: File) => 
-          uploadFile(file, `products/${storeId}`)
-        )
-      );
+      const uploadPromises = values.images.map((imageOrFile) => {
+        if (imageOrFile instanceof File) {
+          return uploadFile(imageOrFile, `products/${storeId}`);
+        }
+        // If it's already an object with imageUrl, it's an existing image.
+        return Promise.resolve(imageOrFile.imageUrl);
+      });
+      
+      const imageUrls = await Promise.all(uploadPromises);
 
-      const finalImageObjects = imageUrls.map(url => ({
+      const finalImageObjects: ImagePlaceholder[] = imageUrls.map(url => ({
         imageUrl: url,
         imageHint: values.category.toLowerCase(),
       }));
@@ -318,6 +321,24 @@ export default function NewProductPage() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição Detalhada</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={"Descreva os detalhes do seu produto..."}
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}
@@ -361,24 +382,6 @@ export default function NewProductPage() {
                         ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição Detalhada</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={"Descreva os detalhes do seu produto..."}
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
