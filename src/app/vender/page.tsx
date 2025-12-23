@@ -20,27 +20,32 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Store } from '@/lib/data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CreateStorePrompt } from '@/components/vender/CreateStorePrompt';
 
 export default function VenderPage() {
   const { user, isUserLoading, store, isStoreLoading } = useFirebase();
   const router = useRouter();
 
+  // Show a loading spinner while user and store data are being fetched.
+  // This is crucial to prevent premature redirection.
   if (isUserLoading || isStoreLoading) {
     return <VenderSkeleton />;
   }
 
+  // After loading, if the user is not authenticated, redirect to login.
   if (!user) {
     router.push('/login?redirect=/vender');
+    // Return a skeleton here as well to prevent rendering anything before redirection completes.
     return <VenderSkeleton />;
   }
 
+  // After loading and confirming user is authenticated, if no store exists, redirect to create one.
   if (!store) {
-    // This is the "Activate Seller Account" screen, which is the create store form.
     router.push('/vender/loja');
+    // Return a skeleton to prevent any flash of content.
     return <VenderSkeleton />;
   }
 
+  // If user and store exist, render the main dashboard.
   return <SellerDashboard store={store} />;
 }
 
@@ -48,7 +53,7 @@ function VenderSkeleton() {
     return (
         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
             <header className="p-4 border-b">
-                <Skeleton className="h-7 w-32" />
+                <h1 className="font-headline text-xl">Painel do Vendedor</h1>
             </header>
             <main className="flex-1 p-4 space-y-6">
                 <div className="flex h-full items-center justify-center">
