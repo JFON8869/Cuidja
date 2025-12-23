@@ -50,19 +50,6 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
-import { AddonGroupForm } from './AddonGroupForm';
-
-const addonSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
-  price: z.coerce.number().min(0, 'Preço deve ser positivo'),
-});
-
-const addonGroupSchema = z.object({
-  id: z.string().optional(),
-  title: z.string().min(1, 'Título é obrigatório'),
-  type: z.enum(['single', 'multiple']),
-  addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento'),
-});
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
@@ -70,8 +57,6 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
   availability: z.enum(['available', 'on_demand', 'unavailable']),
-  images: z.any().array().optional(),
-  addonGroups: z.array(addonGroupSchema).optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -97,8 +82,6 @@ export function ProductForm({ productId }: ProductFormProps) {
       description: '',
       price: 0,
       availability: 'available',
-      images: [],
-      addonGroups: [],
     },
   });
 
@@ -122,8 +105,6 @@ export function ProductForm({ productId }: ProductFormProps) {
             const productData = docSnap.data() as Product;
             form.reset({
               ...productData,
-              addonGroups: productData.addonGroups || [],
-              images: productData.images || [],
             });
           } else {
             toast.error('Produto não encontrado.');
@@ -190,8 +171,6 @@ export function ProductForm({ productId }: ProductFormProps) {
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        images: [],
-        addonGroups: values.addonGroups || [],
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,
@@ -371,8 +350,6 @@ export function ProductForm({ productId }: ProductFormProps) {
               )}
             />
 
-            <Separator />
-            <AddonGroupForm />
             <Separator />
 
             <Button
