@@ -49,35 +49,47 @@ export default function NotificationsPage() {
     }
     setIsLoading(true);
     try {
-        // Fetch stores owned by the user to identify seller-side notifications
-        const storesRef = collection(firestore, 'stores');
-        const storeQuery = query(storesRef, where('userId', '==', user.uid));
-        const storeSnapshot = await getDocs(storeQuery);
-        const ownedStoreIds = storeSnapshot.docs.map(doc => doc.id);
-
         const ordersRef = collection(firestore, 'orders');
         const buyerNotifications: Notification[] = [];
         const sellerNotifications: Notification[] = [];
 
         // 1. Get notifications where the user is the buyer
-        const buyerQuery = query(ordersRef, where('customerId', '==', user.uid), where('buyerHasUnread', '==', true), orderBy('orderDate', 'desc'));
+        const buyerQuery = query(ordersRef, where('customerId', '==', user.uid), where('buyerHasUnread', '==', true));
         const buyerSnapshot = await getDocs(buyerQuery);
         buyerSnapshot.forEach(doc => {
             buyerNotifications.push({ id: doc.id, ...doc.data() } as Notification);
         });
 
         // 2. Get notifications where the user is the seller
+        const storesRef = collection(firestore, 'stores');
+        const storeQuery = query(storesRef, where('userId', '==', user.uid));
+        const storeSnapshot = await getDocs(storeQuery);
+        const ownedStoreIds = storeSnapshot.docs.map(doc => doc.id);
+
         if (ownedStoreIds.length > 0) {
-            const sellerQuery = query(ordersRef, where('storeId', 'in', ownedStoreIds), where('sellerHasUnread', '==', true), orderBy('orderDate', 'desc'));
-            const sellerSnapshot = await getDocs(sellerQuery);
-            sellerSnapshot.forEach(doc => {
-                sellerNotifications.push({ id: doc.id, ...doc.data() } as Notification);
-            });
+            // Firestore 'in' queries are limited to 30 items per query.
+            // Chunk the ownedStoreIds array if it's larger than 30.
+            const storeIdChunks: string[][] = [];
+            for (let i = 0; i < ownedStoreIds.length; i += 30) {
+                storeIdChunks.push(ownedStoreIds.slice(i, i + 30));
+            }
+
+            for (const chunk of storeIdChunks) {
+                 const sellerQuery = query(ordersRef, where('storeId', 'in', chunk), where('sellerHasUnread', '==', true));
+                 const sellerSnapshot = await getDocs(sellerQuery);
+                 sellerSnapshot.forEach(doc => {
+                    sellerNotifications.push({ id: doc.id, ...doc.data() } as Notification);
+                 });
+            }
         }
         
         // 3. Combine and sort all notifications
         const allNotifications = [...buyerNotifications, ...sellerNotifications];
-        allNotifications.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+        allNotifications.sort((a, b) => {
+            const dateA = new Date(a.orderDate).getTime();
+            const dateB = new Date(b.orderDate).getTime();
+            return dateB - dateA;
+        });
 
         setNotifications(allNotifications);
 
