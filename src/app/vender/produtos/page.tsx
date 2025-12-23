@@ -29,7 +29,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
 
@@ -40,9 +39,10 @@ interface Product extends WithId<any> {
 }
 
 export default function MyProductsPage() {
-  const router = useRouter();
   const { user, firestore, isUserLoading } = useFirebase();
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isAlertOpen, setIsAlertOpen] = React.useState(false);
+  const [productToDelete, setProductToDelete] = React.useState<{id: string, name: string} | null>(null);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -55,18 +55,20 @@ export default function MyProductsPage() {
   const { data: myProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
   const isLoading = isUserLoading || areProductsLoading;
 
-  const handleDelete = async (productId: string, productName: string) => {
-    if (!firestore) return;
+  const handleDelete = async () => {
+    if (!firestore || !productToDelete) return;
+    
     setIsDeleting(true);
     try {
-        await deleteDoc(doc(firestore, "products", productId));
-        toast.success(`O produto "${productName}" foi removido.`);
-        // No redirect needed, useCollection will update the UI automatically.
+        await deleteDoc(doc(firestore, "products", productToDelete.id));
+        toast.success(`O produto "${productToDelete.name}" foi removido.`);
     } catch(error) {
         console.error("Error deleting product: ", error);
         toast.error(`Não foi possível remover o produto. Tente novamente.`);
     } finally {
         setIsDeleting(false);
+        setIsAlertOpen(false);
+        setProductToDelete(null);
     }
   }
   
@@ -125,7 +127,6 @@ export default function MyProductsPage() {
                   {/* Placeholder for stock */}
                   <p className="text-xs text-muted-foreground">Estoque: --</p>
                 </div>
-                <AlertDialog>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
@@ -139,34 +140,18 @@ export default function MyProductsPage() {
                           Editar
                         </Link>
                       </DropdownMenuItem>
-                       <AlertDialogTrigger asChild>
-                          <DropdownMenuItem className="text-destructive">
+                       <DropdownMenuItem 
+                        className="text-destructive"
+                        onSelect={() => {
+                            setProductToDelete({ id: product.id, name: product.name });
+                            setIsAlertOpen(true);
+                        }}
+                       >
                             <Trash className="mr-2 h-4 w-4" />
                             Excluir
-                          </DropdownMenuItem>
-                      </AlertDialogTrigger>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                   <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Essa ação não pode ser desfeita. Isso excluirá permanentemente o produto "{product.name}".
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        disabled={isDeleting}
-                        onClick={() => handleDelete(product.id, product.name)}
-                        className="bg-destructive hover:bg-destructive/90"
-                      >
-                         {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                         Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </CardContent>
             </Card>
           ))
@@ -185,6 +170,27 @@ export default function MyProductsPage() {
           </div>
         )}
       </main>
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+            Essa ação não pode ser desfeita. Isso excluirá permanentemente o produto "{productToDelete?.name}".
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting} onClick={() => setProductToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+            disabled={isDeleting}
+            onClick={handleDelete}
+            className="bg-destructive hover:bg-destructive/90"
+            >
+            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Excluir
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
