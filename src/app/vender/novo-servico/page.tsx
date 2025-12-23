@@ -152,7 +152,7 @@ export default function NewServicePage() {
       
       toast.dismiss();
       toast.success(`O serviço "${values.name}" foi publicado com sucesso.`);
-      router.push('/vender/servicos');
+      router.push('/vender');
 
     } catch (error) {
       console.error('Error creating service:', error);

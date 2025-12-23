@@ -197,7 +197,7 @@ export default function NewProductPage() {
       
       toast.dismiss();
       toast.success(`O produto "${values.name}" foi publicado com sucesso.`);
-      router.push('/vender/produtos');
+      router.push('/vender');
 
     } catch (error) {
       console.error('Error creating product:', error);

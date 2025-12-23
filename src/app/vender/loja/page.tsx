@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -149,7 +150,6 @@ export default function StoreManagementPage() {
             toast.success('Sua loja foi criada! Agora você pode começar a anunciar.');
         }
         router.push('/vender');
-        router.refresh(); 
 
     } catch (error) {
         console.error('Error saving store:', error);
