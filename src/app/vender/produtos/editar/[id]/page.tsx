@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockCategories } from '@/lib/data';
+import { mockCategories, ImagePlaceholder } from '@/lib/data';
 import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -51,6 +51,11 @@ const addonGroupSchema = z.object({
   addons: z.array(addonSchema).min(1, 'Adicione pelo menos um complemento.'),
 });
 
+const imageSchema = z.object({
+  imageUrl: z.string(),
+  imageHint: z.string(),
+});
+
 const productSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
   description: z
@@ -61,7 +66,7 @@ const productSchema = z.object({
     .string({ required_error: 'Selecione uma categoria.' })
     .min(1, 'Selecione uma categoria.'),
   images: z
-    .array(z.any())
+    .array(z.union([imageSchema, z.any()])) // Allow File objects or our image schema
     .min(1, 'Pelo menos uma imagem é obrigatória.')
     .max(MAX_IMAGES, `Você pode enviar no máximo ${MAX_IMAGES} imagens.`),
   addonGroups: z.array(addonGroupSchema).optional(),
@@ -89,7 +94,7 @@ export default function EditProductPage() {
     },
   });
   
-  const { fields: addonGroups, append: appendAddonGroup, remove: removeAddonGroup, replace: replaceAddonGroups } = useFieldArray({
+  const { fields: addonGroups, append: appendAddonGroup, remove: removeAddonGroup } = useFieldArray({
     control: form.control,
     name: "addonGroups",
   });
@@ -113,12 +118,12 @@ export default function EditProductPage() {
             description: product.description || '',
             price: product.price,
             category: product.category,
-            images: product.images, // assuming images are stored with URLs
+            images: product.images || [], // Load existing images
             addonGroups: product.addons || []
           });
           setProductName(product.name);
           setImagePreviews(
-            product.images.map((img: { imageUrl: string }) => img.imageUrl)
+            product.images?.map((img: ImagePlaceholder) => img.imageUrl) || []
           );
         } else {
           toast.error('Produto não encontrado');
@@ -126,7 +131,7 @@ export default function EditProductPage() {
         }
       })
       .finally(() => setIsLoading(false));
-  }, [id, firestore, user, form, router, toast]);
+  }, [id, firestore, user, form, router]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -139,13 +144,10 @@ export default function EditProductPage() {
       return;
     }
 
-    // Apenas para preview, os arquivos reais seriam tratados no upload
-    const newImagePreviews = files.map((file) => URL.createObjectURL(file));
+    const newImageFiles = [...currentImages, ...files];
+    form.setValue('images', newImageFiles, { shouldValidate: true });
 
-    // Armazena os arquivos para o RHF e os previews para a UI
-    form.setValue('images', [...currentImages, ...files], {
-      shouldValidate: true,
-    });
+    const newImagePreviews = files.map((file) => URL.createObjectURL(file));
     setImagePreviews((prev) => [...prev, ...newImagePreviews]);
   };
 
@@ -162,17 +164,28 @@ export default function EditProductPage() {
 
   async function onSubmit(values: z.infer<typeof productSchema>) {
     if (!firestore || !id) return;
-
-    // TODO: Implement image upload logic.
-    // This requires uploading new files and keeping old URLs.
-    // For now, we'll just update the text fields.
+    
     const productRef = doc(firestore, 'products', id as string);
     
-     // Clean up addon group data
+    // This is a placeholder for real file upload.
+    // In a real app, you would upload the File objects and get back URLs.
+    const newImageUrls = values.images.map(img => {
+      if (typeof img.imageUrl === 'string') {
+        // This is an existing image from Firestore
+        return img;
+      }
+      // This is a new File object, use its preview URL as a placeholder
+      // In a real app, this `img` would be uploaded and you'd get a URL.
+      return {
+        imageUrl: URL.createObjectURL(img),
+        imageHint: values.category.toLowerCase(),
+      };
+    });
+
     const finalAddonGroups = values.addonGroups?.map(group => ({
         ...group,
         id: group.id || group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
-    }))
+    }));
 
     try {
       await updateDoc(productRef, {
@@ -181,11 +194,10 @@ export default function EditProductPage() {
         price: values.price,
         category: values.category,
         addons: finalAddonGroups || [],
-        // images: newImageUrls // This would be the new array of image URLs after upload
+        images: newImageUrls, // Update with the combined list of old and new images
       });
 
       toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
-
       router.push('/vender/produtos');
     } catch (error) {
       console.error('Error updating product: ', error);
