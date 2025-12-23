@@ -183,21 +183,20 @@ export function ProductForm({ productId }: ProductFormProps) {
 
     setIsSubmitting(true);
     let success = false;
-    
-    try {
-      const dataToSave = {
+
+    const dataToSave = {
         name: values.name,
         description: values.description || '',
         price: Number(values.price),
         category: values.category,
         availability: values.availability,
-        addons: [], 
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,
         createdAt: serverTimestamp(),
       };
-
+    
+    try {
       if (isEditing && productId) {
         const docRef = doc(firestore, 'products', productId);
         await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
@@ -212,12 +211,12 @@ export function ProductForm({ productId }: ProductFormProps) {
       console.error('Error saving product:', error);
       toast.error('Não foi possível salvar o produto. Tente novamente.');
     } finally {
-      setIsSubmitting(false);
       if (success) {
         toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
         router.push('/vender/produtos');
         router.refresh();
       }
+      setIsSubmitting(false);
     }
   }
 
@@ -357,7 +356,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Como este produto estará disponível?" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="available">Pronta entrega</SelectItem>
