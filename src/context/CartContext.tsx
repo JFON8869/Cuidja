@@ -3,10 +3,11 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, SelectedAddon, Product } from '@/lib/data';
+import {toast} from 'react-hot-toast';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, selectedAddons?: SelectedAddon[]) => void;
+  addToCart: (product: Product, selectedAddons?: SelectedAddon[], quantity?: number) => void;
   removeFromCart: (cartItemId: string) => void;
   clearCart: () => void;
   total: number;
@@ -19,26 +20,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
+    // Recalculate total whenever the cart changes
     const newTotal = cart.reduce((acc, item) => {
-        const addonsTotal = item.selectedAddons?.reduce((addonAcc, addon) => addonAcc + (addon.price * addon.quantity), 0) || 0;
-        // The base price of the item itself is not recounted here, it's part of the item price already.
-        return acc + item.price + addonsTotal;
+        // The item.price already includes the base price and the addon prices.
+        return acc + item.price;
     }, 0);
     setTotal(newTotal);
   }, [cart]);
 
-  const addToCart = (product: Product, selectedAddons: SelectedAddon[] = []) => {
+  const addToCart = (product: Product, selectedAddons: SelectedAddon[] = [], quantity: number = 1) => {
+    // Check if the cart already contains items from a different store
+    if (cart.length > 0 && cart[0].storeId !== product.storeId) {
+        toast.error('Você só pode adicionar itens da mesma loja ao carrinho.');
+        return;
+    }
+
     const cartItemId = `${product.id}-${new Date().getTime()}`;
     
     // Calculate total price for this specific item including its addons
     const addonsTotal = selectedAddons.reduce((acc, addon) => acc + (addon.price * addon.quantity), 0);
-    const itemTotal = product.price + addonsTotal;
+    const itemPriceWithAddons = product.price + addonsTotal;
 
     const newItem: CartItem = { 
         ...product,
-        price: itemTotal, // The price now includes the addons for this specific cart instance
+        price: itemPriceWithAddons, // The price now includes the addons for this specific cart instance
         cartItemId,
-        selectedAddons 
+        selectedAddons,
+        quantity, // Add quantity to the cart item
     };
 
     setCart((prevCart) => [...prevCart, newItem]);

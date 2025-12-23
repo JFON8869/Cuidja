@@ -1,23 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Frown, Loader2 } from 'lucide-react';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, where } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Product } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase/firestore/use-collection';
+import { getDocsFromCache, Query } from 'firebase/firestore';
 
 type ProductWithId = WithId<Product>;
+
+async function getDocuments<T>(q: Query<T>) {
+  try {
+    const snapshot = await getDocs(q);
+    return snapshot.docs;
+  } catch (e) {
+    console.error(`Failed to get docs for query:`, e);
+    return [];
+  }
+}
 
 export default function MaisVendidosPage() {
   const { firestore } = useFirebase();
   const [mostSoldProducts, setMostSoldProducts] = useState<ProductWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const productsRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'products') : null),
+    [firestore]
+  );
 
   useEffect(() => {
     async function fetchMostSold() {
@@ -28,7 +44,6 @@ export default function MaisVendidosPage() {
       setIsLoading(true);
 
       try {
-        // 1. Fetch all orders
         const ordersQuery = query(collection(firestore, 'orders'));
         const ordersSnapshot = await getDocs(ordersQuery);
 
@@ -38,47 +53,43 @@ export default function MaisVendidosPage() {
           return;
         }
 
-        // 2. Count product occurrences
         const productCounts = new Map<string, number>();
         ordersSnapshot.forEach((orderDoc) => {
           const items = orderDoc.data().items as any[];
           items.forEach((item) => {
             const productId = item.id;
-            productCounts.set(productId, (productCounts.get(productId) || 0) + 1);
+            productCounts.set(productId, (productCounts.get(productId) || 0) + item.quantity);
           });
         });
 
         if (productCounts.size === 0) {
+          setMostSoldProducts([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const sortedProductIds = [...productCounts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map((entry) => entry[0]);
+
+        if (sortedProductIds.length === 0) {
             setMostSoldProducts([]);
             setIsLoading(false);
             return;
         }
 
-        // 3. Sort products by count
-        const sortedProductIds = [...productCounts.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .map((entry) => entry[0]);
+        // Fetch all products at once for better performance
+        const productsQuery = query(collection(firestore, 'products'));
+        const productsSnapshot = await getDocs(productsQuery);
+        const allProducts = new Map(productsSnapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as ProductWithId]));
 
-        // 4. Fetch product documents for the sorted IDs
-        const productPromises = sortedProductIds.map(id => 
-            getDocs(query(collection(firestore, 'products'), where('__name__', '==', id)))
-        );
-        const productSnapshots = await Promise.all(productPromises);
-        
-        const products: ProductWithId[] = productSnapshots
-            .flat()
-            .map(snap => {
-                if (!snap.docs[0]) return null;
-                const doc = snap.docs[0];
-                return { id: doc.id, ...doc.data() } as ProductWithId;
-            })
-            .filter((p): p is ProductWithId => p !== null);
+        const sortedProducts = sortedProductIds
+          .map(id => allProducts.get(id))
+          .filter((p): p is ProductWithId => p !== undefined);
 
-        setMostSoldProducts(products);
-
+        setMostSoldProducts(sortedProducts);
       } catch (error) {
         console.error('Failed to fetch most sold products:', error);
-        // This might fail due to permissions, but we'll show an empty state if so.
         setMostSoldProducts([]);
       } finally {
         setIsLoading(false);
@@ -92,9 +103,9 @@ export default function MaisVendidosPage() {
     <div className="grid grid-cols-2 gap-4">
       {[...Array(6)].map((_, i) => (
         <div key={i} className="space-y-2">
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-6 w-1/2" />
+          <Skeleton className="h-32 w-full rounded-lg" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-6 w-1/2" />
         </div>
       ))}
     </div>
@@ -108,7 +119,9 @@ export default function MaisVendidosPage() {
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="mx-auto font-headline text-xl">Produtos Mais Vendidos</h1>
+        <h1 className="mx-auto font-headline text-xl">
+          Produtos Mais Vendidos
+        </h1>
         <div className="w-10"></div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
@@ -125,7 +138,8 @@ export default function MaisVendidosPage() {
             <Frown className="mb-4 h-16 w-16 text-muted-foreground" />
             <h2 className="text-2xl font-bold">Nenhum produto encontrado</h2>
             <p className="text-muted-foreground">
-              Ainda não há dados de vendas para mostrar os produtos mais populares.
+              Ainda não há dados de vendas para mostrar os produtos mais
+              populares.
             </p>
           </div>
         )}
