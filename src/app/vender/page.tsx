@@ -8,22 +8,20 @@ import {
   PlusCircle,
   Package,
   ClipboardList,
-  BarChart2,
-  Construction,
-  Loader2,
   ChevronRight,
   Info,
   Wrench,
 } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
-import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Store } from '@/lib/data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CreateStorePrompt } from '@/components/vender/CreateStorePrompt';
 
 export default function VenderPage() {
   const { user, firestore, isUserLoading } = useFirebase();
@@ -91,26 +89,6 @@ function VenderSkeleton() {
     )
 }
 
-function CreateStorePrompt() {
-  return (
-     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col justify-center bg-transparent p-6 text-center shadow-2xl">
-        <header className="absolute top-0 left-0 w-full flex items-center border-b p-4">
-            <h1 className="font-headline text-xl">Seja um Vendedor</h1>
-        </header>
-        <main>
-            <StoreIcon className="mx-auto h-20 w-20 text-primary mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Crie sua loja para começar</h2>
-            <p className="text-muted-foreground mb-6">
-                É o primeiro passo para você poder anunciar seus produtos e serviços na nossa plataforma.
-            </p>
-            <Button size="lg" className="w-full" asChild>
-                <Link href="/vender/loja">Criar minha loja</Link>
-            </Button>
-        </main>
-    </div>
-  )
-}
-
 function SellerDashboard({ store }: { store: WithId<Store> }) {
 
     const menuItems = [
@@ -157,7 +135,7 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
                 </div>
 
                  <div className="p-4 mt-4 space-y-4">
-                    <Link href="/vender/pedidos">
+                    <Link href="/pedidos">
                         <Card className="hover:bg-muted/50 transition-colors">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-lg">Pedidos Recebidos</CardTitle>

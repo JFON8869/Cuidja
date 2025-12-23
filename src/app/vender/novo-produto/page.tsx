@@ -107,25 +107,25 @@ function NewProductPage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-        const files = Array.from(e.target.files);
-        const totalImages = imageFields.length + files.length;
+      const files = Array.from(e.target.files);
+      const totalImages = imageFields.length + files.length;
 
-        if (totalImages > MAX_IMAGES) {
-            toast.error(`Você só pode ter no máximo ${MAX_IMAGES} imagens.`);
-            return;
+      if (totalImages > MAX_IMAGES) {
+        toast.error(`Você só pode ter no máximo ${MAX_IMAGES} imagens.`);
+        return;
+      }
+
+      files.forEach(file => {
+        if (!file.type.startsWith('image/')) {
+          toast.error(`"${file.name}" não é uma imagem válida.`);
+          return;
         }
-
-        files.forEach(file => {
-            if (!file.type.startsWith('image/')) {
-                toast.error(`"${file.name}" não é uma imagem válida.`);
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) { // 2MB
-                toast.error(`A imagem "${file.name}" é muito grande (max 2MB).`);
-                return;
-            }
-            appendImage(file);
-        });
+        if (file.size > 2 * 1024 * 1024) { // 2MB
+          toast.error(`A imagem "${file.name}" é muito grande (max 2MB).`);
+          return;
+        }
+        appendImage(file);
+      });
     }
   };
   
@@ -299,7 +299,7 @@ function NewProductPage() {
                                   alt={`Preview ${index}`}
                                   width={100}
                                   height={100}
-                                  className="h-24 w-24 rounded-md object-cover" // h-6rem w-6rem
+                                  className="h-24 w-24 rounded-md object-cover"
                                 />
                               ) : null}
                               <button
