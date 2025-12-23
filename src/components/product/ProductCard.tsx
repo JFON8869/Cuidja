@@ -48,7 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const image: ImagePlaceholder | undefined = product.images?.[0];
   const imageUrl = image?.imageUrl || (isService ? genericServiceImage?.imageUrl : undefined) || 'https://picsum.photos/seed/placeholder/400/400';
-  const imageHint = image?.imageHint || 'product photo';
+  const imageHint = image?.imageHint || (isService ? 'professional service' : 'product photo');
 
 
   return (

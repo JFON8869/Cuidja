@@ -115,6 +115,10 @@ export default function EditProductPage() {
     name: "addonGroups",
   });
 
+  const selectedCategory = form.watch('category');
+  const isService = selectedCategory === 'Serviços';
+
+
   React.useEffect(() => {
     if (!firestore || !id || !user) return;
 
@@ -181,7 +185,7 @@ export default function EditProductPage() {
 
         const finalImages = await Promise.all(uploadPromises);
 
-        const finalAddonGroups = values.addonGroups?.map(group => ({
+        const finalAddonGroups = isService ? [] : values.addonGroups?.map(group => ({
             ...group,
             id: group.id || group.title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
         }));
@@ -197,8 +201,8 @@ export default function EditProductPage() {
         });
 
         toast.dismiss();
-        toast.success(`O produto "${values.name}" foi atualizado com sucesso.`);
-        router.push('/vender/produtos');
+        toast.success(`O item "${values.name}" foi atualizado com sucesso.`);
+        router.push(isService ? '/vender/servicos' : '/vender/produtos');
 
     } catch (error) {
         console.error('Error updating product: ', error);
@@ -232,14 +236,11 @@ export default function EditProductPage() {
     return image.imageUrl;
   }
 
-  const selectedCategory = form.watch('category');
-  const isService = selectedCategory === 'Serviços';
-
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/vender/produtos">
+          <Link href={isService ? "/vender/servicos" : "/vender/produtos"}>
             <ArrowLeft />
           </Link>
         </Button>
@@ -257,7 +258,7 @@ export default function EditProductPage() {
               render={() => (
                 <FormItem>
                   <FormLabel>
-                    Fotos do Produto ({images.length}/{MAX_IMAGES})
+                    Fotos ({images.length}/{MAX_IMAGES})
                   </FormLabel>
                   <FormControl>
                     <div className="grid grid-cols-3 gap-2">
@@ -301,7 +302,7 @@ export default function EditProductPage() {
                     </div>
                   </FormControl>
                   <FormDescription>
-                    Envie até {MAX_IMAGES} fotos do seu produto.
+                    Envie até {MAX_IMAGES} fotos.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -345,7 +346,7 @@ export default function EditProductPage() {
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preço (R$)</FormLabel>
+                  <FormLabel>{isService ? 'Taxa de Visita/Contato (R$)' : 'Preço (R$)'}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"

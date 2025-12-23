@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -191,7 +190,7 @@ export default function NewProductPage() {
       
       toast.dismiss();
       toast.success(`O item "${values.name}" foi cadastrado com sucesso.`);
-      router.push('/vender/produtos');
+      router.push(isService ? '/vender/servicos' : '/vender/produtos');
 
     } catch (error) {
       console.error('Error creating product:', error);
@@ -363,7 +362,7 @@ export default function NewProductPage() {
                       {...field}
                     />
                   </FormControl>
-                   {isService && <FormDescription>Taxa mínima de R$ 10,00.</FormDescription>}
+                  {isService && <FormDescription>Insira a taxa de visita ou contato inicial. O valor final pode ser negociado via chat.</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}
