@@ -21,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Product } from '@/lib/data';
 import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, limit, getDocs } from 'firebase/firestore';
+import { collection, query, limit, getDocs, orderBy } from 'firebase/firestore';
 
 export default function Home() {
   const [products, setProducts] = React.useState<WithId<Product>[]>([]);
@@ -37,7 +37,7 @@ export default function Home() {
       if (!firestore) return;
       setIsLoading(true);
       try {
-        const productsQuery = query(collection(firestore, 'products'), limit(20));
+        const productsQuery = query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(20));
         const snapshot = await getDocs(productsQuery);
         const fetchedProducts = snapshot.docs.map(doc => ({
           id: doc.id,
