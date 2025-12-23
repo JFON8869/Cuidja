@@ -37,12 +37,6 @@ import { Loader2 as PageLoader } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { uploadFile } from '@/lib/storage';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
 
 
 const MAX_IMAGES = 3;
@@ -372,74 +366,68 @@ export default function NewProductPage() {
               )}
             />
 
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>
-                   <span className="text-base text-muted-foreground">Configurações avançadas (opcional)</span>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-6 pt-4">
-                   <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descrição Detalhada</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder={"Descreva os detalhes do seu produto..."}
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição Detalhada</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={"Descreva os detalhes do seu produto..."}
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                  <FormField
-                    control={form.control}
-                    name="availability"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Disponibilidade</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a disponibilidade" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                              <SelectItem value="available">Disponível (em estoque)</SelectItem>
-                              <SelectItem value="on_demand">Sob Encomenda</SelectItem>
-                              <SelectItem value="unavailable">Indisponível</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Complementos</h3>
-                    {addonGroups.map((group, groupIndex) => (
-                      <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Adicionar Grupo de Complementos
-                    </Button>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            <FormField
+              control={form.control}
+              name="availability"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Disponibilidade</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a disponibilidade" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="available">Disponível (em estoque)</SelectItem>
+                        <SelectItem value="on_demand">Sob Encomenda</SelectItem>
+                        <SelectItem value="unavailable">Indisponível</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="space-y-4 rounded-lg border p-4">
+              <h3 className="text-lg font-medium">Complementos (Opcional)</h3>
+              <p className="text-sm text-muted-foreground">
+                Adicione opções para o seu produto, como tamanhos, bordas de pizza, ou adicionais.
+              </p>
+              {addonGroups.map((group, groupIndex) => (
+                <AddonGroupField key={group.id} groupIndex={groupIndex} removeGroup={removeAddonGroup} />
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendAddonGroup({ title: '', type: 'single', addons: [{ name: '', price: 0 }]})}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Grupo de Complementos
+              </Button>
+            </div>
             
             <Button
               type="submit"
@@ -466,7 +454,7 @@ function AddonGroupField({ groupIndex, removeGroup }: { groupIndex: number, remo
   });
 
   return (
-    <div className="rounded-lg border p-4 space-y-4 relative">
+    <div className="rounded-lg border bg-background p-4 space-y-4 relative">
         <Button
             type="button"
             variant="ghost"
