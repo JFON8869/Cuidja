@@ -54,7 +54,7 @@ service cloud.firestore {
     function isDocumentOwner(doc, fieldName) {
       return isSignedIn() && resource != null && request.auth.uid == doc[fieldName];
     }
-
+    
     // Checks if the requesting user is the seller of a product/service via a denormalized field.
     function isResourceSeller(doc) {
       return isSignedIn() && resource != null && request.auth.uid == doc.sellerId;
@@ -117,20 +117,38 @@ service cloud.firestore {
      * @allow (create) A signed-in user creating an order for themselves.
      * @allow (get) The customer who placed the order OR the seller of the items.
      * @allow (list) A signed-in user querying for their own orders (requires client-side query constraint).
-     * @allow (update) The customer or the seller updating the order (e.g., status, read flags).
+     * @allow (update) The customer or the seller updating specific fields.
      * @deny (delete) Deleting placed orders is disallowed for safety.
      * @principle Secures data based on a denormalized `customerId` and `storeId` lookup.
      */
     match /orders/{orderId} {
-      function isOrderParticipant() {
+      function isOrderCustomer() {
+        return isDocumentOwner(resource.data, 'customerId');
+      }
+
+      function isOrderSeller() {
         let storeData = get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data;
-        return isDocumentOwner(resource.data, 'customerId') || isOwner(storeData.userId);
+        return isOwner(storeData.userId);
+      }
+      
+      function isOrderParticipant() {
+        return isOrderCustomer() || isOrderSeller();
+      }
+
+      function isChangingOnlyAllowedFields(allowedFields) {
+          return request.resource.data.keys().hasOnly(resource.data.keys().concat(allowedFields));
+      }
+
+      // Check if status is being changed and if user is the seller
+      function isStatusChangeValid() {
+          let isChangingStatus = request.resource.data.status != resource.data.status;
+          return isChangingStatus ? isOrderSeller() : true;
       }
       
       allow get: if isOrderParticipant();
       allow list: if isSignedIn(); // MUST be constrained by 'customerId' or 'storeId' on client
       allow create: if isCreatingOwn('customerId');
-      allow update: if isOrderParticipant();
+      allow update: if isOrderParticipant() && isStatusChangeValid();
       allow delete: if false;
     }
     
