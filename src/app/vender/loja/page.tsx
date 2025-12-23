@@ -145,16 +145,26 @@ export default function StoreFormPage() {
   }, [user, firestore, isUserLoading, router, form]);
 
   const onSubmit = async (values: StoreFormValues) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore) {
+      toast.error("Você precisa estar logado para salvar.");
+      return;
+    }
     
     setIsSubmitting(true);
     try {
-      let finalLogoUrl = store?.logoUrl || '';
+      let finalLogoUrl;
 
-      if (values.logoUrl && values.logoUrl instanceof File) {
-        finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}`);
-      } else if (values.logoUrl === null) {
-        finalLogoUrl = ''; // Handle case where logo is removed
+      // Case 1: A new file is being uploaded.
+      if (values.logoUrl instanceof File) {
+        finalLogoUrl = await uploadFile(values.logoUrl, `logos/${user.uid}/${Date.now()}`);
+      } 
+      // Case 2: The logo was removed (value is null or empty string).
+      else if (!values.logoUrl) {
+        finalLogoUrl = "";
+      } 
+      // Case 3: The logo is an existing URL string (no changes).
+      else {
+        finalLogoUrl = values.logoUrl;
       }
 
       const dataToSave = { 
@@ -163,10 +173,12 @@ export default function StoreFormPage() {
        };
 
       if (store) {
+        // Update existing store
         const storeRef = doc(firestore, 'stores', store.id);
         await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
+        // Create new store
         const newStoreRef = doc(collection(firestore, 'stores'));
         const newStore = {
           ...dataToSave,
