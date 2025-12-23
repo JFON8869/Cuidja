@@ -4,8 +4,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   Auth,
-  FirebaseError,
 } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { toast as ToastType } from 'react-hot-toast';
