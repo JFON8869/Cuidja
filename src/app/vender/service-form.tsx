@@ -178,8 +178,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
           type: 'manual',
           message: 'Adicione pelo menos uma imagem.',
         });
-        setIsSubmitting(false);
-        return;
+        throw new Error('Nenhuma imagem fornecida.');
       }
       
       const dataToSave = {

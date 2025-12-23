@@ -258,8 +258,7 @@ export function ProductForm({ productId }: ProductFormProps) {
           type: 'manual',
           message: 'Adicione pelo menos uma imagem.',
         });
-        setIsSubmitting(false);
-        return;
+        throw new Error('Nenhuma imagem fornecida.');
       }
       
       const dataToSave = {
@@ -269,10 +268,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         category: values.category,
         availability: values.availability,
         images: finalImageObjects,
-        addonGroups: values.addonGroups?.map((group) => ({
-          ...group,
-          id: group.id || `${Date.now()}-${Math.random()}`,
-        })) || [],
+        addonGroups: values.addonGroups || [],
         storeId: store.id,
         sellerId: user.uid,
         type: 'PRODUCT' as const,
