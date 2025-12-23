@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Package, Wrench, ChevronRight, Loader2 } from 'lucide-react';
@@ -14,13 +14,17 @@ function NewAdPage() {
     const router = useRouter();
     const { store, isStoreLoading, isUserLoading } = useFirebase();
 
-    if (isUserLoading || isStoreLoading) {
-        return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
-    }
-    
-    // This is a safeguard. The main /vender page should handle redirection.
-    if (!store) {
-        router.push('/vender/loja');
+    useEffect(() => {
+        // Wait until loading is finished before checking for the store
+        if (!isStoreLoading && !isUserLoading && !store) {
+            // This is a safeguard. The main /vender page should handle redirection,
+            // but this prevents rendering the page if the user lands here directly
+            // without a store.
+            router.push('/vender/loja');
+        }
+    }, [store, isStoreLoading, isUserLoading, router]);
+
+    if (isUserLoading || isStoreLoading || !store) {
         return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     }
     
