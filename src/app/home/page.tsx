@@ -4,14 +4,13 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, Loader2 } from 'lucide-react';
 import Autoplay from 'embla-carousel-autoplay';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product/ProductCard';
 import { mockCategories, mockBanners } from '@/lib/data';
-import { useProductContext } from '@/context/ProductContext';
 import { cn } from '@/lib/utils';
 import {
   Carousel,
@@ -21,36 +20,46 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Product } from '@/lib/data';
+import { useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, limit, getDocs } from 'firebase/firestore';
 
 export default function Home() {
-  const { products } = useProductContext();
-  const [recommendedProducts, setRecommendedProducts] = React.useState<WithId<Product>[]>([]);
+  const [products, setProducts] = React.useState<WithId<Product>[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const { firestore } = useFirebase();
 
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true })
   );
 
   React.useEffect(() => {
-    // Initial shuffle
-    if (products.length > 0) {
-       const shuffled = [...products].sort(() => 0.5 - Math.random());
-       setRecommendedProducts(shuffled.slice(0, 5));
-    }
-
-    // Set up interval to shuffle every 10 seconds
-    const intervalId = setInterval(() => {
-      if (products.length > 0) {
-        const shuffled = [...products].sort(() => 0.5 - Math.random());
-        setRecommendedProducts(shuffled.slice(0, 5));
+    async function fetchProducts() {
+      if (!firestore) return;
+      setIsLoading(true);
+      try {
+        const productsQuery = query(collection(firestore, 'products'), limit(20));
+        const snapshot = await getDocs(productsQuery);
+        const fetchedProducts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as WithId<Product>[];
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setIsLoading(false);
       }
-    }, 10000); // 10 seconds
+    }
+    fetchProducts();
+  }, [firestore]);
 
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
+  const recommendedProducts = React.useMemo(() => {
+    if (products.length === 0) return [];
+    const shuffled = [...products].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 5);
   }, [products]);
 
-
-  const featuredProducts = products.slice(5);
+  const featuredProducts = products.slice(5, 15);
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col overflow-hidden bg-transparent shadow-2xl">
@@ -147,30 +156,34 @@ export default function Home() {
             </Carousel>
           </section>
 
-          {/* Personalized Recommendations Section */}
-          <section>
-            <h2 className="mb-1 font-headline text-xl">Para você</h2>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Recomendações com base na sua atividade.
-            </p>
-            <div className="hide-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
-              {recommendedProducts.map((product) => (
-                <div key={product.id} className="w-40 shrink-0">
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
-          </section>
+          {isLoading ? <Loader2 className="animate-spin mx-auto my-8" /> : 
+          <>
+            {/* Personalized Recommendations Section */}
+            <section>
+              <h2 className="mb-1 font-headline text-xl">Para você</h2>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Recomendações com base na sua atividade.
+              </p>
+              <div className="hide-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
+                {recommendedProducts.map((product) => (
+                  <div key={product.id} className="w-40 shrink-0">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
+            </section>
 
-          {/* Featured Products Section */}
-          <section>
-            <h2 className="mb-3 font-headline text-xl">Destaques</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </section>
+            {/* Featured Products Section */}
+            <section>
+              <h2 className="mb-3 font-headline text-xl">Destaques</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {featuredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </section>
+          </>
+          }
         </div>
       </main>
     </div>

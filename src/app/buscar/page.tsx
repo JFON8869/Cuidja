@@ -1,25 +1,71 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useProductContext } from '@/context/ProductContext';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Product } from '@/lib/data';
+import { useFirebase } from '@/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  startAt,
+  endAt,
+} from 'firebase/firestore';
+import { useDebounce } from 'use-debounce';
+import { WithId } from '@/firebase/firestore/use-collection';
 
 export default function SearchPage() {
-  const { products } = useProductContext();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
+  const [results, setResults] = useState<WithId<Product>[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const { firestore } = useFirebase();
 
-  const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return [];
+  const searchProducts = useCallback(async (searchQuery: string) => {
+    if (!firestore || !searchQuery.trim()) {
+      setResults([]);
+      setIsLoading(false);
+      return;
     }
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, products]);
+    setIsLoading(true);
+    setHasSearched(true);
+    try {
+      const productsRef = collection(firestore, 'products');
+      const q = query(
+        productsRef,
+        orderBy('name'),
+        startAt(searchQuery.toLowerCase()),
+        endAt(searchQuery.toLowerCase() + '\uf8ff')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const fetchedProducts: WithId<Product>[] = [];
+      querySnapshot.forEach((doc) => {
+        const productData = doc.data() as Product;
+        // Secondary client-side filter since Firestore case-insensitive search is limited
+        if (productData.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+          fetchedProducts.push({ id: doc.id, ...productData });
+        }
+      });
+      setResults(fetchedProducts);
+    } catch (error) {
+      console.error('Error searching products:', error);
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [firestore]);
+
+
+  useEffect(() => {
+    searchProducts(debouncedSearchTerm);
+  }, [debouncedSearchTerm, searchProducts]);
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
@@ -44,21 +90,24 @@ export default function SearchPage() {
         </div>
 
         <div className="mt-6">
-          {searchTerm && filteredProducts.length > 0 && (
+          {isLoading ? (
+             <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+             </div>
+          ) : hasSearched && results.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
-              {filteredProducts.map((product) => (
+              {results.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
-          )}
-          {searchTerm && filteredProducts.length === 0 && (
+          ) : hasSearched && results.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <h3 className="text-lg font-semibold">Nenhum resultado</h3>
               <p className="text-sm">
-                Não encontramos produtos para "{searchTerm}".
+                Não encontramos produtos para "{debouncedSearchTerm}".
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </main>
     </div>
