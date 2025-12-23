@@ -191,22 +191,22 @@ export default function EditProductPage() {
     try {
         toast.loading('Verificando e enviando imagens...');
         
-        const uploadPromises = values.images.map((imageOrFile) => {
-          if (imageOrFile instanceof File) {
-            return uploadFile(imageOrFile, `products/${id as string}`);
-          }
-          return Promise.resolve(imageOrFile.imageUrl);
-        });
+        const existingImageUrls = values.images
+            .filter((img): img is ImagePlaceholder => !(img instanceof File) && 'imageUrl' in img)
+            .map(img => img.imageUrl);
 
-        const imageUrls = await Promise.all(uploadPromises);
+        const newImageFiles = values.images.filter((img): img is File => img instanceof File);
 
-        const finalImages: ImagePlaceholder[] = imageUrls.map(url => {
-          const originalImage = values.images.find(img => !(img instanceof File) && img.imageUrl === url);
-          return {
-            imageUrl: url,
-            imageHint: originalImage?.imageHint || values.category.toLowerCase(),
-          };
-        });
+        const newImageUrls = await Promise.all(
+            newImageFiles.map(file => uploadFile(file, `products/${id as string}`))
+        );
+        
+        const allImageUrls = [...existingImageUrls, ...newImageUrls];
+
+        const finalImages: ImagePlaceholder[] = allImageUrls.map(url => ({
+          imageUrl: url,
+          imageHint: values.category.toLowerCase(),
+        }));
 
         const finalAddonGroups = isService ? [] : values.addonGroups?.map(group => ({
             ...group,
@@ -224,6 +224,16 @@ export default function EditProductPage() {
         };
 
         await updateDoc(productRef, updateData)
+            .catch(err => {
+                const permissionError = new FirestorePermissionError({
+                    path: productRef.path,
+                    operation: 'update',
+                    requestResourceData: updateData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                throw err;
+            });
+
 
         toast.dismiss();
         toast.success(`O item "${values.name}" foi atualizado com sucesso.`);
@@ -233,14 +243,6 @@ export default function EditProductPage() {
     } catch (error) {
         toast.dismiss();
         console.error('Error during image upload or data preparation: ', error);
-        
-        const permissionError = new FirestorePermissionError({
-          path: productRef.path,
-          operation: 'update',
-          requestResourceData: values,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        
         toast.error('Não foi possível salvar as alterações. Verifique suas permissões e tente novamente.');
     }
   }

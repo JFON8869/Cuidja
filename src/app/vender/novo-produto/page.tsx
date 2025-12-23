@@ -192,16 +192,13 @@ export default function NewProductPage() {
       
       toast.loading('Publicando anúncio...');
 
-      const uploadPromises = values.images.map((imageOrFile) => {
-        if (imageOrFile instanceof File) {
-          return uploadFile(imageOrFile, `products/${storeId}`);
-        }
-        return Promise.resolve(imageOrFile.imageUrl);
-      });
+      const newImageFiles = values.images.filter((img): img is File => img instanceof File);
       
-      const imageUrls = await Promise.all(uploadPromises);
+      const newImageUrls = await Promise.all(
+        newImageFiles.map(file => uploadFile(file, `products/${storeId}`))
+      );
 
-      const finalImageObjects: ImagePlaceholder[] = imageUrls.map(url => ({
+      const finalImageObjects: ImagePlaceholder[] = newImageUrls.map(url => ({
         imageUrl: url,
         imageHint: values.category.toLowerCase(),
       }));
