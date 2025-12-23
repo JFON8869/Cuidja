@@ -136,24 +136,25 @@ function EditProductPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
         const files = Array.from(e.target.files);
-        const totalImages = imageFields.length + files.length;
+        const currentImageCount = imageFields.length;
+        const availableSlots = MAX_IMAGES - currentImageCount;
 
-        if (totalImages > MAX_IMAGES) {
-            toast.error(`Você só pode ter no máximo ${MAX_IMAGES} imagens.`);
+        if (files.length > availableSlots) {
+            toast.error(`Você pode adicionar no máximo ${availableSlots} mais imagem(ns).`);
             return;
         }
 
-        files.forEach(file => {
+        for (const file of files) {
             if (!file.type.startsWith('image/')) {
                 toast.error(`"${file.name}" não é uma imagem válida.`);
-                return;
+                continue;
             }
             if (file.size > 2 * 1024 * 1024) { // 2MB
                 toast.error(`A imagem "${file.name}" é muito grande (max 2MB).`);
-                return;
+                continue;
             }
             appendImage(file);
-        });
+        }
     }
   };
   
@@ -323,18 +324,17 @@ function EditProductPage() {
                   {imageFields.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-4">
                       {imageFields.map((field, index) => {
-                          const src = field instanceof File ? URL.createObjectURL(field) : (field as any)?.imageUrl;
+                          const src = field instanceof File ? URL.createObjectURL(field) : field?.imageUrl;
+                          if (!src) return null;
                           return (
                             <div key={field.id} className="relative group">
-                              {src ? (
-                                <Image
-                                  src={src}
-                                  alt={`Preview ${index}`}
-                                  width={100}
-                                  height={100}
-                                  className="h-24 w-24 rounded-md object-cover"
-                                />
-                              ) : null}
+                              <Image
+                                src={src}
+                                alt={`Preview ${index}`}
+                                width={100}
+                                height={100}
+                                className="h-24 w-24 rounded-md object-cover"
+                              />
                               <button
                                 type="button"
                                 onClick={() => removeImage(index)}
@@ -542,3 +542,5 @@ export default function EditProductPageWrapper() {
         </Suspense>
     )
 }
+
+    
