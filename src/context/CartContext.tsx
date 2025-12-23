@@ -10,36 +10,38 @@ interface CartContextType {
   removeFromCart: (cartItemId: string) => void;
   clearCart: () => void;
   total: number;
+  isCartLoading: boolean; // Add loading state
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Helper to get initial cart from localStorage
-const getInitialCart = (): CartItem[] => {
-  // Check if running on the client
-  if (typeof window === 'undefined') {
-    return [];
-  }
-  try {
-    const savedCart = localStorage.getItem('cuidja_cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  } catch (error) {
-    console.error("Failed to parse cart from localStorage:", error);
-    // If parsing fails, clear the corrupted cart data
-    localStorage.removeItem('cuidja_cart');
-    return [];
-  }
-};
-
-
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>(getInitialCart);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [isCartLoading, setIsCartLoading] = useState(true); // Start with loading true
+
+  // Effect to load cart from localStorage only on the client side
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem('cuidja_cart');
+      if (savedCart) {
+        setCart(JSON.parse(savedCart));
+      }
+    } catch (error) {
+      console.error("Failed to parse cart from localStorage:", error);
+      localStorage.removeItem('cuidja_cart'); // Clear corrupted data
+    } finally {
+      setIsCartLoading(false); // Stop loading after attempting to load
+    }
+  }, []);
+
 
   // Effect to sync cart with localStorage and calculate total
   useEffect(() => {
-    // Persist cart to localStorage
-    localStorage.setItem('cuidja_cart', JSON.stringify(cart));
+    // Prevent writing to localStorage on initial server render
+    if (!isCartLoading) {
+        localStorage.setItem('cuidja_cart', JSON.stringify(cart));
+    }
     
     // Calculate new total
     const newTotal = cart.reduce((acc, item) => {
@@ -47,7 +49,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return acc + (item.price * (item.quantity || 1)) + addonsTotal;
     }, 0);
     setTotal(newTotal);
-  }, [cart]);
+  }, [cart, isCartLoading]);
 
   const addToCart = (product: Product, selectedAddons: SelectedAddon[] = [], quantity: number = 1) => {
     // Business rule: only allow items from the same store
@@ -79,7 +81,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total, isCartLoading }}>
       {children}
     </CartContext.Provider>
   );

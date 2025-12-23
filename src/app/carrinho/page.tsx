@@ -3,17 +3,36 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { Separator } from '@/components/ui/separator';
 
 export default function CartPage() {
-  const { cart, removeFromCart, total } = useCart();
+  const { cart, removeFromCart, total, isCartLoading } = useCart();
 
   const calculateItemTotal = (item: any) => {
     const addonsTotal = item.selectedAddons?.reduce((acc: any, addon: any) => acc + (addon.price * addon.quantity), 0) || 0;
     return (item.price * item.quantity) + addonsTotal;
+  }
+
+  if (isCartLoading) {
+    return (
+       <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
+         <header className="flex w-full items-center border-b p-4">
+           <Button variant="ghost" size="icon" asChild>
+             <Link href="/home">
+               <ArrowLeft />
+             </Link>
+           </Button>
+           <h1 className="mx-auto font-headline text-xl">Carrinho de Compras</h1>
+           <div className="w-10"></div>
+         </header>
+         <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+         </div>
+      </div>
+    )
   }
 
   return (
@@ -97,5 +116,3 @@ export default function CartPage() {
     </div>
   );
 }
-
-    
