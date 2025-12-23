@@ -46,7 +46,8 @@ service cloud.firestore {
     }
     
     match /products/{productId} {
-      allow get, list: if true;
+      allow get: if true;
+      allow list: if true;
       allow create: if isCreatingOwnResource();
       allow update, delete: if isResourceSeller(resource.data);
     }
