@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -113,7 +113,7 @@ function EditProductPage() {
     fetchProduct();
   }, [firestore, productId, form, router]);
 
-  const { fields: imageFields, append: appendImage, remove: removeImage, replace: replaceImages } = useFieldArray({
+  const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
     control: form.control,
     name: 'images',
   });
@@ -130,7 +130,7 @@ function EditProductPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const existingNames = imageFields.map((field: any) => field.name).filter(Boolean);
+      const existingNames = imageFields.map((field: any) => field instanceof File ? field.name : '').filter(Boolean);
       
       files.forEach(file => {
           if (existingNames.includes(file.name)) {
@@ -142,10 +142,12 @@ function EditProductPage() {
     }
   };
   
-  if (!isUserLoading && !user) {
-    router.push('/login?redirect=/vender');
-    return null;
-  }
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login?redirect=/vender');
+    }
+  }, [isUserLoading, user, router]);
+
 
   async function onSubmit(values: ProductFormValues) {
     if (!firestore || !user || !productId) {
@@ -154,11 +156,10 @@ function EditProductPage() {
     }
     
     try {
-        const newImageFiles = values.images.filter(img => img instanceof File);
-        const existingImageObjects = values.images.filter(img => !(img instanceof File));
-
-        const uploadPromises = newImageFiles.map(file => uploadFile(file, `products/${user.uid}`));
+        const newImageFiles = values.images.filter((image: any) => image instanceof File);
+        const existingImageObjects = values.images.filter((image: any) => !(image instanceof File));
         
+        const uploadPromises = newImageFiles.map((file: File) => uploadFile(file, `products/${user.uid}`));
         const newImageUrls = await Promise.all(uploadPromises);
 
         const newImageObjects = newImageUrls.map(url => ({
@@ -270,7 +271,7 @@ function EditProductPage() {
              <FormField
               control={form.control}
               name="images"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Imagens do Produto</FormLabel>
                   <FormControl>
@@ -297,10 +298,10 @@ function EditProductPage() {
                    <FormMessage />
                   {imageFields.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-4">
-                      {imageFields.map((field: any, index) => (
-                        <div key={field.id || index} className="relative group">
+                      {imageFields.map((field, index) => (
+                        <div key={field.id} className="relative group">
                           <Image
-                             src={field instanceof File ? URL.createObjectURL(field) : field.imageUrl}
+                             src={field instanceof File ? URL.createObjectURL(field) : (field as any).imageUrl}
                             alt={`Preview ${index}`}
                             width={100}
                             height={100}
@@ -328,7 +329,7 @@ function EditProductPage() {
                 name="description"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Descrição (Opcional)</FormLabel>
+                    <FormLabel>Descrição</FormLabel>
                     <FormControl>
                         <Textarea placeholder="Detalhes que ajudam o cliente a escolher seu produto." {...field} />
                     </FormControl>
@@ -366,7 +367,7 @@ function EditProductPage() {
             <Separator />
             
             <div>
-              <Label className="text-base">Complementos (Opcional)</Label>
+              <Label className="text-base">Complementos</Label>
               <p className="text-sm text-muted-foreground mb-4">
                 Ofereça extras como borda recheada, mais queijo, etc.
               </p>

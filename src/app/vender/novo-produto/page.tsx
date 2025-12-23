@@ -1,10 +1,10 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -43,7 +43,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 
 const addonSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -104,7 +103,7 @@ function NewProductPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const existingNames = imageFields.map((field: any) => field.name).filter(Boolean);
+      const existingNames = imageFields.map((field: any) => field instanceof File ? field.name : '').filter(Boolean);
       
       files.forEach(file => {
           if (existingNames.includes(file.name)) {
@@ -116,10 +115,12 @@ function NewProductPage() {
     }
   };
   
-  if (!isUserLoading && !user) {
-    router.push('/login?redirect=/vender');
-    return null;
-  }
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login?redirect=/vender');
+    }
+  }, [isUserLoading, user, router]);
+
 
   if (!storeId) {
     toast.error('ID da loja é necessário para criar um anúncio.');
@@ -134,20 +135,19 @@ function NewProductPage() {
     }
 
     try {
-       const uploadPromises = values.images.map(image => {
-        if (image instanceof File) {
-          return uploadFile(image, `products/${user.uid}`);
-        }
-        // This case should not be hit in create form, but handles existing images just in case
-        return Promise.resolve(image.imageUrl); 
-      });
-
-      const imageUrls = await Promise.all(uploadPromises);
+      const newImageFiles = values.images.filter((image: any) => image instanceof File);
+      const existingImageObjects = values.images.filter((image: any) => !(image instanceof File));
       
-      const finalImageObjects = imageUrls.map(url => ({
+      const uploadPromises = newImageFiles.map((file: File) => uploadFile(file, `products/${user.uid}`));
+      const newImageUrls = await Promise.all(uploadPromises);
+
+      const newImageObjects = newImageUrls.map(url => ({
         imageUrl: url,
         imageHint: 'product photo' 
       }));
+
+      const finalImageObjects = [...existingImageObjects, ...newImageObjects];
+
 
       const addonGroups = values.addonGroups?.map(group => ({
         ...group,
@@ -245,7 +245,7 @@ function NewProductPage() {
              <FormField
               control={form.control}
               name="images"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Imagens do Produto</FormLabel>
                   <FormControl>
@@ -275,7 +275,7 @@ function NewProductPage() {
                       {imageFields.map((field, index) => (
                         <div key={field.id} className="relative group">
                           <Image
-                             src={field instanceof File ? URL.createObjectURL(field) : field.imageUrl}
+                             src={field instanceof File ? URL.createObjectURL(field) : (field as any).imageUrl}
                             alt={`Preview ${index}`}
                             width={100}
                             height={100}
@@ -303,7 +303,7 @@ function NewProductPage() {
                 name="description"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Descrição (Opcional)</FormLabel>
+                    <FormLabel>Descrição</FormLabel>
                     <FormControl>
                         <Textarea placeholder="Detalhes que ajudam o cliente a escolher seu produto." {...field} />
                     </FormControl>
@@ -341,7 +341,7 @@ function NewProductPage() {
             <Separator />
             
             <div>
-              <Label className="text-base">Complementos (Opcional)</Label>
+              <Label className="text-base">Complementos</Label>
               <p className="text-sm text-muted-foreground mb-4">
                 Ofereça extras como borda recheada, mais queijo, etc.
               </p>
