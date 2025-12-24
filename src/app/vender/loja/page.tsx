@@ -239,7 +239,7 @@ export default function StoreFormPage() {
 
       <main className="flex-1 overflow-y-auto p-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-24">
             <Card>
               <CardHeader>
                 <CardTitle>
