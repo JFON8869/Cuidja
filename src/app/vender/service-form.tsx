@@ -15,7 +15,6 @@ import {
   getDoc,
   updateDoc,
   arrayUnion,
-  setDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -132,8 +131,10 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         const docRef = doc(firestore, 'products', serviceId);
         await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
       } else {
-        const newDocRef = doc(collection(firestore, 'products'));
-        await setDoc(newDocRef, { ...dataToSave, id: newDocRef.id, createdAt: serverTimestamp() });
+        await addDoc(collection(firestore, 'products'), {
+          ...dataToSave,
+          createdAt: serverTimestamp(),
+        });
       }
 
       // Atomically add the "Serviços" category to the store's list of categories

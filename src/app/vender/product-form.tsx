@@ -14,7 +14,7 @@ import {
   getDoc,
   updateDoc,
   arrayUnion,
-  setDoc,
+  addDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -174,7 +174,6 @@ export function ProductForm({ productId }: ProductFormProps) {
     setIsSubmitting(true);
 
     try {
-        let productRef;
         const dataToSave = {
             ...values,
             description: values.description || '',
@@ -186,14 +185,12 @@ export function ProductForm({ productId }: ProductFormProps) {
         };
         
         if (isEditing && productId) {
-            productRef = doc(firestore, 'products', productId);
+            const productRef = doc(firestore, 'products', productId);
             await updateDoc(productRef, { ...dataToSave, updatedAt: serverTimestamp() });
         } else {
-            productRef = doc(collection(firestore, 'products'));
-            await setDoc(productRef, { 
-                ...dataToSave,
-                id: productRef.id,
-                createdAt: serverTimestamp() 
+            await addDoc(collection(firestore, 'products'), {
+              ...dataToSave,
+              createdAt: serverTimestamp(),
             });
         }
 

@@ -7,10 +7,6 @@
       "type": "object",
       "description": "Represents a user of the Mercado Local Cuidja platform.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
         "name": {
           "type": "string",
           "description": "The user's full name."
@@ -37,7 +33,6 @@
         }
       },
       "required": [
-        "id",
         "name",
         "email"
       ]
@@ -123,10 +118,6 @@
       "type": "object",
       "description": "Represents a product or service listed on the Mercado Local Cuidja platform.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity."
-        },
         "sellerId": {
           "type": "string",
           "description": "Reference to User (Seller). (Relationship: User 1:N Product)"
@@ -181,7 +172,6 @@
         }
       },
       "required": [
-        "id",
         "sellerId",
         "storeId",
         "name",
@@ -231,7 +221,6 @@
       "type": "object",
       "description": "Represents a product order or service request on the platform.",
       "properties": {
-        "id": { "type": "string" },
         "customerId": { "type": "string" },
         "sellerId": { "type": "string" },
         "storeId": { "type": "string" },
@@ -258,7 +247,6 @@
         "lastMessageTimestamp": { "type": "string", "format": "date-time"}
       },
       "required": [
-        "id",
         "customerId",
         "storeId",
         "orderDate",

@@ -10,7 +10,6 @@ import {
   collection,
   serverTimestamp,
   addDoc,
-  writeBatch,
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -49,6 +48,7 @@ const dayHoursSchema = z.object({
   close: z.string(),
 });
 
+// V2 Store Schema without redundant 'id' field
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja é obrigatório.'),
   address: z.string().min(10, 'O endereço é obrigatório.'),
@@ -139,28 +139,30 @@ export default function StoreFormPage() {
     setIsSubmitting(true);
 
     try {
+      // V2 Logic: Separate logo file from other data
+      const { logoUrl: logoFile, ...dataToSave } = values;
+
       let finalLogoUrl = existingStore?.logoUrl || '';
-      const { logoUrl, ...restOfValues } = values;
 
       // Step 1: Handle file upload if a new file is present
-      if (logoUrl instanceof File) {
+      if (logoFile instanceof File) {
         try {
-            const filePath = `logos/${user.uid}/${Date.now()}_${logoUrl.name}`;
-            finalLogoUrl = await uploadFile(logoUrl, filePath);
+            const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
+            finalLogoUrl = await uploadFile(logoFile, filePath);
         } catch (uploadError) {
              console.error('File upload failed:', uploadError);
              toast.error('O upload da imagem falhou. Verifique sua conexão e permissões.');
              setIsSubmitting(false);
-             return; // Stop the submission process
+             return;
         }
-      } else if (logoUrl === null) {
+      } else if (logoFile === null) {
         finalLogoUrl = ''; // Handle logo deletion
       }
 
-      // Step 2: Prepare data for Firestore
-      const dataToSave = {
-        ...restOfValues,
-        logoUrl: finalLogoUrl, // This is now a string URL or an empty string
+      // Step 2: Prepare data for Firestore, adding userId and final logo URL
+      const finalStoreData = {
+        ...dataToSave,
+        logoUrl: finalLogoUrl,
         userId: user.uid,
       };
 
@@ -168,21 +170,20 @@ export default function StoreFormPage() {
       if (existingStore) {
         // Update existing store
         const storeRef = doc(firestore, 'stores', existingStore.id);
-        await updateDoc(storeRef, dataToSave);
+        await updateDoc(storeRef, finalStoreData);
         toast.success('Loja atualizada com sucesso!');
       } else {
         // Create new store
-        const storeCollectionRef = collection(firestore, 'stores');
-        await addDoc(storeCollectionRef, {
-          ...dataToSave,
-          categories: [], // Initialize with empty categories
+        await addDoc(collection(firestore, 'stores'), {
+          ...finalStoreData,
+          categories: [],
           createdAt: serverTimestamp(),
         });
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
 
       router.push('/vender');
-      router.refresh(); // Force refresh to get new store data in context
+      router.refresh();
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
@@ -246,7 +247,7 @@ export default function StoreFormPage() {
 
       <main className="flex-1 overflow-y-auto p-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-24">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>
