@@ -9,16 +9,18 @@ export default function SplashPage() {
   const [animationStep, setAnimationStep] = useState(0);
 
   useEffect(() => {
+    // Defines the sequence of animation steps
     const sequence = [
-      { delay: 800, nextStep: 1 }, // Shrink to 70%
-      { delay: 800, nextStep: 2 }, // Shrink to 60%
-      { delay: 800, nextStep: 3 }, // Return to 100%
-      { delay: 800, nextStep: 4 }, // Expand to fill screen
-      { delay: 1000, action: () => router.push('/welcome') }, // Redirect
+      { delay: 800, nextStep: 1 }, // After 0.8s, go to step 1 (scale 70%)
+      { delay: 800, nextStep: 2 }, // After 0.8s, go to step 2 (scale 60%)
+      { delay: 800, nextStep: 3 }, // After 0.8s, go to step 3 (scale 100%)
+      { delay: 800, nextStep: 4 }, // After 0.8s, go to step 4 (scale to fill)
+      { delay: 1000, action: () => router.push('/welcome') }, // After 1s, redirect
     ];
 
     let currentTimeout: NodeJS.Timeout;
     
+    // Function to run the animation sequence
     const runAnimation = (step: number) => {
         if (step >= sequence.length) return;
 
@@ -27,6 +29,7 @@ export default function SplashPage() {
         currentTimeout = setTimeout(() => {
             if (nextStep !== undefined) {
                 setAnimationStep(nextStep);
+                // Recursively call the next step in the sequence
                 runAnimation(nextStep);
             }
             if (action) {
@@ -38,21 +41,24 @@ export default function SplashPage() {
     // Start the animation sequence from the current step
     runAnimation(animationStep);
 
-    return () => clearTimeout(currentTimeout); // Cleanup timer on unmount
+    // Cleanup timer on component unmount
+    return () => clearTimeout(currentTimeout);
+  // useEffect is set to run only once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getLogoScaleClass = () => {
     switch (animationStep) {
       case 0:
-        return 'scale-100'; // Initial size
+        return 'scale-100'; // 1. Initial size
       case 1:
-        return 'scale-70'; // Shrink by 30%
+        return 'scale-70'; // 2. Shrink by 30%
       case 2:
-        return 'scale-60'; // Shrink by another 10%
+        return 'scale-60'; // 3. Shrink by another 10%
       case 3:
-        return 'scale-100'; // Return to initial size
+        return 'scale-100'; // 4. Return to initial size
       case 4:
-        return 'scale-[10]'; // Expand to fill screen
+        return 'scale-[10]'; // 5. Expand to fill screen
       default:
         return 'scale-100';
     }
@@ -66,7 +72,7 @@ export default function SplashPage() {
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <div className="relative flex h-full w-full flex-col items-center justify-center px-8">
           
-          {/* Hexagonal Container */}
+          {/* Hexagonal Container - This fades out on the final animation step */}
           <div className={cn("relative transition-opacity duration-500", isFinalStep ? 'opacity-0' : 'opacity-100')}>
             {/* Hexagon Background */}
             <div className="relative flex h-80 w-72 items-center justify-center">
