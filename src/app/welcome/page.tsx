@@ -37,7 +37,7 @@ export default function WelcomePage() {
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
       {/* Hexagon Background */}
-       <div className="absolute inset-0 z-0 flex items-start justify-center opacity-10 transform -translate-y-1/2">
+       <div className="absolute inset-0 z-0 flex items-start justify-center opacity-10 transform -translate-y-[30%]">
         <svg viewBox="0 0 100 100" className="w-[80vw] h-[80vw] max-w-sm max-h-sm scale-y-130" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
           <defs>
             <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
