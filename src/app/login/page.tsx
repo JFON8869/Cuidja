@@ -82,7 +82,10 @@ export default function LoginPage() {
   }
 
   const onGoogleSignIn = async () => {
-    if (!auth || !firestore) return;
+    if (!auth || !firestore) {
+      toast.error("Serviços de autenticação indisponíveis. Tente novamente.");
+      return;
+    }
     await handleGoogleSignIn(auth, firestore, router, toast, setGoogleLoading);
   };
 
