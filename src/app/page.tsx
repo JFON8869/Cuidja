@@ -9,10 +9,8 @@ export default function SplashPage() {
   const [animationStep, setAnimationStep] = useState(0);
 
   useEffect(() => {
-    //
     // --- ROADMAP DA ANIMAÇÃO ---
     // Este é o roteiro da animação, equilibrado para um movimento profissional.
-    //
     const sequence = [
       // Etapa 0: Início estático para o usuário registrar a logo.
       { delay: 500, nextStep: 1 },
@@ -43,21 +41,26 @@ export default function SplashPage() {
     const runAnimation = (step: number) => {
       if (step >= sequence.length) return;
       const { delay, nextStep, action } = sequence[step];
+      
       currentTimeout = setTimeout(() => {
-        if (nextStep !== undefined) {
-          setAnimationStep(nextStep);
-          runAnimation(nextStep);
-        }
         if (action) {
-          action();
+           setAnimationStep(step); // Trigger the final visual step
+           action();
+        } else if (nextStep !== undefined) {
+           setAnimationStep(nextStep);
+           runAnimation(nextStep);
         }
       }, delay);
     };
     
-    runAnimation(animationStep);
+    // Inicia a animação a partir do passo 0
+    runAnimation(0);
+    
+    // Limpeza ao desmontar o componente
     return () => clearTimeout(currentTimeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    
+  }, [router]); // router é uma dependência estável, então o efeito roda uma vez
+
 
   // Mapeamento das etapas do roadmap para as classes de transformação (tamanho/escala)
   const getLogoScaleClass = () => {
