@@ -11,6 +11,8 @@ import {
   where,
   getDocs,
   getDoc,
+  Query,
+  DocumentData,
 } from 'firebase/firestore';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 
@@ -25,12 +27,13 @@ import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/product/ProductCard';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { allCategories } from '@/lib/categories';
 
 export default function StorePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const storeId = params.id as string;
-  const initialCategory = searchParams.get('category');
+  const categorySlug = searchParams.get('category');
   const { firestore } = useFirebase();
 
   const [products, setProducts] = useState<WithId<Product>[]>([]);
@@ -43,6 +46,13 @@ export default function StorePage() {
   }, [firestore, storeId]);
 
   const { data: store, isLoading: isStoreLoading } = useDoc<Store>(storeRef);
+  
+  const categoryName = useMemo(() => {
+    if (!categorySlug) return null;
+    const category = allCategories.find(c => c.slug === categorySlug);
+    return category ? category.name : null;
+  }, [categorySlug]);
+
 
   const fetchItems = useCallback(async () => {
     if (!firestore || !storeId) {
@@ -51,12 +61,18 @@ export default function StorePage() {
     }
     setIsItemsLoading(true);
     try {
-      // Fetch Products
-      const productsQuery = query(
+      // Base query for store's products
+      let productsQuery: Query<DocumentData> = query(
         collection(firestore, 'products'),
         where('storeId', '==', storeId),
         where('type', '==', 'PRODUCT')
       );
+      
+      // If navigating from a specific category, filter products by it
+      if (categoryName && categoryName !== 'Serviços') {
+          productsQuery = query(productsQuery, where('category', '==', categoryName));
+      }
+
       const productsSnapshot = await getDocs(productsQuery);
       setProducts(
         productsSnapshot.docs.map(
@@ -64,7 +80,7 @@ export default function StorePage() {
         )
       );
 
-      // Fetch Services
+      // Fetch Services (services are always fetched regardless of category filter)
       const servicesQuery = query(
         collection(firestore, 'products'),
         where('storeId', '==', storeId),
@@ -82,7 +98,7 @@ export default function StorePage() {
     } finally {
       setIsItemsLoading(false);
     }
-  }, [firestore, storeId]);
+  }, [firestore, storeId, categoryName]);
 
   useEffect(() => {
     fetchItems();
@@ -99,7 +115,7 @@ export default function StorePage() {
   const hasServices = services && services.length > 0;
 
   const getDefaultTab = () => {
-    if (initialCategory === 'servicos' && hasServices) {
+    if (categorySlug === 'servicos' && hasServices) {
       return 'services';
     }
     if (hasProducts) {
@@ -112,6 +128,9 @@ export default function StorePage() {
   };
 
   const defaultTab = getDefaultTab();
+  
+  const backHref = categorySlug ? `/categorias/${categorySlug}` : '/home';
+
 
   if (isLoading) {
     return <StorePageSkeleton />;
@@ -152,9 +171,7 @@ export default function StorePage() {
             className="rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white"
             asChild
           >
-            <Link
-              href={initialCategory ? `/categorias/${initialCategory}` : '/home'}
-            >
+            <Link href={backHref}>
               <ArrowLeft />
             </Link>
           </Button>
@@ -220,7 +237,12 @@ export default function StorePage() {
                 </div>
               ) : (
                 <div className="py-12 text-center text-muted-foreground">
-                  <p>Esta loja ainda não tem produtos cadastrados.</p>
+                  <p>
+                    {categoryName 
+                      ? `Esta loja não tem produtos na categoria "${categoryName}".`
+                      : "Esta loja ainda não tem produtos cadastrados."
+                    }
+                  </p>
                 </div>
               )}
             </TabsContent>
