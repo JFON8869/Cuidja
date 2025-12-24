@@ -36,51 +36,75 @@ export default function WelcomePage() {
 
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
-        <div className="absolute inset-0 flex items-center justify-center p-4 opacity-10">
-            <svg viewBox="0 0 100 100" className="h-auto w-full max-w-[80vw]" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
-                <defs>
-                    <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style={{stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1}} />
-                    <stop offset="50%" style={{stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1}} />
-                    <stop offset="100%" style={{stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1}} />
-                    </linearGradient>
-                </defs>
-                <polygon 
-                    points="50 1 95 25 95 75 50 99 5 75 5 25" 
-                    fill="url(#hexGradient)"
-                    stroke="rgba(0, 0, 0, 0.3)"
-                    strokeWidth="1.5"
-                />
-            </svg>
+      <div className="absolute inset-0 flex h-full items-center justify-center p-4 opacity-10">
+        <svg
+          viewBox="0 0 100 100"
+          className="h-auto w-full max-w-[80vw] scale-y-130"
+          style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))' }}
+        >
+          <defs>
+            <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop
+                offset="0%"
+                style={{ stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1 }}
+              />
+              <stop
+                offset="50%"
+                style={{ stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1 }}
+              />
+              <stop
+                offset="100%"
+                style={{ stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1 }}
+              />
+            </linearGradient>
+          </defs>
+          <polygon
+            points="50 1 95 25 95 75 50 99 5 75 5 25"
+            fill="url(#hexGradient)"
+            stroke="rgba(0, 0, 0, 0.3)"
+            strokeWidth="1.5"
+          />
+        </svg>
       </div>
 
       <div className="relative z-10 flex h-full flex-col justify-between p-8">
-        <div/>
+        <div />
         <div className="space-y-4">
-            <Image src="/logo.svg" alt="Cuidja Logo" width={80} height={80} className="mx-auto" />
-            <h1 className="font-logo text-5xl">
-            <span className="text-orange-500">Cuid</span><span className="text-teal-400">ja</span>
-            </h1>
-            <p className="text-muted-foreground">
-            Compre e venda no comércio local. <br/> Fortaleça sua comunidade.
-            </p>
+          <Image
+            src="/logo.svg"
+            alt="Cuidja Logo"
+            width={80}
+            height={80}
+            className="mx-auto"
+          />
+          <h1 className="font-logo text-5xl">
+            <span className="text-orange-500">Cuid</span>
+            <span className="text-teal-400">ja</span>
+          </h1>
+          <p className="text-muted-foreground">
+            Compre e venda no comércio local. <br /> Fortaleça sua comunidade.
+          </p>
         </div>
 
         <div className="space-y-4">
-            <Button size="lg" className="w-full" asChild>
+          <Button size="lg" className="w-full" asChild>
             <Link href="/signup">Criar Conta</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="w-full" asChild>
+          </Button>
+          <Button size="lg" variant="outline" className="w-full" asChild>
             <Link href="/login">Já tenho uma conta</Link>
-            </Button>
-            <Button
+          </Button>
+          <Button
             variant="link"
             className="w-full"
             onClick={handleGuestSignIn}
             disabled={isGuestLoading}
-            >
-            {isGuestLoading ? <Loader2 className="animate-spin" /> : "Explorar como visitante"}
-            </Button>
+          >
+            {isGuestLoading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              'Explorar como visitante'
+            )}
+          </Button>
         </div>
       </div>
     </div>
