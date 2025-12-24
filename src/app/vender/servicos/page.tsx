@@ -19,7 +19,8 @@ import {
   getDocs,
   doc,
   deleteDoc,
-  orderBy
+  orderBy,
+  updateDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -43,6 +44,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function SellerServicesPage() {
   const { user, firestore, isUserLoading, store, isStoreLoading } = useFirebase();
@@ -83,6 +87,33 @@ export default function SellerServicesPage() {
     fetchServices();
   }, [user, firestore, isUserLoading, store, isStoreLoading]);
 
+  const handleAvailabilityChange = async (service: WithId<Product>, isChecked: boolean) => {
+    if (!firestore) return;
+    
+    // Services use 'on_demand' or 'unavailable'.
+    const newAvailability = isChecked ? 'on_demand' : 'unavailable';
+
+    // Optimistic UI update
+    setServices(prevServices => 
+      prevServices.map(s => s.id === service.id ? { ...s, availability: newAvailability } : s)
+    );
+
+    try {
+      const serviceRef = doc(firestore, 'products', service.id);
+      await updateDoc(serviceRef, {
+        availability: newAvailability
+      });
+      toast.success(`Status de "${service.name}" atualizado.`);
+    } catch (error) {
+      console.error('Error updating availability:', error);
+      toast.error(`Falha ao atualizar o status de "${service.name}". Revertendo.`);
+      // Revert optimistic update
+      setServices(prevServices => 
+        prevServices.map(s => s.id === service.id ? { ...s, availability: service.availability } : s)
+      );
+    }
+  };
+
   const handleDelete = async (serviceId: string) => {
     if (!firestore) return;
     const docRef = doc(firestore, 'products', serviceId);
@@ -104,7 +135,7 @@ export default function SellerServicesPage() {
 
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent shadow-2xl">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/vender">
@@ -135,7 +166,7 @@ export default function SellerServicesPage() {
         ) : (
           <div className="divide-y">
             {services.map(service => (
-                 <div key={service.id} className="p-4 flex items-center gap-4">
+                 <div key={service.id} className={cn("p-4 flex items-center gap-4 transition-opacity", service.availability === 'unavailable' && 'opacity-50')}>
                     <div className="h-16 w-16 flex items-center justify-center rounded-md border bg-muted">
                         <Wrench className="h-8 w-8 text-muted-foreground"/>
                     </div>
@@ -145,6 +176,11 @@ export default function SellerServicesPage() {
                            {service.price > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price) : "A combinar"}
                         </p>
                     </div>
+                     <Switch
+                        checked={service.availability !== 'unavailable'}
+                        onCheckedChange={(isChecked) => handleAvailabilityChange(service, isChecked)}
+                        aria-label={`Disponibilidade de ${service.name}`}
+                     />
                      <AlertDialog>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -190,6 +226,7 @@ export default function SellerServicesPage() {
           </div>
         )}
       </main>
+      <BottomNav/>
     </div>
   );
 }

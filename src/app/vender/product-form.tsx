@@ -43,6 +43,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
 import BottomNav from '@/components/layout/BottomNav';
+import { Switch } from '@/components/ui/switch';
 
 
 const productSchema = z.object({
@@ -50,7 +51,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
-  availability: z.enum(['available', 'on_demand', 'unavailable']),
+  availability: z.enum(['available', 'unavailable']),
 });
 
 
@@ -99,8 +100,13 @@ export function ProductForm({ productId }: ProductFormProps) {
 
           if (docSnap.exists()) {
             const productData = docSnap.data() as Product;
+            // The 'availability' field in the DB can be 'on_demand', but our form only supports 'available' or 'unavailable'.
+            // We map 'on_demand' to 'available' for the form's logic.
+            const availability = productData.availability === 'unavailable' ? 'unavailable' : 'available';
+
             form.reset({
               ...productData,
+              availability,
             });
           } else {
             toast.error('Produto não encontrado.');
@@ -183,7 +189,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
         } else {
             const newDocRef = doc(collection(firestore, 'products'));
-            await setDoc(newDocRef, { ...dataToSave, id: newDocRef.id, createdAt: serverTimestamp() });
+            await addDoc(collection(firestore, 'products'), { ...dataToSave, id: newDocRef.id, createdAt: serverTimestamp() });
         }
 
         // Atomically add the product's category to the store's list of categories
@@ -325,37 +331,30 @@ export function ProductForm({ productId }: ProductFormProps) {
             </div>
 
             <Separator />
-
-            <FormField
+            
+             <FormField
               control={form.control}
               name="availability"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Disponibilidade</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Como este produto estará disponível?" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="available">Pronta entrega</SelectItem>
-                      <SelectItem value="on_demand">Sob encomenda</SelectItem>
-                      <SelectItem value="unavailable">Indisponível</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Isso define se o cliente pode comprar na hora ou se precisa
-                    encomendar.
-                  </FormDescription>
-                  <FormMessage />
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Disponível para venda</FormLabel>
+                    <FormDescription>
+                      Se desativado, o produto não aparecerá para os clientes.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value === 'available'}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked ? 'available' : 'unavailable')
+                      }
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
+
 
             <Separator />
             
