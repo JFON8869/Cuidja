@@ -90,7 +90,14 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         const docRef = doc(firestore, 'products', serviceId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          form.reset(docSnap.data() as Product);
+          const serviceData = docSnap.data() as Product;
+          form.reset({
+            ...serviceData,
+            name: serviceData.name || '',
+            description: serviceData.description || '',
+            price: serviceData.price || 0,
+            attendanceType: serviceData.attendanceType || undefined,
+          });
         } else {
           toast.error('Serviço não encontrado.');
           router.push('/vender/servicos');

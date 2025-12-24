@@ -106,6 +106,10 @@ export function ProductForm({ productId }: ProductFormProps) {
 
             form.reset({
               ...productData,
+              name: productData.name || '',
+              description: productData.description || '',
+              price: productData.price || 0,
+              category: productData.category || '',
               availability,
             });
           } else {

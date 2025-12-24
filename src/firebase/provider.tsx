@@ -88,12 +88,12 @@ export const FirebaseProvider: React.FC<{
   // Effect to fetch and listen to the user's store data
   useEffect(() => {
       if (!firestore || !userAuthState.user) {
-          // If there's no user or firestore, we're not loading a store.
+          // If there's no user or firestore, we set loading to false.
           setStoreState({ store: null, isStoreLoading: false, storeError: null });
           return;
       }
 
-      setStoreState({ store: null, isStoreLoading: true, storeError: null });
+      setStoreState(prevState => ({ ...prevState, isStoreLoading: true }));
       
       const storesRef = collection(firestore, 'stores');
       const q = query(storesRef, where('userId', '==', userAuthState.user.uid));

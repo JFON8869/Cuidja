@@ -48,7 +48,6 @@ const dayHoursSchema = z.object({
   close: z.string(),
 });
 
-// V2 Store Schema without redundant 'id' field
 const storeSchema = z.object({
   name: z.string().min(3, 'O nome da loja é obrigatório.'),
   address: z.string().min(10, 'O endereço é obrigatório.'),
@@ -95,9 +94,8 @@ const getDefaultOperatingHours = () => {
 };
 
 export default function StoreFormPage() {
-  const { user, firestore, isUserLoading, store: existingStore } = useFirebase();
+  const { user, firestore, isUserLoading, store: existingStore, isStoreLoading } = useFirebase();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<StoreFormValues>({
@@ -113,7 +111,7 @@ export default function StoreFormPage() {
   const logoValue = form.watch('logoUrl');
 
   useEffect(() => {
-    if (isUserLoading) return;
+    if (isUserLoading || isStoreLoading) return;
     if (!user) {
       router.push('/login?redirect=/vender');
       return;
@@ -122,13 +120,14 @@ export default function StoreFormPage() {
     if (existingStore) {
         form.reset({
           ...existingStore,
+          name: existingStore.name || '',
+          address: existingStore.address || '',
           logoUrl: existingStore.logoUrl || null,
           operatingHours:
             existingStore.operatingHours || getDefaultOperatingHours(),
         });
     }
-    setIsLoading(false);
-  }, [user, isUserLoading, existingStore, router, form]);
+  }, [user, isUserLoading, existingStore, router, form, isStoreLoading]);
 
   const onSubmit = async (values: StoreFormValues) => {
     if (!user || !firestore) {
@@ -139,41 +138,28 @@ export default function StoreFormPage() {
     setIsSubmitting(true);
 
     try {
-      // V2 Logic: Separate logo file from other data
       const { logoUrl: logoFile, ...dataToSave } = values;
 
       let finalLogoUrl = existingStore?.logoUrl || '';
 
-      // Step 1: Handle file upload if a new file is present
       if (logoFile instanceof File) {
-        try {
-            const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
-            finalLogoUrl = await uploadFile(logoFile, filePath);
-        } catch (uploadError) {
-             console.error('File upload failed:', uploadError);
-             toast.error('O upload da imagem falhou. Verifique sua conexão e permissões.');
-             setIsSubmitting(false);
-             return;
-        }
+        const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
+        finalLogoUrl = await uploadFile(logoFile, filePath);
       } else if (logoFile === null) {
-        finalLogoUrl = ''; // Handle logo deletion
+        finalLogoUrl = '';
       }
 
-      // Step 2: Prepare data for Firestore, adding userId and final logo URL
       const finalStoreData = {
         ...dataToSave,
         logoUrl: finalLogoUrl,
         userId: user.uid,
       };
 
-      // Step 3: Save data to Firestore
       if (existingStore) {
-        // Update existing store
         const storeRef = doc(firestore, 'stores', existingStore.id);
         await updateDoc(storeRef, finalStoreData);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Create new store
         await addDoc(collection(firestore, 'stores'), {
           ...finalStoreData,
           categories: [],
@@ -220,7 +206,7 @@ export default function StoreFormPage() {
   const previewUrl = getPreviewUrl();
 
 
-  if (isLoading || isUserLoading) {
+  if (isUserLoading || isStoreLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
