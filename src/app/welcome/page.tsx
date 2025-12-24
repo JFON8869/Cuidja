@@ -36,38 +36,6 @@ export default function WelcomePage() {
 
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
-      <div className="absolute inset-0 -z-10 flex items-center justify-center p-4 opacity-10">
-        <div className="absolute inset-0 -translate-y-12 flex h-full items-center justify-center p-4 opacity-10">
-            <svg
-            viewBox="0 0 100 100"
-            className="h-full w-full max-w-[80vw] scale-y-130"
-            style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))' }}
-            >
-            <defs>
-                <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop
-                    offset="0%"
-                    style={{ stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1 }}
-                />
-                <stop
-                    offset="50%"
-                    style={{ stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1 }}
-                />
-                <stop
-                    offset="100%"
-                    style={{ stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1 }}
-                />
-                </linearGradient>
-            </defs>
-            <polygon
-                points="50 1 95 25 95 75 50 99 5 75 5 25"
-                fill="url(#hexGradient)"
-                stroke="rgba(0, 0, 0, 0.3)"
-                strokeWidth="1.5"
-            />
-            </svg>
-        </div>
-      </div>
       <div className="relative z-10 flex h-full flex-col justify-between p-8">
         <div />
         <div className="space-y-4">
