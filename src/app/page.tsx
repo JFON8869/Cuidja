@@ -16,17 +16,19 @@ export default function SplashPage() {
     // 1000ms = 1 segundo.
     //
     const sequence = [
-      // Etapa 0: Tempo que a tela fica estática no início (antes de começar a pulsar).
-      { delay: 1000, nextStep: 1 }, 
-      // Etapa 1: Duração da contração para 70% do tamanho.
-      { delay: 1250, nextStep: 2 }, 
-      // Etapa 2: Duração da pausa no tamanho mínimo (60%).
-      { delay: 1250, nextStep: 3 }, 
-      // Etapa 3: Duração da expansão de volta para 100%.
-      { delay: 1000, nextStep: 4 }, 
-      // Etapa 4: Tempo que a logo fica parada antes da expansão final.
-      { delay: 250, nextStep: 5 }, 
-      // Etapa 5: Duração da animação de expansão final antes de redirecionar.
+      // Etapa 0: Tempo que a tela fica estática no início.
+      { delay: 500, nextStep: 1 }, 
+      // Etapa 1: Duração da contração para 30% do tamanho.
+      { delay: 600, nextStep: 2 }, 
+      // Etapa 2: Duração da expansão para 60%.
+      { delay: 400, nextStep: 3 }, 
+      // Etapa 3: Duração da expansão para 80%.
+      { delay: 400, nextStep: 4 },
+      // Etapa 4: Duração da expansão de volta para 100%.
+      { delay: 400, nextStep: 5 },
+      // Etapa 5: Tempo que a logo fica parada antes da expansão final.
+      { delay: 500, nextStep: 6 },
+      // Etapa 6: Duração da animação de expansão final antes de redirecionar.
       { delay: 350, action: () => router.push('/welcome') }, 
     ];
 
@@ -60,23 +62,25 @@ export default function SplashPage() {
 
   const getLogoScaleClass = () => {
     switch (animationStep) {
-      case 0:
-        return 'scale-100'; // Initial size
-      case 1:
-        return 'scale-70'; // First contraction
-      case 2:
-        return 'scale-60'; // Second contraction (smallest point)
-      case 3:
-        return 'scale-100'; // Return to initial size
-      case 4:
-      case 5: // Keep scaled up during the final delay and redirection
-        return 'scale-[10]'; // Expand to fill screen
+      case 0: // Início
+        return 'scale-100'; 
+      case 1: // Contração
+        return 'scale-30'; 
+      case 2: // Crescimento 1
+        return 'scale-60'; 
+      case 3: // Crescimento 2
+        return 'scale-80';
+      case 4: // Volta ao original
+        return 'scale-100';
+      case 5: // Pausa antes da expansão final
+      case 6: // Expansão final
+        return 'scale-[10]';
       default:
         return 'scale-100';
     }
   };
   
-  const isFinalStep = animationStep >= 4;
+  const isFinalStep = animationStep >= 5;
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
