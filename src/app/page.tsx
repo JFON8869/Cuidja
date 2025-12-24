@@ -10,10 +10,10 @@ export default function SplashPage() {
 
   useEffect(() => {
     const sequence = [
-      { delay: 500, nextStep: 1 }, 
-      { delay: 150, nextStep: 2 }, 
-      { delay: 400, nextStep: 3 }, 
-      { delay: 350, nextStep: 4 }, 
+      { delay: 500, nextStep: 1 },
+      { delay: 150, nextStep: 2 },
+      { delay: 400, nextStep: 3 },
+      { delay: 350, nextStep: 4 },
       { delay: 250, nextStep: 5 },
       { delay: 300, nextStep: 6 },
       { delay: 600, nextStep: 7 },
@@ -51,7 +51,7 @@ export default function SplashPage() {
       case 4: return 'scale-105'; // Overshoot
       case 5: return 'scale-100'; // Settle
       case 6: return 'scale-100'; // Pause
-      case 7: return 'scale-[10]'; // Final expansion
+      case 7: return 'scale-[3]'; // Final expansion
       default: return 'scale-100';
     }
   };
@@ -125,14 +125,43 @@ export default function SplashPage() {
           </p>
       </div>
 
-      <img
-        src="/logo.svg"
-        alt="Cuidja Logo"
+       <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 100 100"
         className={cn(
           'absolute h-36 w-36 object-contain transition-transform duration-500 ease-in-out',
           getLogoScaleClass()
         )}
-      />
+        style={{
+          width: animationStep === 7 ? '100vw' : undefined,
+          height: animationStep === 7 ? '100vh' : undefined,
+        }}
+      >
+        <path fill="#e6801d" d="M89 32 50 9l-39 23v46l39 23 39-23z" />
+        <path
+          fill="#d1d1d1"
+          d="m81.9 66-15-18.1-13.4 15.3L37 77.8V35.6l23.5-13.6 21.4 12.3z"
+        />
+        <path
+          fill="#b8b8b8"
+          d="m50 22-23.5 13.6V77.8l16.5-14.6 17-19.4L81.9 30z"
+        />
+        <path fill="#e6801d" d="m50 43.8-13.5 15.4L50 71.4l13.5-12.2z" />
+        <path fill="#f29435" d="m50 43.8 13.5 15.4L50 71.4 36.5 59.2z" />
+        <path
+          fill="#e6801d"
+          d="M50 43.8c-1.5-1.8-3-3.4-4.2-5.3-2.1-3-3.2-6.5-2.2-9.9 1.1-3.6 4.3-6.5 8.1-7.1 4.5-.6 8.3 2.5 9.4 6.7.8 3-2.2 7-2.2 7l-11.1 8.6z"
+        />
+        <path
+          fill="#f29435"
+          d="M50 43.8c1.5-1.8 3-3.4 4.2-5.3 2.1-3 3.2-6.5 2.2-9.9-1.1-3.6-4.3-6.5-8.1-7.1-4.5-.6-8.3 2.5-9.4 6.7-.8 3 2.2 7 2.2 7l11.1 8.6z"
+        />
+        <path
+          fill="#3e8c73"
+          d="M36.5 59.2h27v2.8h-27zM36.5 63.4h27v2.8h-27z"
+        />
+      </svg>
+
 
       <div
         className={cn(
