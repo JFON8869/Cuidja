@@ -145,18 +145,12 @@ export default function SplashPage() {
           </div>
 
            {/* Logo Image - now absolutely positioned to animate independently */}
-           <div className={cn(
-              "absolute flex items-center justify-center bg-gradient-to-br from-white/40 to-white/20 rounded-3xl backdrop-blur-sm shadow-lg border border-white/30 transition-transform duration-500 ease-in-out",
-              isFinalStep && "bg-white/80", // Make bg more opaque on final step
-              getLogoScaleClass()
-            )} style={{width: '9rem', height: '9rem'}}>
-              <img 
-                src="/logo.svg" 
-                alt="Cuidja Logo" 
-                className="w-full h-full object-contain p-3"
-                style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))'}}
-              />
-            </div>
+            <img 
+              src="/logo.svg" 
+              alt="Cuidja Logo" 
+              className={cn("absolute w-36 h-36 object-contain transition-transform duration-500 ease-in-out", getLogoScaleClass())}
+              style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))'}}
+            />
           
           {/* Loading Animation */}
           <div className={cn(
