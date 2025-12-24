@@ -9,13 +9,14 @@ export default function SplashPage() {
   const [animationStep, setAnimationStep] = useState(0);
 
   useEffect(() => {
-    // Defines the sequence of animation steps
+    // Defines the sequence of animation steps with refined professional timing
     const sequence = [
-      { delay: 800, nextStep: 1 }, // After 0.8s, go to step 1 (scale 70%)
-      { delay: 800, nextStep: 2 }, // After 0.8s, go to step 2 (scale 60%)
-      { delay: 800, nextStep: 3 }, // After 0.8s, go to step 3 (scale 100%)
-      { delay: 800, nextStep: 4 }, // After 0.8s, go to step 4 (scale to fill)
-      { delay: 1000, action: () => router.push('/welcome') }, // After 1s, redirect
+      { delay: 500, nextStep: 1 }, // Step 0: Initial state, wait 500ms
+      { delay: 300, nextStep: 2 }, // Step 1: Quick contraction, wait 300ms
+      { delay: 200, nextStep: 3 }, // Step 2: Brief pause at smallest size, wait 200ms
+      { delay: 300, nextStep: 4 }, // Step 3: Quick expansion back to normal, wait 300ms
+      { delay: 800, nextStep: 5 }, // Step 4: Pause before final expansion, wait 800ms
+      { delay: 1000, action: () => router.push('/welcome') }, // Step 5: Redirect after final animation
     ];
 
     let currentTimeout: NodeJS.Timeout;
@@ -43,28 +44,28 @@ export default function SplashPage() {
 
     // Cleanup timer on component unmount
     return () => clearTimeout(currentTimeout);
-  // useEffect is set to run only once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getLogoScaleClass = () => {
     switch (animationStep) {
       case 0:
-        return 'scale-100'; // 1. Initial size
+        return 'scale-100'; // Initial size
       case 1:
-        return 'scale-70'; // 2. Shrink by 30%
+        return 'scale-70'; // First contraction
       case 2:
-        return 'scale-60'; // 3. Shrink by another 10%
+        return 'scale-60'; // Second contraction (smallest point)
       case 3:
-        return 'scale-100'; // 4. Return to initial size
+        return 'scale-100'; // Return to initial size
       case 4:
-        return 'scale-[10]'; // 5. Expand to fill screen
+      case 5: // Keep scaled up during the final delay and redirection
+        return 'scale-[10]'; // Expand to fill screen
       default:
         return 'scale-100';
     }
   };
   
-  const isFinalStep = animationStep === 4;
+  const isFinalStep = animationStep >= 4;
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
