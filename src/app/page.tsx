@@ -5,14 +5,22 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
-// Definição das etapas da animação com delay e escala
+// =================================================================================
+// PAINEL DE CONTROLE DA ANIMAÇÃO
+// Altere os valores nesta lista para customizar a animação da splash screen.
+//
+// - delay: Duração da etapa em milissegundos.
+// - scale: Multiplicador do tamanho da logo (1.0 = 100%, 0.2 = 20%, 20 = 2000%).
+// =================================================================================
 const ANIMATION_STAGES = [
   { delay: 100, scale: 1.05 }, // 1. Antecipação (crescimento sutil)
   { delay: 400, scale: 0.2 },  // 2. Contração Rápida
   { delay: 300, scale: 1.05 }, // 3. Overshoot (ultrapassagem na expansão)
   { delay: 150, scale: 1.0 },  // 4. Assentamento (volta ao normal)
-  { delay: 600, scale: 20 },   // 5. Clímax (expansão final para transição)
+  { delay: 600, scale: 1.0 },  // 5. Pausa antes do clímax
+  { delay: 500, scale: 20 },   // 6. Clímax (expansão final para transição)
 ];
+// =================================================================================
 
 export default function SplashPage() {
   const router = useRouter();
