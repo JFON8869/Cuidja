@@ -157,7 +157,7 @@
         },
         "category": {
           "type": "string",
-          "description": "Category of the product (e.g., 'Fruits', 'Vegetables', 'Serviços')."
+          "description": "Category of the product (e.g., 'Fruits', 'Vegetables', 'Serviços', 'Bebidas')."
         },
         "type": {
             "type": "string",
@@ -393,3 +393,5 @@
     ]
   }
 }
+
+    
