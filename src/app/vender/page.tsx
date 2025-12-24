@@ -2,17 +2,20 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Store as StoreIcon,
   PlusCircle,
   Package,
   ClipboardList,
   ChevronRight,
-  Info,
   Wrench,
   Loader2,
+  DollarSign,
+  Hash,
+  Calculator,
 } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 import { useFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -24,45 +27,47 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { WithId } from '@/firebase/firestore/use-collection';
-import { Store } from '@/lib/data';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Store, OrderType } from '@/lib/data';
 import BottomNav from '@/components/layout/BottomNav';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface OrderData {
+    status: string;
+    totalAmount: number;
+    orderType: OrderType;
+}
+
+interface DashboardMetrics {
+  totalRevenue: number;
+  totalOrders: number;
+  averageTicket: number;
+}
 
 export default function VenderPage() {
   const { user, isUserLoading, store, isStoreLoading } = useFirebase();
   const router = useRouter();
 
   useEffect(() => {
-    // Wait until loading is finished before checking auth/store.
     if (isUserLoading || isStoreLoading) {
       return;
     }
-
-    // If user is not authenticated, redirect to login.
     if (!user) {
       router.push('/login?redirect=/vender');
       return;
     }
-
-    // If user is authenticated but has no store, redirect to create one.
     if (!store) {
       router.push('/vender/loja');
     }
   }, [user, store, isUserLoading, isStoreLoading, router]);
 
-  // Show a loading spinner while user and store data are being fetched.
   if (isUserLoading || isStoreLoading) {
     return <VenderSkeleton />;
   }
 
-  // If user and store exist, render the main dashboard.
-  // The useEffect handles the redirection, but we might still render the dashboard
-  // for a frame, so we only render it if the store exists.
   if (store) {
     return <SellerDashboard store={store} />;
   }
   
-  // Render skeleton during the redirection phase to avoid content flash.
   return <VenderSkeleton />;
 }
 
@@ -83,6 +88,49 @@ function VenderSkeleton() {
 }
 
 function SellerDashboard({ store }: { store: WithId<Store> }) {
+  const { user, firestore } = useFirebase();
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
+
+  useEffect(() => {
+    async function fetchDashboardMetrics() {
+        if (!firestore || !store) return;
+        
+        setIsLoadingMetrics(true);
+        
+        try {
+            const ordersQuery = query(
+                collection(firestore, 'orders'),
+                where('storeId', '==', store.id)
+            );
+            
+            const querySnapshot = await getDocs(ordersQuery);
+            const orders = querySnapshot.docs.map(doc => doc.data() as OrderData);
+
+            const completedPurchases = orders.filter(
+                order => order.orderType === 'PURCHASE' && (order.status === 'Entregue' || order.status === 'Concluído')
+            );
+            
+            const totalRevenue = completedPurchases.reduce((acc, order) => acc + order.totalAmount, 0);
+            const totalOrders = orders.length;
+            const averageTicket = totalOrders > 0 ? totalRevenue / completedPurchases.length : 0;
+            
+            setMetrics({
+                totalRevenue,
+                totalOrders,
+                averageTicket
+            });
+
+        } catch (error) {
+            console.error("Error fetching dashboard metrics: ", error);
+        } finally {
+            setIsLoadingMetrics(false);
+        }
+    }
+    fetchDashboardMetrics();
+  }, [firestore, store]);
+
+
   const menuItems = [
     {
       href: `/vender/novo-anuncio`,
@@ -91,10 +139,30 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
     },
     { href: '/vender/produtos', label: 'Gerenciar Produtos', icon: Package },
     { href: '/vender/servicos', label: 'Gerenciar Serviços', icon: Wrench },
+    { href: `/pedidos`, label: 'Visualizar Pedidos', icon: ClipboardList },
     { href: `/vender/loja`, label: 'Editar Dados da Loja', icon: StoreIcon },
   ];
 
-  const { user } = useFirebase();
+  const kpiCards = [
+    {
+        title: "Faturamento Total",
+        value: metrics?.totalRevenue,
+        icon: DollarSign,
+        format: (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+    },
+    {
+        title: "Total de Pedidos",
+        value: metrics?.totalOrders,
+        icon: Hash,
+        format: (value: number) => value.toString()
+    },
+    {
+        title: "Ticket Médio",
+        value: metrics?.averageTicket,
+        icon: Calculator,
+        format: (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+    }
+  ]
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
@@ -110,20 +178,27 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
                 Bem-vindo(a) de volta, {user?.displayName?.split(' ')[0]}!
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>Próximos Passos</AlertTitle>
-                <AlertDescription>
-                  As seções de Pedidos e Desempenho estão em desenvolvimento e
-                  serão liberadas em breve.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
           </Card>
         </div>
 
-        <div className="mx-4 flex flex-col border-y">
+        <div className="grid grid-cols-3 gap-4 px-4">
+            {kpiCards.map(kpi => (
+                <Card key={kpi.title}>
+                    <CardHeader>
+                        <CardDescription className="flex items-center gap-1.5 text-xs"><kpi.icon size={14}/> {kpi.title}</CardDescription>
+                        <CardTitle>
+                            {isLoadingMetrics ? (
+                                <Skeleton className="h-7 w-20" />
+                            ) : (
+                                kpi.format(kpi.value || 0)
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                </Card>
+            ))}
+        </div>
+
+        <div className="mx-4 mt-6 flex flex-col border-y">
           {menuItems.map((item) => (
             <Link
               href={item.href}
@@ -135,23 +210,6 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </Link>
           ))}
-        </div>
-
-        <div className="mt-4 space-y-4 p-4">
-          <Link href="/pedidos">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Pedidos Recebidos</CardTitle>
-                <ClipboardList className="h-6 w-6 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">0</p>
-                <p className="text-xs text-muted-foreground">
-                  Nenhum pedido novo
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
         </div>
       </main>
       <BottomNav />
