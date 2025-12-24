@@ -10,14 +10,24 @@ export default function SplashPage() {
   const [animationStep, setAnimationStep] = useState(0);
 
   useEffect(() => {
-    // Defines the sequence of animation steps with refined professional timing
+    //
+    // --- PONTO DE CONTROLE DA ANIMAÇÃO ---
+    // Você pode alterar o valor de `delay` (em milissegundos) em cada etapa para ajustar o ritmo da animação.
+    // 1000ms = 1 segundo.
+    //
     const sequence = [
-      { delay: 500, nextStep: 1 }, // Step 0: Initial state, wait 500ms
-      { delay: 450, nextStep: 2 }, // Step 1: Contraction, increased from 300ms
-      { delay: 300, nextStep: 3 }, // Step 2: Pause at smallest size, increased from 200ms
-      { delay: 450, nextStep: 4 }, // Step 3: Expansion back to normal, increased from 300ms
-      { delay: 800, nextStep: 5 }, // Step 4: Pause before final expansion, wait 800ms
-      { delay: 1000, action: () => router.push('/welcome') }, // Step 5: Redirect after final animation
+      // Etapa 0: Tempo que a tela fica estática no início (antes de começar a pulsar).
+      { delay: 500, nextStep: 1 }, 
+      // Etapa 1: Duração da contração para 70% do tamanho.
+      { delay: 450, nextStep: 2 }, 
+      // Etapa 2: Duração da pausa no tamanho mínimo (60%).
+      { delay: 300, nextStep: 3 }, 
+      // Etapa 3: Duração da expansão de volta para 100%.
+      { delay: 450, nextStep: 4 }, 
+      // Etapa 4: Tempo que a logo fica parada antes da expansão final.
+      { delay: 800, nextStep: 5 }, 
+      // Etapa 5: Duração da animação de expansão final antes de redirecionar.
+      { delay: 1000, action: () => router.push('/welcome') }, 
     ];
 
     let currentTimeout: NodeJS.Timeout;
