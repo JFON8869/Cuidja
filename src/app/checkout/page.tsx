@@ -98,7 +98,7 @@ export default function CheckoutPage() {
   });
   
  useEffect(() => {
-    if (isUserLoading) return; // Wait for auth state to be resolved
+    if (isUserLoading || isUserDataLoading) return;
 
     if (!user) {
       toast.error('Você precisa estar logado para finalizar a compra.');
@@ -106,6 +106,12 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (user.isAnonymous) {
+      toast.error('Para finalizar a compra, por favor, crie uma conta ou faça login.');
+      router.push('/login?redirect=/checkout');
+      return;
+    }
+    
     if (userData) {
       const defaultAddress = userData.addresses && userData.addresses.length > 0 ? userData.addresses[0] : null;
       form.reset({
@@ -128,7 +134,7 @@ export default function CheckoutPage() {
         isUrgent: isUrgentCategory,
        });
     }
-  }, [userData, user, isUserLoading, isUrgentCategory, form, router]);
+  }, [userData, user, isUserLoading, isUserDataLoading, isUrgentCategory, form, router]);
 
   useEffect(() => {
     form.setValue('isUrgent', isUrgentCategory);
