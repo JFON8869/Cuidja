@@ -17,6 +17,7 @@ const ANIMATION_STAGES = [
   { delay: 400, scale: 0.2 },  // 2. Contração Rápida
   { delay: 150, scale: 1.05 }, // 3. Overshoot (ultrapassagem na expansão)
   { delay: 100, scale: 1.0 },  // 4. Assentamento (volta ao normal)
+  { delay: 350, scale: 3.0 },  // 5. Clímax: Expansão final para 30% da tela
 ];
 // =================================================================================
 
