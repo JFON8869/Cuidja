@@ -10,14 +10,14 @@ export default function SplashPage() {
 
   useEffect(() => {
     const sequence = [
-      { delay: 500, nextStep: 1 }, // Initial pause
-      { delay: 150, nextStep: 2 }, // Anticipation (grow)
-      { delay: 400, nextStep: 3 }, // Main action (shrink)
-      { delay: 350, nextStep: 4 }, // Settle 1 (grow back)
-      { delay: 250, nextStep: 5 }, // Settle 2 (overshoot)
-      { delay: 300, nextStep: 6 }, // Final settle
-      { delay: 600, nextStep: 7 }, // Pause before final action
-      { delay: 350, action: () => router.push('/welcome') },
+      { delay: 750, nextStep: 1 }, // Initial pause (500 * 1.5)
+      { delay: 225, nextStep: 2 }, // Anticipation (grow) (150 * 1.5)
+      { delay: 600, nextStep: 3 }, // Main action (shrink) (400 * 1.5)
+      { delay: 525, nextStep: 4 }, // Settle 1 (grow back) (350 * 1.5)
+      { delay: 375, nextStep: 5 }, // Settle 2 (overshoot) (250 * 1.5)
+      { delay: 450, nextStep: 6 }, // Final settle (300 * 1.5)
+      { delay: 900, nextStep: 7 }, // Pause before final action (600 * 1.5)
+      { delay: 525, action: () => router.push('/welcome') }, // (350 * 1.5)
     ];
 
     let currentTimeout: NodeJS.Timeout;
@@ -51,7 +51,7 @@ export default function SplashPage() {
       case 4: return 'scale-105'; // 4. Overshoot
       case 5: return 'scale-100'; // 5. Settle at original size
       case 6: return 'scale-100'; // 6. Pause
-      case 7: return 'scale-[5]'; // 7. Final expansion (to 50% of screen)
+      case 7: return 'scale-[3]'; // 7. Final expansion (to 30% of screen)
       default: return 'scale-100';
     }
   };
