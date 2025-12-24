@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -12,9 +13,9 @@ export default function SplashPage() {
     // Defines the sequence of animation steps with refined professional timing
     const sequence = [
       { delay: 500, nextStep: 1 }, // Step 0: Initial state, wait 500ms
-      { delay: 300, nextStep: 2 }, // Step 1: Quick contraction, wait 300ms
-      { delay: 200, nextStep: 3 }, // Step 2: Brief pause at smallest size, wait 200ms
-      { delay: 300, nextStep: 4 }, // Step 3: Quick expansion back to normal, wait 300ms
+      { delay: 450, nextStep: 2 }, // Step 1: Contraction, increased from 300ms
+      { delay: 300, nextStep: 3 }, // Step 2: Pause at smallest size, increased from 200ms
+      { delay: 450, nextStep: 4 }, // Step 3: Expansion back to normal, increased from 300ms
       { delay: 800, nextStep: 5 }, // Step 4: Pause before final expansion, wait 800ms
       { delay: 1000, action: () => router.push('/welcome') }, // Step 5: Redirect after final animation
     ];
