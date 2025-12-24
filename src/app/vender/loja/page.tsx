@@ -243,7 +243,7 @@ export default function StoreFormPage() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {existingStore ? 'Atualize os dados' : 'Informações da Loja'}
+                  Informações da Loja
                 </CardTitle>
                 <CardDescription>
                   {existingStore
