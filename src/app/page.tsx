@@ -77,14 +77,9 @@ export default function SplashPage() {
         </svg>
         <div className="relative flex h-80 w-72 flex-col items-center justify-between p-8">
             <h1
-                className="text-7xl font-black tracking-tight"
-                style={{
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                textShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-                }}
+                className="cuidja-logo-text font-logo text-7xl"
             >
-                <span className="text-orange-500">Cuid</span>
-                <span className="text-teal-400">ja</span>
+                Cuidja
             </h1>
             <p
                 className="text-sm font-bold uppercase tracking-widest text-gray-900"
