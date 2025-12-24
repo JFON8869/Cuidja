@@ -50,7 +50,7 @@ service cloud.firestore {
     match /products/{productId} {
       allow get: if true;
       allow list: if false; // Deny global list, queries must use indexes.
-      allow create: if isCreatingOwnResource() && request.resource.data.sellerId == request.auth.uid;
+      allow create: if isCreatingOwnResource();
       allow update: if isResourceSeller(resource);
       allow delete: if isResourceSeller(resource);
     }
