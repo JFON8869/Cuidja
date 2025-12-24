@@ -132,29 +132,36 @@ export default function StoreFormPage() {
 
   const onSubmit = async (values: StoreFormValues) => {
     if (!user || !firestore) {
-      toast.error("Você precisa estar logado para salvar.");
+      toast.error('Você precisa estar logado para salvar.');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      let finalLogoUrl = existingStore?.logoUrl || "";
+      let finalLogoUrl = existingStore?.logoUrl || '';
       const { logoUrl, ...restOfValues } = values;
 
       // Step 1: Handle file upload if a new file is present
       if (logoUrl instanceof File) {
-        const filePath = `logos/${user.uid}/${Date.now()}_${logoUrl.name}`;
-        finalLogoUrl = await uploadFile(logoUrl, filePath);
+        try {
+            const filePath = `logos/${user.uid}/${Date.now()}_${logoUrl.name}`;
+            finalLogoUrl = await uploadFile(logoUrl, filePath);
+        } catch (uploadError) {
+             console.error('File upload failed:', uploadError);
+             toast.error('O upload da imagem falhou. Verifique sua conexão e permissões.');
+             setIsSubmitting(false);
+             return; // Stop the submission process
+        }
       } else if (logoUrl === null) {
-          finalLogoUrl = ""; // Handle logo deletion
+        finalLogoUrl = ''; // Handle logo deletion
       }
 
-      // Step 2: Prepare data for Firestore, ensuring only valid data types are sent.
-      const dataToSave: any = {
+      // Step 2: Prepare data for Firestore
+      const dataToSave = {
         ...restOfValues,
-        logoUrl: finalLogoUrl, // This is now a string URL or an empty string.
-        userId: user.uid, // Always ensure the userId is the current user's
+        logoUrl: finalLogoUrl, // This is now a string URL or an empty string
+        userId: user.uid,
       };
 
       // Step 3: Save data to Firestore
@@ -167,21 +174,20 @@ export default function StoreFormPage() {
         // Create new store
         const storeCollectionRef = collection(firestore, 'stores');
         await addDoc(storeCollectionRef, {
-            ...dataToSave,
-            categories: [], // Initialize with empty categories
-            createdAt: serverTimestamp(),
+          ...dataToSave,
+          categories: [], // Initialize with empty categories
+          createdAt: serverTimestamp(),
         });
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
-      
+
       router.push('/vender');
       router.refresh(); // Force refresh to get new store data in context
-
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
   

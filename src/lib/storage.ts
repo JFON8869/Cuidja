@@ -19,8 +19,8 @@ export const uploadFile = async (
   file: File,
   path: string
 ): Promise<string> => {
-  // We can't use the useFirebase hook here directly as this is not a component.
-  // Instead, we get the initialized app instance first.
+  // It's crucial to get the initialized app instance this way,
+  // especially in a client-side context where providers manage initialization.
   const app = getApp();
   const storage = getStorage(app);
 
@@ -35,9 +35,9 @@ export const uploadFile = async (
 
     return downloadURL;
   } catch (error) {
-    console.error('Error uploading file:', error);
-    // Depending on requirements, you might want to throw a more specific error
-    // or handle it differently.
-    throw new Error('Failed to upload file.');
+    console.error('Error uploading file to Firebase Storage:', error);
+    // Re-throw a more specific error to be caught by the calling function.
+    // This allows for more granular error handling in the UI.
+    throw new Error('Failed to upload file. Check storage rules and network connection.');
   }
 };
