@@ -36,7 +36,7 @@ export default function WelcomePage() {
 
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
-      <div className="absolute inset-0 flex h-full items-center justify-center p-4 opacity-10">
+      <div className="absolute inset-0 -translate-y-12 flex h-full items-center justify-center p-4 opacity-10">
         <svg
           viewBox="0 0 100 100"
           className="h-auto w-full max-w-[80vw] scale-y-130"
