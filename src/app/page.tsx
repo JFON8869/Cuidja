@@ -52,35 +52,6 @@ export default function SplashPage() {
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center overflow-hidden bg-transparent shadow-2xl">
-      
-      {/* Hexagon Background */}
-       <div className="absolute inset-0 z-0 flex items-center justify-center">
-         <svg
-          viewBox="0 0 100 100"
-          className="h-[80vh] w-[80vh] max-h-[800px] max-w-[800px] opacity-20"
-          style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.05))' }}
-        >
-          <defs>
-            <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop
-                offset="0%"
-                style={{ stopColor: 'rgba(255,255,255,0.4)', stopOpacity: 1 }}
-              />
-              <stop
-                offset="100%"
-                style={{ stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1 }}
-              />
-            </linearGradient>
-          </defs>
-          <polygon
-            points="50 1 95 25 95 75 50 99 5 75 5 25"
-            fill="url(#hexGradient)"
-            stroke="rgba(0, 0, 0, 0.1)"
-            strokeWidth="0.5"
-          />
-        </svg>
-      </div>
-
       {/* Content Container (Text + Logo) */}
       <div className={cn('relative z-10 flex flex-col items-center justify-center transition-opacity duration-500', isAnimatingOut ? 'opacity-0' : 'opacity-100')}>
         
@@ -104,10 +75,9 @@ export default function SplashPage() {
 
         {/* Text */}
         <div className="flex h-80 w-72 flex-col items-center justify-between p-8">
-          <h1 className="font-logo text-7xl">
-            <span className="text-orange-500">Cuid</span>
-            <span className="text-teal-400">ja</span>
-          </h1>
+           <h1 className="font-logo text-7xl">
+              <span className="text-orange-500">Cuid</span><span className="text-teal-400">ja</span>
+           </h1>
           <p
             className="text-sm font-bold uppercase tracking-widest text-gray-900"
             style={{
