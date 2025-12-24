@@ -17,19 +17,19 @@ export default function SplashPage() {
     const sequence = [
       // Etapa 0: Tempo que a tela fica estática no início.
       { delay: 500, nextStep: 1 }, 
-      // Etapa 1: Duração da contração para 30% do tamanho.
+      // Etapa 1: Duração da primeira contração para 40% (diminui 60%).
       { delay: 600, nextStep: 2 }, 
-      // Etapa 2: Duração da primeira expansão para 80%.
+      // Etapa 2: Duração da segunda contração para 20% (diminui 80%).
       { delay: 450, nextStep: 3 },
-      // Etapa 3: Duração do recuo para 60%.
+      // Etapa 3: Começa a aumentar para 60%.
       { delay: 400, nextStep: 4 },
-      // Etapa 4: Duração da expansão de volta para 100%.
-      { delay: 500, nextStep: 5 },
-      // Etapa 5: Pausa longa com a logo no tamanho final da pulsação.
-      { delay: 600, nextStep: 6 },
-      // Etapa 6: Breve pausa antes da expansão final.
-      { delay: 150, nextStep: 7 },
-      // Etapa 7: Duração da animação de expansão final antes de redirecionar.
+      // Etapa 4: Continua a aumentar para 80%.
+      { delay: 400, nextStep: 5 },
+      // Etapa 5: Volta para 100% (tamanho original).
+      { delay: 500, nextStep: 6 },
+      // Etapa 6: Pausa longa com a logo no tamanho final da pulsação.
+      { delay: 600, nextStep: 7 },
+      // Etapa 7: Duração da animação de expansão final (a mais rápida) antes de redirecionar.
       { delay: 350, action: () => router.push('/welcome') }, 
     ];
 
@@ -63,20 +63,21 @@ export default function SplashPage() {
 
   const getLogoScaleClass = () => {
     switch (animationStep) {
-      case 0: // Início
+      case 0: // Splash 1: Início
         return 'scale-100'; 
-      case 1: // Contração Profunda
-        return 'scale-30'; 
-      case 2: // Primeira Expansão (Bounce up)
-        return 'scale-80'; 
-      case 3: // Recuo (Bounce down)
+      case 1: // Splash 2: Diminui 60%
+        return 'scale-40'; 
+      case 2: // Splash 3: Diminui 80%
+        return 'scale-20'; 
+      case 3: // Splash 4: Crescimento
         return 'scale-60';
-      case 4: // Volta ao Original
+      case 4: // Splash 5: Crescimento
+        return 'scale-80';
+      case 5: // Splash 6: Volta ao Original
         return 'scale-100';
-      case 5: // Pausa
-      case 6: // Preparação
+      case 6: // Splash 7: Pausa
         return 'scale-100';
-      case 7: // Expansão Final
+      case 7: // Splash 8: Expansão Final
         return 'scale-[10]';
       default:
         return 'scale-100';
@@ -149,7 +150,6 @@ export default function SplashPage() {
               src="/logo.svg" 
               alt="Cuidja Logo" 
               className={cn("absolute w-36 h-36 object-contain transition-transform duration-500 ease-in-out", getLogoScaleClass())}
-              style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))'}}
             />
           
           {/* Loading Animation */}
