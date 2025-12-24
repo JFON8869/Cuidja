@@ -138,50 +138,46 @@ export default function SplashPage() {
               </svg>
 
               {/* Content Inside Hexagon */}
-              <div className="relative z-10 flex flex-col items-center">
+              <div className="relative z-10 flex h-full w-full flex-col items-center justify-between p-8">
                 {/* Logo Title */}
-                <div className="mb-4">
-                  <h1
-                    className="text-7xl font-black tracking-tight"
+                <h1
+                  className="text-7xl font-black tracking-tight"
+                  style={{
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                  }}
+                >
+                  <span
+                    className="inline-block text-orange-500"
                     style={{
-                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      textShadow:
+                        '2px 2px 0px rgba(139, 69, 19, 0.3), 3px 3px 0px rgba(255, 255, 255, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.2)',
+                      transform: 'translateY(-2px)',
                     }}
                   >
-                    <span
-                      className="inline-block text-orange-500"
-                      style={{
-                        textShadow:
-                          '2px 2px 0px rgba(139, 69, 19, 0.3), 3px 3px 0px rgba(255, 255, 255, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.2)',
-                        transform: 'translateY(-2px)',
-                      }}
-                    >
-                      Cuid
-                    </span>
-                    <span
-                      className="inline-block text-teal-400"
-                      style={{
-                        textShadow:
-                          '2px 2px 0px rgba(0, 100, 100, 0.3), 3px 3px 0px rgba(255, 255, 255, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.2)',
-                        transform: 'translateY(-2px)',
-                      }}
-                    >
-                      ja
-                    </span>
-                  </h1>
-                </div>
+                    Cuid
+                  </span>
+                  <span
+                    className="inline-block text-teal-400"
+                    style={{
+                      textShadow:
+                        '2px 2px 0px rgba(0, 100, 100, 0.3), 3px 3px 0px rgba(255, 255, 255, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.2)',
+                      transform: 'translateY(-2px)',
+                    }}
+                  >
+                    ja
+                  </span>
+                </h1>
 
                 {/* Subtitle */}
-                <div className="text-center">
-                  <p
-                    className="text-lg font-bold uppercase tracking-widest text-gray-900"
-                    style={{
-                      textShadow: '1px 1px 2px rgba(255, 255, 255, 0.8)',
-                      letterSpacing: '0.1em',
-                    }}
-                  >
-                    O seu comércio local
-                  </p>
-                </div>
+                <p
+                  className="text-base font-bold uppercase tracking-widest text-gray-900"
+                  style={{
+                    textShadow: '1px 1px 2px rgba(255, 255, 255, 0.8)',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  O seu comércio local
+                </p>
               </div>
             </div>
           </div>
