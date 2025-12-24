@@ -10,10 +10,11 @@ export default function SplashPage() {
 
   useEffect(() => {
     const sequence = [
-      { delay: 800, nextStep: 1 }, // After 0.8s, shrink to 70%
-      { delay: 800, nextStep: 2 }, // After another 0.8s, shrink to 60%
-      { delay: 800, nextStep: 3 }, // After another 0.8s, return to 100%
-      { delay: 1000, action: () => router.push('/welcome') }, // After 1s, redirect
+      { delay: 800, nextStep: 1 }, // Shrink to 70%
+      { delay: 800, nextStep: 2 }, // Shrink to 60%
+      { delay: 800, nextStep: 3 }, // Return to 100%
+      { delay: 800, nextStep: 4 }, // Expand to fill screen
+      { delay: 1000, action: () => router.push('/welcome') }, // Redirect
     ];
 
     let currentTimeout: NodeJS.Timeout;
@@ -34,25 +35,30 @@ export default function SplashPage() {
         }, delay);
     }
 
+    // Start the animation sequence from the current step
     runAnimation(animationStep);
 
     return () => clearTimeout(currentTimeout); // Cleanup timer on unmount
-  }, [animationStep, router]);
+  }, []);
 
   const getLogoScaleClass = () => {
     switch (animationStep) {
       case 0:
-        return 'scale-100'; // Initial larger size
+        return 'scale-100'; // Initial size
       case 1:
         return 'scale-70'; // Shrink by 30%
       case 2:
-        return 'scale-[.63]'; // 70% * 0.9 = 63% of original size
+        return 'scale-60'; // Shrink by another 10%
       case 3:
         return 'scale-100'; // Return to initial size
+      case 4:
+        return 'scale-[10]'; // Expand to fill screen
       default:
         return 'scale-100';
     }
   };
+  
+  const isFinalStep = animationStep === 4;
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
@@ -61,7 +67,7 @@ export default function SplashPage() {
         <div className="relative flex h-full w-full flex-col items-center justify-center px-8">
           
           {/* Hexagonal Container */}
-          <div className="relative">
+          <div className={cn("relative transition-opacity duration-500", isFinalStep ? 'opacity-0' : 'opacity-100')}>
             {/* Hexagon Background */}
             <div className="relative flex h-80 w-72 items-center justify-center">
               <svg viewBox="0 0 100 100" className="absolute h-full w-full" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
@@ -97,18 +103,8 @@ export default function SplashPage() {
                   </h1>
                 </div>
                 
-                {/* Logo Image */}
-                <div className={cn(
-                    "mb-6 flex items-center justify-center bg-gradient-to-br from-white/40 to-white/20 rounded-3xl backdrop-blur-sm shadow-lg border border-white/30 transition-transform duration-500 ease-in-out",
-                    getLogoScaleClass()
-                )} style={{width: '9rem', height: '9rem'}}>
-                  <img 
-                    src="/logo.svg" 
-                    alt="Cuidja Logo" 
-                    className="w-full h-full object-contain p-3"
-                    style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))'}}
-                  />
-                </div>
+                {/* Invisible Box for Logo to be centered on */}
+                <div className="mb-6 h-36 w-36" />
                 
                 {/* Subtitle */}
                 <div className="text-center">
@@ -122,9 +118,26 @@ export default function SplashPage() {
               </div>
             </div>
           </div>
+
+           {/* Logo Image - now absolutely positioned to animate independently */}
+           <div className={cn(
+              "absolute flex items-center justify-center bg-gradient-to-br from-white/40 to-white/20 rounded-3xl backdrop-blur-sm shadow-lg border border-white/30 transition-transform duration-500 ease-in-out",
+              isFinalStep && "bg-white/80", // Make bg more opaque on final step
+              getLogoScaleClass()
+            )} style={{width: '9rem', height: '9rem'}}>
+              <img 
+                src="/logo.svg" 
+                alt="Cuidja Logo" 
+                className="w-full h-full object-contain p-3"
+                style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))'}}
+              />
+            </div>
           
           {/* Loading Animation */}
-          <div className="absolute bottom-20 flex space-x-2">
+          <div className={cn(
+              "absolute bottom-20 flex space-x-2 transition-opacity duration-500",
+              isFinalStep ? 'opacity-0' : 'opacity-100'
+            )}>
             <div className="w-3 h-3 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
             <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
             <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
