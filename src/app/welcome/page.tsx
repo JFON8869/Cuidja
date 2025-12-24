@@ -37,7 +37,7 @@ export default function WelcomePage() {
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
       {/* Hexagon Background */}
-      <div className="absolute inset-0 z-0 flex items-start justify-center opacity-10" style={{transform: 'translateY(-90%)'}}>
+      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10">
         <div className="h-[400px] w-[400px]">
         <svg viewBox="0 0 100 100" className="absolute w-full h-full" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
           <defs>
