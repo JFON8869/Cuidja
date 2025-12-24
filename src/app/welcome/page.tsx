@@ -1,45 +1,67 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { signInAnonymously } from 'firebase/auth';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
-import toast from 'react-hot-toast';
-import { handleGoogleSignIn } from '@/lib/auth-actions';
 import { useFirebase } from '@/firebase';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export default function WelcomePage() {
-  const { auth, firestore } = useFirebase();
+  const { auth } = useFirebase();
   const router = useRouter();
-  const [isGoogleLoading, setGoogleLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
 
-  const onGoogleSignIn = async () => {
-    if (!auth || !firestore) return;
-    await handleGoogleSignIn(auth, firestore, router, toast, setGoogleLoading);
-  };
+  const handleGuestSignIn = async () => {
+    if (!auth) {
+        toast.error("O serviço de autenticação não está disponível. Tente novamente mais tarde.");
+        return;
+    }
+    setIsGuestLoading(true);
+    try {
+        await signInAnonymously(auth);
+        toast.success("Bem-vindo(a)!");
+        router.push('/home');
+    } catch (error) {
+        console.error("Anonymous sign-in failed", error);
+        toast.error("Não foi possível entrar como visitante.");
+    } finally {
+        setIsGuestLoading(false);
+    }
+  }
 
   return (
-    <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent p-6 text-center shadow-2xl">
-      <div className="flex flex-col items-center justify-center">
-        <h1 className="cuidja-logo-text font-logo text-8xl leading-tight">
+    <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col justify-between bg-card p-8 text-center shadow-2xl">
+      <div/>
+      <div className="space-y-4">
+        <Image src="/logo.svg" alt="Cuidja Logo" width={80} height={80} className="mx-auto" />
+        <h1 className="cuidja-logo-text font-logo text-5xl">
           Cuidja
         </h1>
-        <p className="mt-4 max-w-xs text-lg font-headline tracking-widest uppercase">
-          O Seu Comércio Local
+        <p className="text-muted-foreground">
+          Compre e venda no comércio local. <br/> Fortaleça sua comunidade.
         </p>
       </div>
 
-      <div className="absolute bottom-16 w-full max-w-xs space-y-4">
-        <Button onClick={onGoogleSignIn} size="lg" className="w-full" disabled={isGoogleLoading}>
-          {isGoogleLoading ? 'Entrando...' : 'Entrar com Google'}
+      <div className="space-y-4">
+        <Button size="lg" className="w-full" asChild>
+          <Link href="/signup">Criar Conta</Link>
         </Button>
-        <Button asChild size="lg" variant="outline" className="w-full">
-          <Link href="/home">Entrar como Visitante</Link>
+        <Button size="lg" variant="outline" className="w-full" asChild>
+          <Link href="/login">Já tenho uma conta</Link>
         </Button>
-        <p className="text-xs text-muted-foreground">
-            Já tem uma conta? <Link href="/login" className="text-primary underline">Faça login</Link>
-        </p>
+         <Button
+          variant="link"
+          className="w-full"
+          onClick={handleGuestSignIn}
+          disabled={isGuestLoading}
+        >
+          {isGuestLoading ? <Loader2 className="animate-spin" /> : "Explorar como visitante"}
+        </Button>
       </div>
     </div>
   );
