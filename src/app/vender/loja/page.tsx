@@ -153,7 +153,7 @@ export default function StoreFormPage() {
       const dataToSave = {
         ...values,
         logoUrl: finalLogoUrl,
-        userId: user.uid,
+        userId: user.uid, // Always ensure the userId is the current user's
       };
 
       // Step 3: Save data to Firestore
@@ -163,11 +163,10 @@ export default function StoreFormPage() {
         await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Create new store using setDoc with a pre-generated ID
-        const newStoreRef = doc(collection(firestore, 'stores'));
-        await setDoc(newStoreRef, {
+        // Create new store
+        const storeCollectionRef = collection(firestore, 'stores');
+        await addDoc(storeCollectionRef, {
             ...dataToSave,
-            id: newStoreRef.id, // Store the ID within the document
             categories: [], // Initialize with empty categories
             createdAt: serverTimestamp(),
         });

@@ -42,10 +42,9 @@ service cloud.firestore {
 
     match /stores/{storeId} {
         allow get, list: if true;
-        // The user creating the store must be the owner of the store.
+        // The user creating the store must be the owner of the store, and the data being written must match.
         allow create: if isCreatingOwn('userId') && request.resource.data.userId == request.auth.uid;
-        allow update: if isDocumentOwner(resource, 'userId');
-        allow delete: if isDocumentOwner(resource, 'userId');
+        allow update, delete: if isDocumentOwner(resource, 'userId');
     }
     
     match /products/{productId} {
