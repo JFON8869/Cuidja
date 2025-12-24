@@ -9,12 +9,12 @@ import { z } from 'zod';
 import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import {
   collection,
-  addDoc,
   serverTimestamp,
   doc,
   getDoc,
   updateDoc,
   arrayUnion,
+  setDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -174,6 +174,7 @@ export function ProductForm({ productId }: ProductFormProps) {
     setIsSubmitting(true);
 
     try {
+        let productRef;
         const dataToSave = {
             ...values,
             description: values.description || '',
@@ -181,15 +182,19 @@ export function ProductForm({ productId }: ProductFormProps) {
             storeId: store.id,
             sellerId: uid,
             type: 'PRODUCT' as const,
-            addons: [],
+            addons: [], //TODO: Implement addon management
         };
-
+        
         if (isEditing && productId) {
-            const docRef = doc(firestore, 'products', productId);
-            await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
+            productRef = doc(firestore, 'products', productId);
+            await updateDoc(productRef, { ...dataToSave, updatedAt: serverTimestamp() });
         } else {
-            const newDocRef = doc(collection(firestore, 'products'));
-            await addDoc(collection(firestore, 'products'), { ...dataToSave, id: newDocRef.id, createdAt: serverTimestamp() });
+            productRef = doc(collection(firestore, 'products'));
+            await setDoc(productRef, { 
+                ...dataToSave,
+                id: productRef.id,
+                createdAt: serverTimestamp() 
+            });
         }
 
         // Atomically add the product's category to the store's list of categories

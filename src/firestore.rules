@@ -24,13 +24,14 @@ service cloud.firestore {
     }
     
     // Checks if the requesting user is the owner of a document via a denormalized field.
+    // Works for both live `resource` and incoming `request.resource`.
     function isDocumentOwner(doc, fieldName) {
-      return isSignedIn() && request.auth.uid == doc[fieldName];
+      return isSignedIn() && request.auth.uid == doc.data[fieldName];
     }
     
     // Checks if the requesting user is the seller of a product/service via a denormalized field.
     function isResourceSeller(doc) {
-      return isSignedIn() && request.auth.uid == doc.sellerId;
+      return isSignedIn() && request.auth.uid == doc.data.sellerId;
     }
     
     match /users/{userId} {
@@ -41,24 +42,26 @@ service cloud.firestore {
 
     match /stores/{storeId} {
         allow get, list: if true;
+        // The user creating the store must be the owner of the store.
         allow create: if isCreatingOwn('userId');
-        allow update, delete: if isOwner(resource.data.userId);
+        allow update, delete: if isDocumentOwner(resource, 'userId');
     }
     
     match /products/{productId} {
       allow get: if true;
       allow list: if false; // Deny global list, queries must use indexes.
       allow create: if isCreatingOwnResource();
-      allow update, delete: if isResourceSeller(resource.data);
+      // CORRECTED RULE: Use isResourceSeller to check ownership on update/delete
+      allow update, delete: if isResourceSeller(resource);
     }
 
     match /orders/{orderId} {
       function isOrderCustomer() {
-        return isDocumentOwner(resource.data, 'customerId');
+        return isDocumentOwner(resource, 'customerId');
       }
 
       function isOrderSeller() {
-        return isDocumentOwner(resource.data, 'sellerId');
+        return isDocumentOwner(resource, 'sellerId');
       }
       
       function isOrderParticipant() {

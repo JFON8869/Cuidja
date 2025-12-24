@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -28,9 +28,10 @@ import { useFirebase, useMemoFirebase } from '@/firebase';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { Loader2 } from 'lucide-react';
+import { Store } from '@/lib/data';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -49,6 +50,8 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
 
+  const [sellerId, setSellerId] = useState<string | null>(null);
+
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -59,6 +62,24 @@ export default function CheckoutPage() {
   const firstProductInCart = cart.length > 0 ? cart[0] : null;
   const storeId = firstProductInCart?.storeId;
   
+  // Effect to fetch the sellerId from the store document
+  useEffect(() => {
+    const fetchSellerId = async () => {
+      if (!firestore || !storeId) return;
+      
+      const storeRef = doc(firestore, 'stores', storeId);
+      const storeSnap = await getDoc(storeRef);
+
+      if (storeSnap.exists()) {
+        const storeData = storeSnap.data() as Store;
+        setSellerId(storeData.userId);
+      } else {
+        toast.error("Não foi possível encontrar o vendedor. O pedido não pode ser completado.");
+      }
+    };
+    fetchSellerId();
+  }, [firestore, storeId]);
+
   const urgentCategories = useMemo(() => ['Gás e Água', 'Farmácias'], []);
   const isUrgentCategory = useMemo(() => {
     return cart.some(item => urgentCategories.includes(item.category));
@@ -115,8 +136,8 @@ export default function CheckoutPage() {
   
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (!firestore || !user || !storeId) {
-      toast.error('Ocorreu um erro. Verifique seu login e os itens do carrinho.');
+    if (!firestore || !user || !storeId || !sellerId) {
+      toast.error('Ocorreu um erro. Verifique seu login, os itens do carrinho e os dados do vendedor.');
       return;
     }
     
@@ -125,6 +146,7 @@ export default function CheckoutPage() {
         
         const orderData = {
             customerId: user.uid,
+            sellerId: sellerId, // Include the sellerId
             storeId: storeId,
             orderType: 'PURCHASE', // V2 Data Model
             items: cart.map(item => ({
@@ -152,7 +174,6 @@ export default function CheckoutPage() {
             messages: []
         };
         
-        // The simulated payment happens on the next page, but we create the order first.
         const docRef = await addDoc(ordersCollection, orderData);
         toast.success('Seu pedido foi criado. Redirecionando para o pagamento.');
         clearCart();
@@ -393,7 +414,7 @@ export default function CheckoutPage() {
           size="lg"
           className="w-full"
           onClick={form.handleSubmit(onSubmit)}
-          disabled={form.formState.isSubmitting}
+          disabled={form.formState.isSubmitting || !sellerId}
         >
           {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ir para Pagamento'}
         </Button>

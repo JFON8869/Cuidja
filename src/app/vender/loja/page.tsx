@@ -8,9 +8,6 @@ import {
   setDoc,
   updateDoc,
   collection,
-  query,
-  where,
-  getDocs,
   serverTimestamp,
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -31,7 +28,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, ArrowLeft, Clock, ImageIcon, X } from 'lucide-react';
-import { Store } from '@/lib/data';
 import Link from 'next/link';
 import {
   Card,
