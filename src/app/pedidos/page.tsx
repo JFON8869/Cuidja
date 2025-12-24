@@ -3,18 +3,18 @@
 import Link from 'next/link';
 import {
   ArrowLeft,
+  ShoppingBag,
   Loader2,
   Package,
   Wrench,
-  ShoppingBag,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import React, { useEffect, useState, useMemo } from 'react';
+import { collection, query, where, getDocs, orderBy, or } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, orderBy, or } from 'firebase/firestore';
-import React, { useEffect, useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Card,
@@ -89,6 +89,7 @@ export default function MyOrdersPage() {
         const storeIds = [...new Set(fetchedOrders.map((order) => order.storeId))];
         if (storeIds.length > 0) {
           const fetchedStores: Record<string, { name: string }> = {};
+          // Firestore 'in' query supports a maximum of 30 elements in the array.
           const storeChunks = [];
           for (let i = 0; i < storeIds.length; i += 30) {
             storeChunks.push(storeIds.slice(i, i + 30));

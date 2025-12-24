@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
+// Defines the sequence of the splash screen animation
 const ANIMATION_STAGES = [
   { delay: 100, scale: 1.05 },
   { delay: 400, scale: 0.2 },
@@ -12,6 +13,10 @@ const ANIMATION_STAGES = [
   { delay: 100, scale: 1.0 },
   { delay: 350, scale: 3.0 },
 ];
+const LOGO_BASE_SIZE = 144;
+const FINAL_ANIMATION_DELAY = 150;
+const REDIRECT_DELAY = 300;
+
 
 export default function SplashPage() {
   const router = useRouter();
@@ -19,28 +24,31 @@ export default function SplashPage() {
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
   useEffect(() => {
+    // Check if the animation sequence is complete
     if (stage >= ANIMATION_STAGES.length) {
-      const finalDelay = 150;
-      const timeout = setTimeout(() => {
+      const finalTimeout = setTimeout(() => {
         setIsAnimatingOut(true);
-        setTimeout(() => router.push('/welcome'), 300);
-      }, finalDelay);
-      return () => clearTimeout(timeout);
+        setTimeout(() => router.push('/welcome'), REDIRECT_DELAY);
+      }, FINAL_ANIMATION_DELAY);
+      
+      return () => clearTimeout(finalTimeout);
     }
+
+    // Progress to the next stage of the animation
     const currentAction = ANIMATION_STAGES[stage];
-    const timeout = setTimeout(() => {
+    const stageTimeout = setTimeout(() => {
       setStage(stage + 1);
     }, currentAction.delay);
-    return () => clearTimeout(timeout);
+
+    return () => clearTimeout(stageTimeout);
   }, [stage, router]);
 
+  // Determine the current scale for the logo animation
   const currentScale = stage > 0 ? ANIMATION_STAGES[stage - 1].scale : 1.0;
-  const logoSize = 144;
-  const animatedSize = logoSize * currentScale;
+  const animatedSize = LOGO_BASE_SIZE * currentScale;
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center overflow-hidden bg-transparent shadow-2xl">
-      {/* Word "Cuidja" at the top */}
       <div
         className={cn(
           'absolute top-24 z-20 text-center transition-opacity duration-500',
@@ -53,14 +61,12 @@ export default function SplashPage() {
         </h1>
       </div>
 
-      {/* Hexagon and Logo in the center */}
       <div
         className={cn(
           'relative z-10 flex h-full w-full flex-col items-center justify-center transition-opacity duration-500',
           isAnimatingOut ? 'opacity-0' : 'opacity-100'
         )}
       >
-        {/* Hexagon in the background of this div */}
         <div className="absolute inset-0 flex items-center justify-center">
           <svg
             viewBox="0 0 100 100"
@@ -96,7 +102,6 @@ export default function SplashPage() {
           </svg>
         </div>
 
-        {/* Animated Logo */}
         <div
           className="relative flex items-center justify-center transition-all duration-500 ease-in-out"
           style={{
@@ -114,7 +119,6 @@ export default function SplashPage() {
           />
         </div>
 
-        {/* Subtitle below logo */}
         <div className="absolute bottom-48 text-center">
             <p
                 className="text-sm font-bold uppercase tracking-widest text-gray-900"
@@ -128,7 +132,6 @@ export default function SplashPage() {
         </div>
       </div>
 
-      {/* Loading Dots at the bottom */}
       <div
         className={cn(
           'absolute bottom-20 z-10 flex space-x-2 transition-opacity duration-500',

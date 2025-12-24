@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Store as StoreIcon,
   PlusCircle,
@@ -21,7 +21,6 @@ import { useFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -75,7 +74,7 @@ function VenderSkeleton() {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="border-b p-4">
-        <h1 className="font-headline text-xl">Painel do Vendedor</h1>
+        <h1 className="text-center font-headline text-xl">Painel do Vendedor</h1>
       </header>
       <main className="flex-1 p-4">
         <div className="flex h-full items-center justify-center">
@@ -113,7 +112,7 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
             
             const totalRevenue = completedPurchases.reduce((acc, order) => acc + order.totalAmount, 0);
             const totalOrders = orders.length;
-            const averageTicket = totalOrders > 0 ? totalRevenue / completedPurchases.length : 0;
+            const averageTicket = totalOrders > 0 && completedPurchases.length > 0 ? totalRevenue / completedPurchases.length : 0;
             
             setMetrics({
                 totalRevenue,
@@ -145,13 +144,13 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
 
   const kpiCards = [
     {
-        title: "Faturamento Total",
+        title: "Faturamento",
         value: metrics?.totalRevenue,
         icon: DollarSign,
         format: (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
     },
     {
-        title: "Total de Pedidos",
+        title: "Pedidos",
         value: metrics?.totalOrders,
         icon: Hash,
         format: (value: number) => value.toString()
@@ -167,7 +166,7 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="border-b p-4">
-        <h1 className="font-headline text-xl">Painel do Vendedor</h1>
+        <h1 className="text-center font-headline text-xl">Painel do Vendedor</h1>
       </header>
       <main className="flex-1 overflow-y-auto">
         <div className="p-4">

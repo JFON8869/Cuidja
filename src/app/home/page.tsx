@@ -5,12 +5,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Bell, Search, Loader2 } from 'lucide-react';
 import Autoplay from 'embla-carousel-autoplay';
+import { collection, query, limit, getDocs, orderBy, where } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product/ProductCard';
 import { allCategories, mockBanners } from '@/lib/categories';
-import { cn } from '@/lib/utils';
 import {
   Carousel,
   CarouselContent,
@@ -19,8 +19,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { Product } from '@/lib/data';
-import { useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, limit, getDocs, orderBy, where } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 import BottomNav from '@/components/layout/BottomNav';
 
 export default function Home() {
@@ -37,13 +36,11 @@ export default function Home() {
       if (!firestore) return;
       setIsLoading(true);
       try {
-        // CORRECTED QUERY: Fetch only products, order by creation, and limit results.
-        // This query aligns with Firestore security rules and is efficient.
         const productsQuery = query(
           collection(firestore, 'products'),
-          where('type', '==', 'PRODUCT'), // Only fetch documents of type PRODUCT
-          orderBy('createdAt', 'desc'),   // Order by newest first
-          limit(20)                       // Limit to a reasonable number for the homepage
+          where('type', '==', 'PRODUCT'), 
+          orderBy('createdAt', 'desc'),
+          limit(20)
         );
         const snapshot = await getDocs(productsQuery);
         const fetchedProducts = snapshot.docs.map(doc => ({
@@ -62,12 +59,10 @@ export default function Home() {
 
   const recommendedProducts = React.useMemo(() => {
     if (products.length === 0) return [];
-    // Simple shuffle for variety
     const shuffled = [...products].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 5);
   }, [products]);
 
-  // Use the rest of the products for the featured section
   const featuredProducts = products.slice(5, 15);
 
   return (
@@ -89,7 +84,6 @@ export default function Home() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="space-y-8 p-4">
-          {/* Search Section */}
           <Link href="/buscar" className="relative block">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -99,7 +93,6 @@ export default function Home() {
             />
           </Link>
 
-          {/* Categories Section */}
           <section>
             <h2 className="mb-3 font-headline text-xl">Categorias</h2>
             <div className="grid grid-cols-4 gap-4">
@@ -121,7 +114,6 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Banner Carousel Section */}
           <section>
             <Carousel
               plugins={[plugin.current]}
@@ -161,9 +153,8 @@ export default function Home() {
             </Carousel>
           </section>
 
-          {isLoading ? <Loader2 className="animate-spin mx-auto my-8" /> : 
+          {isLoading ? <div className="flex justify-center py-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div> : 
           <>
-            {/* Personalized Recommendations Section */}
             <section>
               <h2 className="mb-1 font-headline text-xl">Para você</h2>
               <p className="mb-3 text-sm text-muted-foreground">
@@ -178,7 +169,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Featured Products Section */}
             <section>
               <h2 className="mb-3 font-headline text-xl">Destaques</h2>
               <div className="grid grid-cols-2 gap-4">

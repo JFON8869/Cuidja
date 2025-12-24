@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Frown } from 'lucide-react';
-import { collection, query, getDocs, doc, getDoc, where } from 'firebase/firestore';
+import { collection, query, getDocs, where } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
@@ -28,30 +28,29 @@ export default function ServicesCategoryPage() {
 
   useEffect(() => {
     async function fetchServiceProviders() {
-      if (!firestore) return;
+      if (!firestore) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
 
       try {
-        // Find all stores that offer services.
         const storesQuery = query(
           collection(firestore, 'stores'), 
           where('categories', 'array-contains', 'Serviços')
         );
         const storesSnapshot = await getDocs(storesQuery);
 
-        if (storesSnapshot.empty) {
-          setServiceProviders([]);
-        } else {
-            const providers = storesSnapshot.docs
-            .map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            })) as StoreDocument[];
+        const providers = storesSnapshot.docs
+        .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        })) as StoreDocument[];
 
-            setServiceProviders(providers);
-        }
+        setServiceProviders(providers);
       } catch (error) {
         console.error('Failed to fetch service providers:', error);
+        setServiceProviders([]);
       } finally {
         setIsLoading(false);
       }
@@ -89,7 +88,7 @@ export default function ServicesCategoryPage() {
       <main className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
           renderSkeleton()
-        ) : serviceProviders && serviceProviders.length > 0 ? (
+        ) : serviceProviders.length > 0 ? (
           <div className="space-y-4">
             {serviceProviders.map((store) => (
               <StoreCard

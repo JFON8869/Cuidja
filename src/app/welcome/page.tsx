@@ -1,15 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { signInAnonymously } from 'firebase/auth';
 import { toast } from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
 
 export default function WelcomePage() {
   const { auth } = useFirebase();
@@ -32,28 +32,28 @@ export default function WelcomePage() {
     } finally {
         setIsGuestLoading(false);
     }
-  }
+  };
 
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
       {/* Hexagon Background */}
-      <div className="absolute inset-0 z-0 flex justify-center items-start pt-8">
+      <div className="absolute inset-0 z-0 flex items-start justify-center pt-8">
         <div className="relative w-[80vw] h-[80vw] max-w-sm max-h-sm transform -translate-y-[17.5%]">
-            <svg viewBox="0 0 100 100" className="absolute w-full h-full opacity-10" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
-                <defs>
-                    <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style={{stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1}} />
-                    <stop offset="50%" style={{stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1}} />
-                    <stop offset="100%" style={{stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1}} />
-                    </linearGradient>
-                </defs>
-                <polygon 
-                    points="50 1 95 25 95 75 50 99 5 75 5 25" 
-                    fill="url(#hexGradient)"
-                    stroke="rgba(0, 0, 0, 0.3)"
-                    strokeWidth="1.5"
-                />
-            </svg>
+          <svg viewBox="0 0 100 100" className="absolute w-full h-full opacity-10" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
+              <defs>
+                  <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style={{stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1}} />
+                  <stop offset="50%" style={{stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1}} />
+                  <stop offset="100%" style={{stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1}} />
+                  </linearGradient>
+              </defs>
+              <polygon 
+                  points="50 1 95 25 95 75 50 99 5 75 5 25" 
+                  fill="url(#hexGradient)"
+                  stroke="rgba(0, 0, 0, 0.3)"
+                  strokeWidth="1.5"
+              />
+          </svg>
         </div>
       </div>
 

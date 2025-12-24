@@ -2,21 +2,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Search, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ProductCard } from '@/components/product/ProductCard';
-import { Product } from '@/lib/data';
-import { useFirebase } from '@/firebase';
+import { useDebounce } from 'use-debounce';
 import {
   collection,
   query,
   where,
   getDocs,
-  orderBy,
-  startAt,
-  endAt,
 } from 'firebase/firestore';
-import { useDebounce } from 'use-debounce';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ProductCard } from '@/components/product/ProductCard';
+import { Product } from '@/lib/data';
+import { useFirebase } from '@/firebase';
 import { WithId } from '@/firebase/firestore/use-collection';
 
 export default function SearchPage() {
@@ -30,7 +28,8 @@ export default function SearchPage() {
   const searchProducts = useCallback(async (searchQuery: string) => {
     if (!firestore || !searchQuery.trim()) {
       setResults([]);
-      setIsLoading(false);
+      // No need to set loading if there's no query
+      if (hasSearched) setHasSearched(false);
       return;
     }
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -39,9 +38,6 @@ export default function SearchPage() {
     try {
       const productsRef = collection(firestore, 'products');
       
-      // CORRECTED QUERY: Fetch only products, then filter client-side.
-      // This is a more permissive query that aligns with the goal of searching
-      // without hitting broad 'list' security rule violations.
       const q = query(
         productsRef,
         where('type', '==', 'PRODUCT'),
@@ -51,13 +47,11 @@ export default function SearchPage() {
       const fetchedProducts: WithId<Product>[] = [];
       querySnapshot.forEach((doc) => {
         const productData = doc.data() as Product;
-        // Client-side filtering for "contains" because Firestore doesn't support it natively
         if (productData.name.toLowerCase().includes(normalizedQuery)) {
           fetchedProducts.push({ id: doc.id, ...productData });
         }
       });
       
-      // Sort results alphabetically by name after filtering
       fetchedProducts.sort((a, b) => a.name.localeCompare(b.name));
 
       setResults(fetchedProducts);
@@ -67,7 +61,7 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [firestore]);
+  }, [firestore, hasSearched]);
 
 
   useEffect(() => {

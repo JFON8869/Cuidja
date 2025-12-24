@@ -4,18 +4,18 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Frown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useFirebase } from '@/firebase';
 import {
   collection,
   query,
   where,
   getDocs,
-  DocumentData,
 } from 'firebase/firestore';
+import { useEffect, useState, useMemo } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoreCard } from '@/components/store/StoreCard';
-import { useEffect, useState, useMemo } from 'react';
 import { allCategories } from '@/lib/categories';
 import { OperatingHours } from '@/lib/data';
 import BottomNav from '@/components/layout/BottomNav';
@@ -30,27 +30,21 @@ interface StoreDocument {
 
 export default function CategoryPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const { firestore } = useFirebase();
-  const router = useRouter();
 
   const [stores, setStores] = useState<StoreDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Find the category object from allCategories based on the slug.
-  const category = useMemo(
-    () => allCategories.find((cat) => cat.slug === slug),
-    [slug]
-  );
-  
   const categoryName = useMemo(() => {
+    const category = allCategories.find((cat) => cat.slug === slug);
     if (category) {
       return category.name;
     }
-    // Fallback logic in case category is not in allCategories
     const decodedSlug = decodeURIComponent(slug).replace(/-/g, ' ');
     return decodedSlug.replace(/\b\w/g, (l) => l.toUpperCase());
-  }, [slug, category]);
+  }, [slug]);
 
   useEffect(() => {
     if (slug === 'servicos') {
@@ -66,24 +60,19 @@ export default function CategoryPage() {
       setIsLoading(true);
 
       try {
-        // Query stores that contain the category name in their `categories` array field
         const storesQuery = query(
           collection(firestore, 'stores'),
           where('categories', 'array-contains', categoryName)
         );
         const storesSnapshot = await getDocs(storesQuery);
 
-        if (storesSnapshot.empty) {
-          setStores([]);
-        } else {
-            const fetchedStores = storesSnapshot.docs
-            .map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            })) as StoreDocument[];
+        const fetchedStores = storesSnapshot.docs
+        .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        })) as StoreDocument[];
 
-            setStores(fetchedStores);
-        }
+        setStores(fetchedStores);
       } catch (error) {
         console.error('Failed to fetch stores by category:', error);
         setStores([]);
@@ -123,7 +112,7 @@ export default function CategoryPage() {
       <main className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
           renderSkeleton()
-        ) : stores && stores.length > 0 ? (
+        ) : stores.length > 0 ? (
           <div className="space-y-4">
             {stores.map((store) => (
               <StoreCard
