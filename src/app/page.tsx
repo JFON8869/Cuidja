@@ -10,41 +10,42 @@ export default function SplashPage() {
 
   useEffect(() => {
     //
-    // --- PONTO DE CONTROLE DA ANIMAÇÃO ---
-    // Você pode alterar o valor de `delay` (em milissegundos) em cada etapa para ajustar o ritmo da animação.
-    // 1000ms = 1 segundo.
+    // --- ROADMAP DA ANIMAÇÃO ---
+    // Este é o roteiro da animação, equilibrado para um movimento profissional.
     //
     const sequence = [
-      // Etapa 0: Tempo que a tela fica estática no início.
+      // Etapa 0: Início estático para o usuário registrar a logo.
       { delay: 500, nextStep: 1 },
-      // Etapa 1: Duração da primeira contração para 40% (diminui 60%).
-      { delay: 600, nextStep: 2 },
-      // Etapa 2: Duração da segunda contração para 20% (diminui 80%).
-      { delay: 450, nextStep: 3 },
-      // Etapa 3: Começa a aumentar para 60%.
-      { delay: 400, nextStep: 4 },
-      // Etapa 4: Continua a aumentar para 80%.
-      { delay: 400, nextStep: 5 },
-      // Etapa 5: Volta para 100% (tamanho original).
-      { delay: 500, nextStep: 6 },
-      // Etapa 6: Pausa longa com a logo no tamanho final da pulsação.
+
+      // Etapa 1: "Antecipação" - A logo cresce um pouco antes de encolher.
+      // Isso prepara o espectador para a ação principal, um princípio de animação clássico.
+      { delay: 150, nextStep: 2 },
+
+      // Etapa 2: "Ação Principal" - Contração rápida e profunda para 20%.
+      { delay: 400, nextStep: 3 },
+      
+      // Etapa 3 a 5: "Assentamento" (Settle) - A logo volta ao normal com um leve "overshoot".
+      // Ela não para em 100% bruscamente, mas passa um pouco (105%) e depois assenta.
+      // Isso dá peso e realismo ao movimento.
+      { delay: 350, nextStep: 4 }, // Cresce para 90%
+      { delay: 250, nextStep: 5 }, // Passa um pouco, indo para 105% (overshoot)
+      { delay: 300, nextStep: 6 }, // Assenta em 100%
+
+      // Etapa 6: "Pausa" - Uma pausa longa com a logo estável, criando antecipação para o final.
       { delay: 600, nextStep: 7 },
-      // Etapa 7: Duração da animação de expansão final (a mais rápida) antes de redirecionar.
+
+      // Etapa 7: "Clímax" - A transição mais rápida. A logo se expande para tomar a tela.
       { delay: 350, action: () => router.push('/welcome') },
     ];
 
     let currentTimeout: NodeJS.Timeout;
 
-    // Function to run the animation sequence
     const runAnimation = (step: number) => {
       if (step >= sequence.length) return;
-
       const { delay, nextStep, action } = sequence[step];
-
       currentTimeout = setTimeout(() => {
         if (nextStep !== undefined) {
           setAnimationStep(nextStep);
-          // Recursively call the next step in the sequence
           runAnimation(nextStep);
         }
         if (action) {
@@ -52,35 +53,24 @@ export default function SplashPage() {
         }
       }, delay);
     };
-
-    // Start the animation sequence from the current step
+    
     runAnimation(animationStep);
-
-    // Cleanup timer on component unmount
     return () => clearTimeout(currentTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mapeamento das etapas do roadmap para as classes de transformação (tamanho/escala)
   const getLogoScaleClass = () => {
     switch (animationStep) {
-      case 0: // Splash 1: Início
-        return 'scale-100';
-      case 1: // Splash 2: Diminui 60%
-        return 'scale-40';
-      case 2: // Splash 3: Diminui 80%
-        return 'scale-20';
-      case 3: // Splash 4: Crescimento
-        return 'scale-60';
-      case 4: // Splash 5: Crescimento
-        return 'scale-80';
-      case 5: // Splash 6: Volta ao Original
-        return 'scale-100';
-      case 6: // Splash 7: Pausa
-        return 'scale-100';
-      case 7: // Splash 8: Expansão Final
-        return 'scale-[10]';
-      default:
-        return 'scale-100';
+      case 0: return 'scale-100'; // Etapa 0: Início
+      case 1: return 'scale-105'; // Etapa 1: Antecipação
+      case 2: return 'scale-20';  // Etapa 2: Contração Profunda
+      case 3: return 'scale-90';  // Etapa 3: Início da expansão
+      case 4: return 'scale-105'; // Etapa 4: "Overshoot"
+      case 5: return 'scale-100'; // Etapa 5: Assentamento
+      case 6: return 'scale-100'; // Etapa 6: Pausa
+      case 7: return 'scale-[10]';// Etapa 7: Clímax (Expansão Final)
+      default: return 'scale-100';
     }
   };
 
