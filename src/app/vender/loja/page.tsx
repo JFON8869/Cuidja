@@ -140,19 +140,20 @@ export default function StoreFormPage() {
     
     try {
       let finalLogoUrl = existingStore?.logoUrl || "";
+      const { logoUrl, ...restOfValues } = values;
 
       // Step 1: Handle file upload if a new file is present
-      if (values.logoUrl instanceof File) {
-        const filePath = `logos/${user.uid}/${Date.now()}_${values.logoUrl.name}`;
-        finalLogoUrl = await uploadFile(values.logoUrl, filePath);
-      } else if (values.logoUrl === null) {
+      if (logoUrl instanceof File) {
+        const filePath = `logos/${user.uid}/${Date.now()}_${logoUrl.name}`;
+        finalLogoUrl = await uploadFile(logoUrl, filePath);
+      } else if (logoUrl === null) {
           finalLogoUrl = ""; // Handle logo deletion
       }
 
-      // Step 2: Prepare data for Firestore
-      const dataToSave = {
-        ...values,
-        logoUrl: finalLogoUrl,
+      // Step 2: Prepare data for Firestore, ensuring only valid data types are sent.
+      const dataToSave: any = {
+        ...restOfValues,
+        logoUrl: finalLogoUrl, // This is now a string URL or an empty string.
         userId: user.uid, // Always ensure the userId is the current user's
       };
 
