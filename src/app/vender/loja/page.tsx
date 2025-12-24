@@ -9,6 +9,8 @@ import {
   updateDoc,
   collection,
   serverTimestamp,
+  addDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -161,15 +163,15 @@ export default function StoreFormPage() {
         await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Create new store (seller activation)
-        const newStoreRef = doc(collection(firestore, 'stores'));
-        const newStoreData = {
+        // Create new store using addDoc to let Firestore generate the ID
+        const storesCollection = collection(firestore, 'stores');
+        const newStoreRef = await addDoc(storesCollection, {
             ...dataToSave,
-            id: newStoreRef.id,
             categories: [], // Initialize with empty categories
             createdAt: serverTimestamp(),
-        };
-        await setDoc(newStoreRef, newStoreData);
+        });
+        // Now update the new document with its own ID
+        await updateDoc(newStoreRef, { id: newStoreRef.id });
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
       
