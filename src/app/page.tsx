@@ -1,20 +1,59 @@
-
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export default function SplashPage() {
   const router = useRouter();
+  const [animationStep, setAnimationStep] = useState(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push('/welcome');
-    }, 3000); // Redirect after 3 seconds
+    const sequence = [
+      { delay: 800, nextStep: 1 }, // After 0.8s, shrink to 70%
+      { delay: 800, nextStep: 2 }, // After another 0.8s, shrink to 60%
+      { delay: 800, nextStep: 3 }, // After another 0.8s, return to 100%
+      { delay: 1000, action: () => router.push('/welcome') }, // After 1s, redirect
+    ];
 
-    return () => clearTimeout(timer); // Cleanup timer on unmount
-  }, [router]);
-  
+    let currentTimeout: NodeJS.Timeout;
+    
+    const runAnimation = (step: number) => {
+        if (step >= sequence.length) return;
+
+        const { delay, nextStep, action } = sequence[step];
+
+        currentTimeout = setTimeout(() => {
+            if (nextStep !== undefined) {
+                setAnimationStep(nextStep);
+                runAnimation(nextStep);
+            }
+            if (action) {
+                action();
+            }
+        }, delay);
+    }
+
+    runAnimation(animationStep);
+
+    return () => clearTimeout(currentTimeout); // Cleanup timer on unmount
+  }, [animationStep, router]);
+
+  const getLogoScaleClass = () => {
+    switch (animationStep) {
+      case 0:
+        return 'scale-100'; // Initial larger size
+      case 1:
+        return 'scale-70'; // Shrink by 30%
+      case 2:
+        return 'scale-[.63]'; // 70% * 0.9 = 63% of original size
+      case 3:
+        return 'scale-100'; // Return to initial size
+      default:
+        return 'scale-100';
+    }
+  };
+
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
       {/* Content */}
@@ -59,7 +98,10 @@ export default function SplashPage() {
                 </div>
                 
                 {/* Logo Image */}
-                <div className="w-36 h-36 mb-6 flex items-center justify-center bg-gradient-to-br from-white/40 to-white/20 rounded-3xl backdrop-blur-sm shadow-lg border border-white/30">
+                <div className={cn(
+                    "mb-6 flex items-center justify-center bg-gradient-to-br from-white/40 to-white/20 rounded-3xl backdrop-blur-sm shadow-lg border border-white/30 transition-transform duration-500 ease-in-out",
+                    getLogoScaleClass()
+                )} style={{width: '9rem', height: '9rem'}}>
                   <img 
                     src="/logo.svg" 
                     alt="Cuidja Logo" 
@@ -92,4 +134,3 @@ export default function SplashPage() {
     </div>
   );
 }
-
