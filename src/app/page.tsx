@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -21,20 +20,26 @@ export default function SplashPage() {
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
+    // Se a animação terminou, redireciona após um pequeno delay para a transição ser suave
     if (stage >= ANIMATION_STAGES.length) {
-      const finalRedirect = setTimeout(() => router.push('/welcome'), 350);
+      const finalRedirect = setTimeout(() => router.push('/welcome'), 350); // Aumentar um pouco se necessário
       return () => clearTimeout(finalRedirect);
     }
 
+    // Pega a ação atual baseada no estágio
     const currentAction = ANIMATION_STAGES[stage];
+    
+    // Define um timeout para avançar para o próximo estágio
     const timeout = setTimeout(() => {
       setStage(stage + 1);
     }, currentAction.delay);
 
+    // Limpa o timeout se o componente for desmontado
     return () => clearTimeout(timeout);
   }, [stage, router]);
   
   const isFinalStage = stage >= ANIMATION_STAGES.length;
+  // Pega a escala do estágio anterior para renderizar o estado atual
   const currentScale = stage > 0 ? ANIMATION_STAGES[stage - 1].scale : 1.0;
   
   const logoSize = 144; // Tamanho base da logo em pixels
@@ -87,13 +92,13 @@ export default function SplashPage() {
         </div>
       </div>
 
-      {/* Logo animada */}
+      {/* Logo animada - CORRIGIDO: mantemos a opacidade até o final */}
       <div
         className="absolute flex items-center justify-center transition-all duration-500 ease-in-out"
         style={{
           width: `${animatedSize}px`,
           height: `${animatedSize}px`,
-          opacity: isFinalStage ? 0 : 1, // Desaparece na etapa final para a transição
+          opacity: stage > ANIMATION_STAGES.length - 1 ? 0 : 1, // Só some DEPOIS da última etapa
         }}
       >
         <Image
