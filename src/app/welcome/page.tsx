@@ -36,30 +36,34 @@ export default function WelcomePage() {
 
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
-        {/* Hexagon Background - Positioned at the top */}
-        <div className="absolute inset-x-0 top-0 z-0 flex justify-center items-start">
-            <div className="h-[400px] w-[400px] opacity-10 -mt-24">
-                 <svg viewBox="0 0 100 100" className="w-full h-full" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
-                    <defs>
-                        <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style={{stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1}} />
-                        <stop offset="50%" style={{stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1}} />
-                        <stop offset="100%" style={{stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1}} />
-                        </linearGradient>
-                    </defs>
-                    <polygon 
-                        points="50 1 95 25 95 75 50 99 5 75 5 25" 
-                        fill="url(#hexGradient)"
-                        stroke="rgba(0, 0, 0, 0.3)"
-                        strokeWidth="1.5"
-                    />
-                </svg>  
-            </div>
+      {/* Hexagon Background */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
+        <div className="h-[400px] w-[400px] opacity-10">
+          <svg viewBox="0 0 100 100" className="h-full w-full">
+            <defs>
+              <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop
+                  offset="0%"
+                  style={{ stopColor: 'rgba(0,0,0,0.2)' }}
+                />
+                <stop
+                  offset="100%"
+                  style={{ stopColor: 'rgba(0,0,0,0.05)' }}
+                />
+              </linearGradient>
+            </defs>
+            <polygon
+              points="50 1 95 25 95 75 50 99 5 75 5 25"
+              fill="url(#hexGradient)"
+            />
+          </svg>
         </div>
+      </div>
 
+      {/* Content */}
       <div className="relative z-10 flex h-full flex-col justify-between p-8">
-        <div /> 
-        <div className="space-y-4 pt-16">
+        <div />
+        <div className="space-y-4">
           <Image
             src="/logo.svg"
             alt="Cuidja Logo"
