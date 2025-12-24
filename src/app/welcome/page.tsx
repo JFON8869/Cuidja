@@ -39,8 +39,8 @@ export default function WelcomePage() {
       <div/>
       <div className="space-y-4">
         <Image src="/logo.svg" alt="Cuidja Logo" width={80} height={80} className="mx-auto" />
-        <h1 className="cuidja-logo-text font-logo text-5xl">
-          Cuidja
+        <h1 className="font-logo text-5xl">
+          <span className="text-orange-500">Cuid</span><span className="text-teal-400">ja</span>
         </h1>
         <p className="text-muted-foreground">
           Compre e venda no comércio local. <br/> Fortaleça sua comunidade.
