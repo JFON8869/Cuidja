@@ -10,13 +10,13 @@ export default function SplashPage() {
 
   useEffect(() => {
     const sequence = [
-      { delay: 500, nextStep: 1 }, 
-      { delay: 150, nextStep: 2 },
-      { delay: 400, nextStep: 3 },
-      { delay: 350, nextStep: 4 },
-      { delay: 250, nextStep: 5 },
-      { delay: 300, nextStep: 6 },
-      { delay: 600, nextStep: 7 },
+      { delay: 500, nextStep: 1 }, // Initial pause
+      { delay: 150, nextStep: 2 }, // Anticipation (grow)
+      { delay: 400, nextStep: 3 }, // Main action (shrink)
+      { delay: 350, nextStep: 4 }, // Settle 1 (grow back)
+      { delay: 250, nextStep: 5 }, // Settle 2 (overshoot)
+      { delay: 300, nextStep: 6 }, // Final settle
+      { delay: 600, nextStep: 7 }, // Pause before final action
       { delay: 350, action: () => router.push('/welcome') },
     ];
 
@@ -44,14 +44,14 @@ export default function SplashPage() {
 
   const getLogoScaleClass = () => {
     switch (animationStep) {
-      case 0: return 'scale-100';
-      case 1: return 'scale-105'; 
-      case 2: return 'scale-20';
-      case 3: return 'scale-90';
-      case 4: return 'scale-105';
-      case 5: return 'scale-100';
-      case 6: return 'scale-100';
-      case 7: return 'scale-[10]';
+      case 0: return 'scale-100'; // Start at normal size
+      case 1: return 'scale-105'; // 1. Anticipation
+      case 2: return 'scale-20';  // 2. Contraction
+      case 3: return 'scale-90';  // 3. Bounce back up (part 1)
+      case 4: return 'scale-105'; // 4. Overshoot
+      case 5: return 'scale-100'; // 5. Settle at original size
+      case 6: return 'scale-100'; // 6. Pause
+      case 7: return 'scale-[5]'; // 7. Final expansion (to 50% of screen)
       default: return 'scale-100';
     }
   };
@@ -68,8 +68,8 @@ export default function SplashPage() {
               isFinalStep ? 'opacity-0' : 'opacity-100'
             )}
           >
-            <div className="relative flex h-80 w-72 items-center justify-center">
-              <svg
+            <div className="relative flex h-80 w-72 flex-col items-center justify-between p-8">
+               <svg
                 viewBox="0 0 100 100"
                 className="absolute h-full w-full"
                 style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))' }}
@@ -112,9 +112,7 @@ export default function SplashPage() {
                   strokeWidth="1.5"
                 />
               </svg>
-
-              <div className="relative z-10 flex h-full w-full flex-col items-center justify-between p-8">
-                <h1
+              <h1
                   className="absolute top-5 -translate-y-[70%] text-7xl font-black tracking-tight"
                   style={{
                     fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -141,7 +139,6 @@ export default function SplashPage() {
                     ja
                   </span>
                 </h1>
-
                 <p
                   className="absolute bottom-8 text-sm font-bold uppercase tracking-widest text-gray-900"
                   style={{
@@ -151,7 +148,6 @@ export default function SplashPage() {
                 >
                   O seu comércio local
                 </p>
-              </div>
             </div>
           </div>
 
