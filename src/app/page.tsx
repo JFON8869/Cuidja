@@ -19,15 +19,17 @@ export default function SplashPage() {
       { delay: 500, nextStep: 1 }, 
       // Etapa 1: Duração da contração para 30% do tamanho.
       { delay: 600, nextStep: 2 }, 
-      // Etapa 2: Duração da expansão para 60%.
-      { delay: 400, nextStep: 3 }, 
-      // Etapa 3: Duração da expansão para 80%.
+      // Etapa 2: Duração da primeira expansão para 80%.
+      { delay: 450, nextStep: 3 },
+      // Etapa 3: Duração do recuo para 60%.
       { delay: 400, nextStep: 4 },
       // Etapa 4: Duração da expansão de volta para 100%.
-      { delay: 400, nextStep: 5 },
-      // Etapa 5: Tempo que a logo fica parada antes da expansão final.
-      { delay: 500, nextStep: 6 },
-      // Etapa 6: Duração da animação de expansão final antes de redirecionar.
+      { delay: 500, nextStep: 5 },
+      // Etapa 5: Pausa longa com a logo no tamanho final da pulsação.
+      { delay: 600, nextStep: 6 },
+      // Etapa 6: Breve pausa antes da expansão final.
+      { delay: 150, nextStep: 7 },
+      // Etapa 7: Duração da animação de expansão final antes de redirecionar.
       { delay: 350, action: () => router.push('/welcome') }, 
     ];
 
@@ -63,23 +65,25 @@ export default function SplashPage() {
     switch (animationStep) {
       case 0: // Início
         return 'scale-100'; 
-      case 1: // Contração
+      case 1: // Contração Profunda
         return 'scale-30'; 
-      case 2: // Crescimento 1
-        return 'scale-60'; 
-      case 3: // Crescimento 2
-        return 'scale-80';
-      case 4: // Volta ao original
+      case 2: // Primeira Expansão (Bounce up)
+        return 'scale-80'; 
+      case 3: // Recuo (Bounce down)
+        return 'scale-60';
+      case 4: // Volta ao Original
         return 'scale-100';
-      case 5: // Pausa antes da expansão final
-      case 6: // Expansão final
+      case 5: // Pausa
+      case 6: // Preparação
+        return 'scale-100';
+      case 7: // Expansão Final
         return 'scale-[10]';
       default:
         return 'scale-100';
     }
   };
   
-  const isFinalStep = animationStep >= 5;
+  const isFinalStep = animationStep >= 7;
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
