@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -5,95 +6,55 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
+// Define os estágios da animação para maior clareza
+const ANIMATION_STAGES = [
+  { delay: 100, scale: 1.05 }, // 1. Antecipação
+  { delay: 400, scale: 0.2 },  // 2. Contração Rápida
+  { delay: 300, scale: 0.9 },  // 3. Início da Expansão
+  { delay: 150, scale: 1.05 }, // 4. Overshoot (ultrapassagem)
+  { delay: 500, scale: 1.0 },  // 5. Assentamento (volta ao normal)
+  { delay: 600, scale: 20 },   // 6. Clímax (expansão final)
+];
+
 export default function SplashPage() {
   const router = useRouter();
-  const [animationStep, setAnimationStep] = useState(0);
+  const [stage, setStage] = useState(0);
 
   useEffect(() => {
-    const sequence = [
-      { delay: 500, nextStep: 1 },
-      { delay: 150, nextStep: 2 },
-      { delay: 400, nextStep: 3 },
-      { delay: 350, nextStep: 4 },
-      { delay: 250, nextStep: 5 },
-      { delay: 600, nextStep: 6 },
-      { delay: 350, action: () => router.push('/welcome') },
-    ];
-
-    let currentTimeout: NodeJS.Timeout;
-
-    const runAnimation = (step: number) => {
-      if (step >= sequence.length) return;
-      const { delay, nextStep, action } = sequence[step];
-
-      currentTimeout = setTimeout(() => {
-        if (action) {
-          setAnimationStep(step);
-          action();
-        } else if (nextStep !== undefined) {
-          setAnimationStep(nextStep);
-          runAnimation(nextStep);
-        }
-      }, delay);
-    };
-
-    runAnimation(0);
-
-    return () => clearTimeout(currentTimeout);
-  }, [router]);
-
-  const getLogoScaleClass = () => {
-    switch (animationStep) {
-      case 0: return 'scale-100'; 
-      case 1: return 'scale-105'; // Anticipation
-      case 2: return 'scale-20';  // Contraction
-      case 3: return 'scale-90';  // Bounce back up
-      case 4: return 'scale-105'; // Overshoot
-      case 5: return 'scale-100'; // Settle
-      case 6: return 'scale-[10] opacity-0'; // Final expansion
-      default: return 'scale-100';
+    if (stage >= ANIMATION_STAGES.length) {
+      const finalRedirect = setTimeout(() => router.push('/welcome'), 350);
+      return () => clearTimeout(finalRedirect);
     }
-  };
+
+    const currentAction = ANIMATION_STAGES[stage];
+    const timeout = setTimeout(() => {
+      setStage(stage + 1);
+    }, currentAction.delay);
+
+    return () => clearTimeout(timeout);
+  }, [stage, router]);
   
-  const isFinalStep = animationStep >= 6;
+  const isFinalStage = stage >= ANIMATION_STAGES.length;
+  const currentScale = stage > 0 ? ANIMATION_STAGES[stage - 1].scale : 1.0;
+  
+  const logoSize = 144; // Tamanho base da logo em pixels
+  const animatedSize = logoSize * currentScale;
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
-      <div className={cn('relative flex h-80 w-72 flex-col items-center justify-between p-8 transition-opacity duration-500', isFinalStep ? 'opacity-0' : 'opacity-100')}>
+      
+      {/* Container do Hexágono e Textos (some na etapa final) */}
+      <div className={cn('relative flex flex-col items-center justify-center transition-opacity duration-500', isFinalStage ? 'opacity-0' : 'opacity-100')}>
         <svg
           viewBox="0 0 100 100"
-          className="absolute h-full w-full"
+          className="absolute h-80 w-72"
           style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))' }}
         >
           <defs>
-            <linearGradient
-              id="hexGradient"
-              x1="0%"
-              y1="0%"
-              x2="0%"
-              y2="100%"
-            >
-              <stop
-                offset="0%"
-                style={{
-                  stopColor: 'rgba(255,255,255,0.6)',
-                  stopOpacity: 1,
-                }}
-              />
-              <stop
-                offset="50%"
-                style={{
-                  stopColor: 'rgba(255,255,255,0.3)',
-                  stopOpacity: 1,
-                }}
-              />
-              <stop
-                offset="100%"
-                style={{
-                  stopColor: 'rgba(255,255,255,0.1)',
-                  stopOpacity: 1,
-                }}
-              />
+            <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style={{ stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1 }} />
+              <stop offset="50%" style={{ stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1 }} />
             </linearGradient>
           </defs>
           <polygon
@@ -103,57 +64,58 @@ export default function SplashPage() {
             strokeWidth="1.5"
           />
         </svg>
-        <h1
-            className="text-7xl font-black tracking-tight"
-            style={{
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              textShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-            }}
-          >
-            <span className="text-orange-500">Cuid</span>
-            <span className="text-teal-400">ja</span>
-          </h1>
-          <p
-            className="text-sm font-bold uppercase tracking-widest text-gray-900"
-            style={{
-              textShadow: '1px 1px 2px rgba(255, 255, 255, 0.8)',
-              letterSpacing: '0.1em',
-            }}
-          >
-            O seu comércio local
-          </p>
+        <div className="relative flex h-80 w-72 flex-col items-center justify-between p-8">
+            <h1
+                className="text-7xl font-black tracking-tight"
+                style={{
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                textShadow: '2px 2px 0px rgba(0,0,0,0.1)',
+                }}
+            >
+                <span className="text-orange-500">Cuid</span>
+                <span className="text-teal-400">ja</span>
+            </h1>
+            <p
+                className="text-sm font-bold uppercase tracking-widest text-gray-900"
+                style={{
+                textShadow: '1px 1px 2px rgba(255, 255, 255, 0.8)',
+                letterSpacing: '0.1em',
+                }}
+            >
+                O seu comércio local
+            </p>
+        </div>
       </div>
 
-       <Image
-        src="/logo.svg"
-        alt="Cuidja Logo"
-        width={144}
-        height={144}
-        className={cn(
-          'absolute object-contain transition-transform duration-500 ease-in-out',
-          getLogoScaleClass()
-        )}
-      />
+      {/* Logo animada */}
+      <div
+        className="absolute flex items-center justify-center transition-all duration-500 ease-in-out"
+        style={{
+          width: `${animatedSize}px`,
+          height: `${animatedSize}px`,
+          opacity: isFinalStage ? 0 : 1, // Desaparece na etapa final para a transição
+        }}
+      >
+        <Image
+          src="/logo.svg"
+          alt="Cuidja Logo"
+          width={animatedSize}
+          height={animatedSize}
+          className="object-contain"
+          priority // Prioriza o carregamento da logo
+        />
+      </div>
 
-
+       {/* Pontos de carregamento (somem na etapa final) */}
       <div
         className={cn(
           'absolute bottom-20 flex space-x-2 transition-opacity duration-500',
-          isFinalStep ? 'opacity-0' : 'opacity-100'
+          isFinalStage ? 'opacity-0' : 'opacity-100'
         )}
       >
-        <div
-          className="h-3 w-3 rounded-full bg-orange-500 animate-bounce"
-          style={{ animationDelay: '0s' }}
-        ></div>
-        <div
-          className="h-3 w-3 rounded-full bg-teal-400 animate-bounce"
-          style={{ animationDelay: '0.2s' }}
-        ></div>
-        <div
-          className="h-3 w-3 rounded-full bg-orange-400 animate-bounce"
-          style={{ animationDelay: '0.4s' }}
-        ></div>
+        <div className="h-3 w-3 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '0s' }}></div>
+        <div className="h-3 w-3 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+        <div className="h-3 w-3 rounded-full bg-orange-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
       </div>
     </div>
   );
