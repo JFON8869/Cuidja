@@ -15,8 +15,8 @@ import Image from 'next/image';
 const ANIMATION_STAGES = [
   { delay: 100, scale: 1.05 }, // 1. Antecipação (crescimento sutil)
   { delay: 400, scale: 0.2 },  // 2. Contração Rápida
-  { delay: 300, scale: 1.05 }, // 3. Overshoot (ultrapassagem na expansão)
-  { delay: 150, scale: 1.0 },  // 4. Assentamento (volta ao normal)
+  { delay: 150, scale: 1.05 }, // 3. Overshoot (ultrapassagem na expansão)
+  { delay: 100, scale: 1.0 },  // 4. Assentamento (volta ao normal)
 ];
 // =================================================================================
 
@@ -25,10 +25,10 @@ export default function SplashPage() {
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
-    // Se a animação terminou, redireciona
+    // Se a animação terminou, redireciona imediatamente
     if (stage >= ANIMATION_STAGES.length) {
-      const finalRedirect = setTimeout(() => router.push('/welcome'), 350);
-      return () => clearTimeout(finalRedirect);
+      router.push('/welcome');
+      return;
     }
 
     // Pega a ação atual baseada no estágio
