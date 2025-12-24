@@ -163,15 +163,14 @@ export default function StoreFormPage() {
         await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Create new store using addDoc to let Firestore generate the ID
-        const storesCollection = collection(firestore, 'stores');
-        const newStoreRef = await addDoc(storesCollection, {
+        // Create new store using setDoc with a pre-generated ID
+        const newStoreRef = doc(collection(firestore, 'stores'));
+        await setDoc(newStoreRef, {
             ...dataToSave,
+            id: newStoreRef.id, // Store the ID within the document
             categories: [], // Initialize with empty categories
             createdAt: serverTimestamp(),
         });
-        // Now update the new document with its own ID
-        await updateDoc(newStoreRef, { id: newStoreRef.id });
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
       
