@@ -5,14 +5,13 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
-// Define os estágios da animação para maior clareza
+// Definição das etapas da animação com delay e escala
 const ANIMATION_STAGES = [
-  { delay: 100, scale: 1.05 }, // 1. Antecipação
+  { delay: 100, scale: 1.05 }, // 1. Antecipação (crescimento sutil)
   { delay: 400, scale: 0.2 },  // 2. Contração Rápida
-  { delay: 300, scale: 0.9 },  // 3. Início da Expansão
-  { delay: 150, scale: 1.05 }, // 4. Overshoot (ultrapassagem)
-  { delay: 500, scale: 1.0 },  // 5. Assentamento (volta ao normal)
-  { delay: 600, scale: 20 },   // 6. Clímax (expansão final)
+  { delay: 300, scale: 1.05 }, // 3. Overshoot (ultrapassagem na expansão)
+  { delay: 150, scale: 1.0 },  // 4. Assentamento (volta ao normal)
+  { delay: 600, scale: 20 },   // 5. Clímax (expansão final para transição)
 ];
 
 export default function SplashPage() {
@@ -20,9 +19,9 @@ export default function SplashPage() {
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
-    // Se a animação terminou, redireciona após um pequeno delay para a transição ser suave
+    // Se a animação terminou, redireciona
     if (stage >= ANIMATION_STAGES.length) {
-      const finalRedirect = setTimeout(() => router.push('/welcome'), 350); // Aumentar um pouco se necessário
+      const finalRedirect = setTimeout(() => router.push('/welcome'), 350);
       return () => clearTimeout(finalRedirect);
     }
 
@@ -92,13 +91,13 @@ export default function SplashPage() {
         </div>
       </div>
 
-      {/* Logo animada - CORRIGIDO: mantemos a opacidade até o final */}
+      {/* Logo animada - mantem a opacidade até o final */}
       <div
         className="absolute flex items-center justify-center transition-all duration-500 ease-in-out"
         style={{
           width: `${animatedSize}px`,
           height: `${animatedSize}px`,
-          opacity: stage > ANIMATION_STAGES.length - 1 ? 0 : 1, // Só some DEPOIS da última etapa
+          opacity: isFinalStage ? 0 : 1, // Some apenas após a última etapa de animação ter sido definida
         }}
       >
         <Image
