@@ -48,56 +48,38 @@ export default function NotificationsPage() {
       return;
     }
     setIsLoading(true);
+
     try {
         const ordersRef = collection(firestore, 'orders');
-        const buyerNotifications: Notification[] = [];
-        const sellerNotifications: Notification[] = [];
-
-        // 1. Get notifications where the user is the buyer
-        const buyerQuery = query(ordersRef, where('customerId', '==', user.uid), where('buyerHasUnread', '==', true));
-        const buyerSnapshot = await getDocs(buyerQuery);
-        buyerSnapshot.forEach(doc => {
-            buyerNotifications.push({ id: doc.id, ...doc.data() } as Notification);
-        });
-
-        // 2. Get notifications where the user is the seller
-        const storesRef = collection(firestore, 'stores');
-        const storeQuery = query(storesRef, where('userId', '==', user.uid));
-        const storeSnapshot = await getDocs(storeQuery);
-        const ownedStoreIds = storeSnapshot.docs.map(doc => doc.id);
-
-        if (ownedStoreIds.length > 0) {
-            // Firestore 'in' queries are limited to 30 items per query.
-            // Chunk the ownedStoreIds array if it's larger than 30.
-            const storeIdChunks: string[][] = [];
-            for (let i = 0; i < ownedStoreIds.length; i += 30) {
-                storeIdChunks.push(ownedStoreIds.slice(i, i + 30));
-            }
-
-            for (const chunk of storeIdChunks) {
-                 const sellerQuery = query(ordersRef, where('storeId', 'in', chunk), where('sellerHasUnread', '==', true));
-                 const sellerSnapshot = await getDocs(sellerQuery);
-                 sellerSnapshot.forEach(doc => {
-                    sellerNotifications.push({ id: doc.id, ...doc.data() } as Notification);
-                 });
-            }
-        }
         
-        // 3. Combine and sort all notifications
-        const allNotifications = [...buyerNotifications, ...sellerNotifications];
-        allNotifications.sort((a, b) => {
-            const dateA = new Date(a.orderDate).getTime();
-            const dateB = new Date(b.orderDate).getTime();
-            return dateB - dateA;
-        });
+        // This is a more robust query that fetches notifications for both buyers and sellers.
+        // It combines conditions using 'or' to get all relevant unread notifications for the current user.
+        const notificationsQuery = query(
+            ordersRef,
+            or(
+                where('customerId', '==', user.uid),
+                where('sellerId', '==', user.uid)
+            ),
+            orderBy('orderDate', 'desc')
+        );
 
+        const querySnapshot = await getDocs(notificationsQuery);
+        
+        const allNotifications = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Notification))
+            .filter(notification => {
+                const isUnreadForBuyer = notification.customerId === user.uid && notification.buyerHasUnread;
+                const isUnreadForSeller = notification.sellerId === user.uid && notification.sellerHasUnread;
+                return isUnreadForBuyer || isUnreadForSeller;
+            });
+        
         setNotifications(allNotifications);
 
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
       
       const permissionError = new FirestorePermissionError({
-        path: `notifications for user ${user.uid}`,
+        path: `orders where customerId or sellerId is ${user.uid}`,
         operation: 'list',
       });
       errorEmitter.emit('permission-error', permissionError);
