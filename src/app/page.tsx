@@ -1,90 +1,95 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Store, Heart } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-const splashSteps = [
-  {
-    icon: Store,
-    title: 'Descubra o Comércio Local',
-    description: 'Encontre produtos e serviços únicos de vendedores perto de você.',
-    image: PlaceHolderImages.find(p => p.id === 'banner-services')?.imageUrl || 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzEzfDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA&ixlib=rb-4.0.3&q=80&w=1080'
-  },
-  {
-    icon: ShoppingCart,
-    title: 'Compre com Facilidade e Segurança',
-    description: 'Adicione itens ao carrinho e finalize sua compra com poucos cliques.',
-    image: PlaceHolderImages.find(p => p.id === 'banner-fruits-vegetables')?.imageUrl || 'https://images.unsplash.com/photo-1590779033100-9f60a05a013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcnVpdHMlMjBhbmQlMjB2ZWdldGFibGVzJTIwYmFubmVyfGVufDB8fHx8MTc3MDE3NjQ1OXww&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-  {
-    icon: Heart,
-    title: 'Apoie Pequenos Negócios',
-    description: 'Cada compra ajuda a fortalecer a economia da sua comunidade.',
-    image: PlaceHolderImages.find(p => p.id === 'banner-crafts')?.imageUrl || 'https://images.unsplash.com/photo-1562340155-a721a3a5e189?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kbWFkZSUyMGNyYWZ0c3xlbnwwfHx8fDE3NzMzMjYzNTV8MA&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-];
 
 export default function SplashPage() {
-  const [step, setStep] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
-    const handleNext = () => {
-      if (step < splashSteps.length - 1) {
-        setStep(prevStep => prevStep + 1);
-      } else {
-        router.push('/welcome');
-      }
-    };
+    const timer = setTimeout(() => {
+      router.push('/welcome');
+    }, 3000); // Redirect after 3 seconds
 
-    const timer = setTimeout(handleNext, 3000); // Avança após 3 segundos
-
-    // Limpa o timer se o componente for desmontado
-    return () => clearTimeout(timer);
-  }, [step, router]);
-
-  const currentStepData = splashSteps[step];
-  const Icon = currentStepData.icon;
-
+    return () => clearTimeout(timer); // Cleanup timer on unmount
+  }, [router]);
+  
   return (
-    <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col bg-card shadow-2xl">
-      <div className="relative h-3/5 w-full">
-        <Image
-          src={currentStepData.image}
-          alt={currentStepData.title}
-          fill
-          className="object-cover transition-opacity duration-1000"
-          key={step} // Key change triggers re-render and animation
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-transparent" />
-      </div>
-      <div className="flex h-2/5 flex-col justify-between p-8 text-center">
-        <div className="space-y-4">
-            <div className="inline-flex rounded-full bg-primary/10 p-3">
-                <Icon className="h-8 w-8 text-primary" />
+    <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
+      {/* Content */}
+      <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className="relative flex h-full w-full flex-col items-center justify-center px-8">
+          
+          {/* Hexagonal Container */}
+          <div className="relative">
+            {/* Hexagon Background */}
+            <div className="relative flex h-80 w-72 items-center justify-center">
+              <svg viewBox="0 0 100 100" className="absolute h-full w-full" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
+                <defs>
+                  <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style={{stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1}} />
+                    <stop offset="50%" style={{stopColor: 'rgba(255,255,255,0.3)', stopOpacity: 1}} />
+                    <stop offset="100%" style={{stopColor: 'rgba(255,255,255,0.1)', stopOpacity: 1}} />
+                  </linearGradient>
+                </defs>
+                <polygon 
+                  points="50 1 95 25 95 75 50 99 5 75 5 25" 
+                  fill="url(#hexGradient)"
+                  stroke="rgba(0, 0, 0, 0.3)"
+                  strokeWidth="1.5"
+                />
+              </svg>
+              
+              {/* Content Inside Hexagon */}
+              <div className="relative z-10 flex flex-col items-center">
+                
+                {/* Logo Title */}
+                <div className="mb-4">
+                  <h1 className="text-7xl font-black tracking-tight" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>
+                    <span className="text-orange-500 inline-block" style={{
+                      textShadow: '2px 2px 0px rgba(139, 69, 19, 0.3), 3px 3px 0px rgba(255, 255, 255, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.2)',
+                      transform: 'translateY(-2px)'
+                    }}>Cuid</span>
+                    <span className="text-teal-400 inline-block" style={{
+                      textShadow: '2px 2px 0px rgba(0, 100, 100, 0.3), 3px 3px 0px rgba(255, 255, 255, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.2)',
+                      transform: 'translateY(-2px)'
+                    }}>ja</span>
+                  </h1>
+                </div>
+                
+                {/* Logo Image */}
+                <div className="w-36 h-36 mb-6 flex items-center justify-center bg-gradient-to-br from-white/40 to-white/20 rounded-3xl backdrop-blur-sm shadow-lg border border-white/30">
+                  <img 
+                    src="/logo.svg" 
+                    alt="Cuidja Logo" 
+                    className="w-full h-full object-contain p-3"
+                    style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))'}}
+                  />
+                </div>
+                
+                {/* Subtitle */}
+                <div className="text-center">
+                  <p className="text-lg font-bold text-gray-900 tracking-widest uppercase" style={{
+                    textShadow: '1px 1px 2px rgba(255, 255, 255, 0.8)',
+                    letterSpacing: '0.1em'
+                  }}>
+                    O seu comércio local
+                  </p>
+                </div>
+              </div>
             </div>
-          <h1 className="font-headline text-3xl">{currentStepData.title}</h1>
-          <p className="text-muted-foreground">{currentStepData.description}</p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex justify-center gap-2">
-            {splashSteps.map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'h-2 w-full rounded-full transition-all duration-300',
-                  i === step ? 'bg-primary' : 'bg-muted'
-                )}
-              />
-            ))}
+          </div>
+          
+          {/* Loading Animation */}
+          <div className="absolute bottom-20 flex space-x-2">
+            <div className="w-3 h-3 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
+            <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
