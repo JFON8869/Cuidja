@@ -9,30 +9,14 @@ export default function SplashPage() {
   const [animationStep, setAnimationStep] = useState(0);
 
   useEffect(() => {
-    // --- ROADMAP DA ANIMAÇÃO ---
-    // Este é o roteiro da animação, equilibrado para um movimento profissional.
     const sequence = [
-      // Etapa 0: Início estático para o usuário registrar a logo.
-      { delay: 500, nextStep: 1 },
-
-      // Etapa 1: "Antecipação" - A logo cresce um pouco antes de encolher.
-      // Isso prepara o espectador para a ação principal, um princípio de animação clássico.
+      { delay: 500, nextStep: 1 }, 
       { delay: 150, nextStep: 2 },
-
-      // Etapa 2: "Ação Principal" - Contração rápida e profunda para 20%.
       { delay: 400, nextStep: 3 },
-      
-      // Etapa 3 a 5: "Assentamento" (Settle) - A logo volta ao normal com um leve "overshoot".
-      // Ela não para em 100% bruscamente, mas passa um pouco (105%) e depois assenta.
-      // Isso dá peso e realismo ao movimento.
-      { delay: 350, nextStep: 4 }, // Cresce para 90%
-      { delay: 250, nextStep: 5 }, // Passa um pouco, indo para 105% (overshoot)
-      { delay: 300, nextStep: 6 }, // Assenta em 100%
-
-      // Etapa 6: "Pausa" - Uma pausa longa com a logo estável, criando antecipação para o final.
+      { delay: 350, nextStep: 4 },
+      { delay: 250, nextStep: 5 },
+      { delay: 300, nextStep: 6 },
       { delay: 600, nextStep: 7 },
-
-      // Etapa 7: "Clímax" - A transição mais rápida. A logo se expande para tomar a tela.
       { delay: 350, action: () => router.push('/welcome') },
     ];
 
@@ -41,38 +25,33 @@ export default function SplashPage() {
     const runAnimation = (step: number) => {
       if (step >= sequence.length) return;
       const { delay, nextStep, action } = sequence[step];
-      
+
       currentTimeout = setTimeout(() => {
         if (action) {
-           setAnimationStep(step); // Trigger the final visual step
-           action();
+          setAnimationStep(step);
+          action();
         } else if (nextStep !== undefined) {
-           setAnimationStep(nextStep);
-           runAnimation(nextStep);
+          setAnimationStep(nextStep);
+          runAnimation(nextStep);
         }
       }, delay);
     };
-    
-    // Inicia a animação a partir do passo 0
+
     runAnimation(0);
-    
-    // Limpeza ao desmontar o componente
+
     return () => clearTimeout(currentTimeout);
-    
-  }, [router]); // router é uma dependência estável, então o efeito roda uma vez
+  }, [router]);
 
-
-  // Mapeamento das etapas do roadmap para as classes de transformação (tamanho/escala)
   const getLogoScaleClass = () => {
     switch (animationStep) {
-      case 0: return 'scale-100'; // Etapa 0: Início
-      case 1: return 'scale-105'; // Etapa 1: Antecipação
-      case 2: return 'scale-20';  // Etapa 2: Contração Profunda
-      case 3: return 'scale-90';  // Etapa 3: Início da expansão
-      case 4: return 'scale-105'; // Etapa 4: "Overshoot"
-      case 5: return 'scale-100'; // Etapa 5: Assentamento
-      case 6: return 'scale-100'; // Etapa 6: Pausa
-      case 7: return 'scale-[10]';// Etapa 7: Clímax (Expansão Final)
+      case 0: return 'scale-100';
+      case 1: return 'scale-105'; 
+      case 2: return 'scale-20';
+      case 3: return 'scale-90';
+      case 4: return 'scale-105';
+      case 5: return 'scale-100';
+      case 6: return 'scale-100';
+      case 7: return 'scale-[10]';
       default: return 'scale-100';
     }
   };
@@ -81,17 +60,14 @@ export default function SplashPage() {
 
   return (
     <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
-      {/* Content */}
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <div className="relative flex h-full w-full flex-col items-center justify-center px-8">
-          {/* Hexagonal Container - This fades out on the final animation step */}
           <div
             className={cn(
               'relative transition-opacity duration-500',
               isFinalStep ? 'opacity-0' : 'opacity-100'
             )}
           >
-            {/* Hexagon Background */}
             <div className="relative flex h-80 w-72 items-center justify-center">
               <svg
                 viewBox="0 0 100 100"
@@ -137,11 +113,9 @@ export default function SplashPage() {
                 />
               </svg>
 
-              {/* Content Inside Hexagon */}
               <div className="relative z-10 flex h-full w-full flex-col items-center justify-between p-8">
-                {/* Logo Title */}
                 <h1
-                  className="text-7xl font-black tracking-tight"
+                  className="absolute top-5 -translate-y-[70%] text-7xl font-black tracking-tight"
                   style={{
                     fontFamily: 'system-ui, -apple-system, sans-serif',
                   }}
@@ -168,9 +142,8 @@ export default function SplashPage() {
                   </span>
                 </h1>
 
-                {/* Subtitle */}
                 <p
-                  className="text-base font-bold uppercase tracking-widest text-gray-900"
+                  className="absolute bottom-8 text-sm font-bold uppercase tracking-widest text-gray-900"
                   style={{
                     textShadow: '1px 1px 2px rgba(255, 255, 255, 0.8)',
                     letterSpacing: '0.1em',
@@ -182,7 +155,6 @@ export default function SplashPage() {
             </div>
           </div>
 
-          {/* Logo Image - now absolutely positioned to animate independently */}
           <img
             src="/logo.svg"
             alt="Cuidja Logo"
@@ -192,7 +164,6 @@ export default function SplashPage() {
             )}
           />
 
-          {/* Loading Animation */}
           <div
             className={cn(
               'absolute bottom-20 flex space-x-2 transition-opacity duration-500',
