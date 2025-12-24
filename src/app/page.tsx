@@ -27,6 +27,7 @@ export default function SplashPage() {
 
   useEffect(() => {
     if (stage >= ANIMATION_STAGES.length) {
+      // Após a última etapa, espera um pouco e redireciona
       const finalDelay = 150; 
       const timeout = setTimeout(() => {
         router.push('/welcome');
@@ -35,6 +36,7 @@ export default function SplashPage() {
       return () => clearTimeout(timeout);
     }
 
+    // Processa a etapa atual da animação
     const currentAction = ANIMATION_STAGES[stage];
     const timeout = setTimeout(() => {
       setStage(stage + 1);
@@ -43,37 +45,19 @@ export default function SplashPage() {
     return () => clearTimeout(timeout);
   }, [stage, router]);
 
-  const isFinalStage = stage >= ANIMATION_STAGES.length;
+  // Determina se estamos na transição final para fazer os elementos desaparecerem
+  const isFinalTransition = stage >= ANIMATION_STAGES.length;
+  // Pega a escala da etapa atual para aplicar à logo
   const currentScale = stage > 0 ? ANIMATION_STAGES[stage - 1].scale : 1.0;
   const logoSize = 144;
   const animatedSize = logoSize * currentScale;
 
   return (
-    <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-blue-100 via-orange-100 to-orange-200 shadow-2xl">
-      {/* 1. Hexágono de Fundo (sempre visível durante a splash) */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <svg
-          viewBox="0 0 100 100"
-          className="h-[40vh] w-[40vh] max-h-[400px] max-w-[400px] opacity-20"
-          style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.05))' }}
-        >
-          <defs>
-            <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style={{ stopColor: 'rgba(255,255,255,0.8)', stopOpacity: 1 }} />
-              <stop offset="100%" style={{ stopColor: 'rgba(255,255,255,0.4)', stopOpacity: 1 }} />
-            </linearGradient>
-          </defs>
-          <polygon
-            points="50 1 95 25 95 75 50 99 5 75 5 25"
-            fill="url(#hexGradient)"
-            stroke="rgba(0, 0, 0, 0.1)"
-            strokeWidth="0.5"
-          />
-        </svg>
-      </div>
+    // Container principal que ocupa a tela toda
+    <div className="relative mx-auto flex h-[100dvh] max-w-sm flex-col items-center justify-center overflow-hidden bg-transparent shadow-2xl">
       
-      {/* 2. Container do Texto (some na etapa final) */}
-      <div className={cn('relative z-10 flex flex-col items-center justify-center transition-opacity duration-500', isFinalStage ? 'opacity-0' : 'opacity-100')}>
+      {/* 1. Container do Texto (some na etapa final) */}
+      <div className={cn('relative z-10 flex flex-col items-center justify-center transition-opacity duration-500', isFinalTransition ? 'opacity-0' : 'opacity-100')}>
         <div className="flex h-80 w-72 flex-col items-center justify-between p-8">
             <h1
                 className="font-logo text-7xl"
@@ -97,13 +81,14 @@ export default function SplashPage() {
         </div>
       </div>
 
-      {/* 3. Logo animada - mantem a opacidade até o final */}
+      {/* 2. Logo animada */}
       <div
         className="absolute z-20 flex items-center justify-center transition-all duration-500 ease-in-out"
         style={{
           width: `${animatedSize}px`,
           height: `${animatedSize}px`,
-          opacity: isFinalStage ? 0 : 1,
+          // A logo só some no momento exato da transição final
+          opacity: isFinalTransition ? 0 : 1,
         }}
       >
         <Image
@@ -116,11 +101,11 @@ export default function SplashPage() {
         />
       </div>
 
-       {/* 4. Pontos de carregamento (somem na etapa final) */}
+       {/* 3. Pontos de carregamento (somem na etapa final) */}
       <div
         className={cn(
           'absolute bottom-20 z-10 flex space-x-2 transition-opacity duration-500',
-          isFinalStage ? 'opacity-0' : 'opacity-100'
+          isFinalTransition ? 'opacity-0' : 'opacity-100'
         )}
       >
         <div className="h-3 w-3 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '0s' }}></div>
