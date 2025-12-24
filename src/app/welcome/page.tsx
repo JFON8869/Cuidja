@@ -37,9 +37,9 @@ export default function WelcomePage() {
   return (
     <div className="relative mx-auto h-[100dvh] max-w-sm overflow-hidden bg-card text-center shadow-2xl">
       {/* Hexagon Background */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10">
-        <div className="h-[400px] w-[400px]">
-            <svg viewBox="0 0 100 100" className="absolute w-full h-full" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
+      <div className="absolute inset-x-0 top-0 z-0 flex items-start justify-center opacity-10">
+        <div className="h-[400px] w-[400px] -mt-24">
+            <svg viewBox="0 0 100 100" className="w-full h-full" style={{filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'}}>
               <defs>
                 <linearGradient id="hexGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" style={{stopColor: 'rgba(255,255,255,0.6)', stopOpacity: 1}} />
@@ -58,9 +58,8 @@ export default function WelcomePage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex h-full flex-col justify-between p-8">
-        <div />
-        <div className="space-y-4">
+      <div className="relative z-10 flex h-full flex-col justify-center p-8 pt-32">
+        <div className="flex-grow flex flex-col justify-center items-center space-y-4">
           <Image
             src="/logo.svg"
             alt="Cuidja Logo"
