@@ -19,7 +19,6 @@ import {
   getDocs,
   doc,
   deleteDoc,
-  orderBy,
   updateDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
@@ -68,12 +67,19 @@ export default function SellerServicesPage() {
         const servicesQuery = query(
           collection(firestore, 'products'),
           where('storeId', '==', store.id),
-          where('type', '==', 'SERVICE'),
-          orderBy('createdAt', 'desc')
+          where('type', '==', 'SERVICE')
         );
 
         const servicesSnapshot = await getDocs(servicesQuery);
-        const fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WithId<Product>));
+        let fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WithId<Product>));
+        
+        // Sort on the client-side
+        fetchedServices.sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+            return dateB.getTime() - dateA.getTime();
+        });
+
         setServices(fetchedServices);
 
       } catch (error) {

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Bell, Search, Loader2 } from 'lucide-react';
 import Autoplay from 'embla-carousel-autoplay';
-import { collection, query, limit, getDocs, orderBy, where } from 'firebase/firestore';
+import { collection, query, limit, getDocs, where } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,14 +39,21 @@ export default function Home() {
         const productsQuery = query(
           collection(firestore, 'products'),
           where('type', '==', 'PRODUCT'), 
-          orderBy('createdAt', 'desc'),
           limit(20)
         );
         const snapshot = await getDocs(productsQuery);
-        const fetchedProducts = snapshot.docs.map(doc => ({
+        let fetchedProducts = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         })) as WithId<Product>[];
+
+        // Sort on the client-side
+        fetchedProducts.sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+            return dateB.getTime() - dateA.getTime();
+        });
+
         setProducts(fetchedProducts);
       } catch (error) {
         console.error("Failed to fetch products:", error);
