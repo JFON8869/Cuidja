@@ -91,7 +91,7 @@ export function ProductForm({ productId }: ProductFormProps) {
   }, [isUserLoading, user, isStoreLoading, store, router]);
 
   useEffect(() => {
-    if (isEditing && firestore && productId) {
+    if (isEditing && firestore && productId && user) {
       const fetchProduct = async () => {
         setIsPageLoading(true);
         try {
@@ -100,6 +100,14 @@ export function ProductForm({ productId }: ProductFormProps) {
 
           if (docSnap.exists()) {
             const productData = docSnap.data() as Product;
+            
+            // CRITICAL: Verify ownership before allowing editing.
+            if (productData.sellerId !== user.uid) {
+                toast.error("Você não tem permissão para editar este produto.");
+                router.push('/vender/produtos');
+                return;
+            }
+            
             // The 'availability' field in the DB can be 'on_demand', but our form only supports 'available' or 'unavailable'.
             // We map 'on_demand' to 'available' for the form's logic.
             const availability = productData.availability === 'unavailable' ? 'unavailable' : 'available';
@@ -125,7 +133,7 @@ export function ProductForm({ productId }: ProductFormProps) {
       };
       fetchProduct();
     }
-  }, [firestore, productId, form, router, isEditing]);
+  }, [firestore, productId, form, router, isEditing, user]);
 
   const handleSuggestCategory = async () => {
     const name = form.getValues('name');
