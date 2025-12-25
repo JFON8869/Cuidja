@@ -7,9 +7,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
+  GoogleAuthProvider,
   signInWithEmailAndPassword,
+  signInWithPopup,
 } from 'firebase/auth';
 import { toast } from 'react-hot-toast';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +32,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { handleGoogleSignIn } from '@/lib/auth-actions';
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -86,7 +88,40 @@ export default function LoginPage() {
       toast.error("Serviços de autenticação indisponíveis. Tente novamente.");
       return;
     }
-    await handleGoogleSignIn(auth, firestore, router, toast, setGoogleLoading);
+    setGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          name: user.displayName,
+          email: user.email,
+          phone: user.phoneNumber || '',
+          addresses: [],
+        });
+      }
+
+      toast.success('Login com Google realizado com sucesso!');
+      router.push('/home');
+    } catch (error) {
+      if (error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user') {
+        // User closed the popup, do nothing.
+      } else if (error instanceof FirebaseError && error.code === 'auth/popup-blocked') {
+        toast.error(
+          'O pop-up de login foi bloqueado pelo seu navegador. Por favor, habilite os pop-ups para este site e tente novamente.'
+        );
+      } else {
+        console.error('Google Sign-In Error:', error);
+        toast.error('Não foi possível fazer login com o Google. Tente novamente.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
 
