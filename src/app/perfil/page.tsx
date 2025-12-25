@@ -47,6 +47,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import BottomNav from '@/components/layout/BottomNav';
+import { mockProducts, mockServices } from '@/lib/mock-data';
+import { Product } from '@/lib/data';
 
 const menuItems = [
   { href: '/notificacoes', icon: Bell, label: 'Notificações' },
@@ -62,8 +64,9 @@ const aboutItems = [
 ];
 
 export default function ProfilePage() {
-  const { auth, user, isUserLoading, firestore } = useFirebase();
+  const { auth, user, isUserLoading, firestore, store } = useFirebase();
   const router = useRouter();
+  const [isSeeding, setIsSeeding] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -76,6 +79,67 @@ export default function ProfilePage() {
       await auth.signOut();
       toast.success('Você saiu da sua conta.');
       router.push('/welcome');
+    }
+  };
+  
+  const seedDatabase = async () => {
+    if (!firestore || !user || !store) {
+      toast.error(
+        'Você precisa estar logado e ter uma loja para popular os dados.'
+      );
+      return;
+    }
+    setIsSeeding(true);
+
+    try {
+      const productsRef = collection(firestore, 'products');
+      const q = query(productsRef, where('sellerId', '==', user.uid));
+      const existingProducts = await getDocs(q);
+
+      if (!existingProducts.empty) {
+        toast.success('O banco de dados já parece ter dados de teste.');
+        setIsSeeding(false);
+        return;
+      }
+
+      const batch = writeBatch(firestore);
+      const allMockItems = [...mockProducts, ...mockServices];
+      const categoriesToAdd = new Set<string>();
+
+      allMockItems.forEach((item) => {
+        const newDocRef = doc(productsRef); // Create a new doc with a generated ID
+        const dataToSave: Omit<Product, 'id'> = {
+          ...item,
+          sellerId: user.uid,
+          storeId: store.id,
+          createdAt: serverTimestamp(),
+          category: item.category || 'Serviços',
+          availability: item.availability || 'on_demand',
+          type: item.type || 'SERVICE',
+        };
+        batch.set(newDocRef, dataToSave);
+
+        if (dataToSave.category) {
+            categoriesToAdd.add(dataToSave.category);
+        }
+      });
+      
+      // Update store categories
+      const storeRef = doc(firestore, "stores", store.id);
+      batch.update(storeRef, {
+        categories: Array.from(categoriesToAdd)
+      });
+
+      await batch.commit();
+
+      toast.success(
+        'Banco de dados populado com sucesso! Navegue pelo app para ver os produtos.'
+      );
+    } catch (error) {
+      console.error('Error seeding database:', error);
+      toast.error('Ocorreu um erro ao popular o banco de dados.');
+    } finally {
+      setIsSeeding(false);
     }
   };
 
@@ -185,7 +249,21 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        <div className="p-4 mt-4">
+        <div className="p-4 mt-4 space-y-2">
+          {store && (
+             <Button
+                variant="secondary"
+                onClick={seedDatabase}
+                className="w-full"
+                disabled={isSeeding}
+              >
+                {isSeeding ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  'Popular Banco de Dados (Teste)'
+                )}
+              </Button>
+          )}
           <Button variant="outline" onClick={handleSignOut} className="w-full">
             <LogOut className="mr-2 h-4 w-4" />
             Sair
