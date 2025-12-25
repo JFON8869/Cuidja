@@ -96,33 +96,17 @@ export default function LoginPage() {
 
       const userDocRef = doc(firestore, 'users', user.uid);
       
-      try {
-        const userDoc = await getDoc(userDocRef);
+      const userDoc = await getDoc(userDocRef);
 
-        if (!userDoc.exists()) {
-          await setDoc(userDocRef, {
-            name: user.displayName,
-            email: user.email,
-            phone: user.phoneNumber || '',
-            addresses: [],
-            createdAt: new Date().toISOString(),
-          });
-        }
-      } catch (firestoreError) {
-        console.error('Erro no Firestore:', firestoreError);
-        // Se falhar ao ler, tenta criar direto (fallback)
-        if (firestoreError instanceof FirebaseError && 
-            firestoreError.code === 'permission-denied') {
-          await setDoc(userDocRef, {
-            name: user.displayName,
-            email: user.email,
-            phone: user.phoneNumber || '',
-            addresses: [],
-            createdAt: new Date().toISOString(),
-          });
-        } else {
-          throw firestoreError;
-        }
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          name: user.displayName,
+          email: user.email,
+          phone: user.phoneNumber || '',
+          addresses: [],
+          storeId: null,
+          createdAt: new Date().toISOString(),
+        });
       }
 
       toast.success('Login com Google realizado com sucesso!');

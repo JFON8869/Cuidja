@@ -10,6 +10,7 @@ import {
   collection,
   serverTimestamp,
   addDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -139,7 +140,6 @@ export default function StoreFormPage() {
 
     try {
       const { logoUrl: logoFile, ...dataToSave } = values;
-
       let finalLogoUrl = existingStore?.logoUrl || '';
 
       if (logoFile instanceof File) {
@@ -160,11 +160,23 @@ export default function StoreFormPage() {
         await updateDoc(storeRef, finalStoreData);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        await addDoc(collection(firestore, 'stores'), {
-          ...finalStoreData,
-          categories: [],
-          createdAt: serverTimestamp(),
+        // Use a batch to create the store and update the user doc atomically
+        const batch = writeBatch(firestore);
+
+        const storeCollection = collection(firestore, 'stores');
+        const newStoreRef = doc(storeCollection); // Create a ref with a new ID
+
+        batch.set(newStoreRef, {
+            ...finalStoreData,
+            categories: [],
+            createdAt: serverTimestamp(),
         });
+
+        const userDocRef = doc(firestore, 'users', user.uid);
+        batch.update(userDocRef, { storeId: newStoreRef.id });
+        
+        await batch.commit();
+        
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
       }
 

@@ -69,6 +69,8 @@ export default function SignupPage() {
         email: values.email,
         phone: values.phone,
         addresses: [], // Initialize with an empty addresses array
+        storeId: null, // Initialize storeId as null
+        createdAt: new Date().toISOString(),
       });
 
       toast.success('Conta criada com sucesso! Você já pode fazer login.');

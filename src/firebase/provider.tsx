@@ -2,10 +2,15 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
+import { Firestore, collection, query, where, getDocs, doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { WithId } from './firestore/use-collection';
 import { Store } from '@/lib/data';
+
+interface UserDocument {
+    storeId?: string;
+    // other user fields
+}
 
 // Internal state for user authentication
 interface UserAuthState {
@@ -95,27 +100,54 @@ export const FirebaseProvider: React.FC<{
 
       setStoreState(prevState => ({ ...prevState, isStoreLoading: true }));
       
-      const storesRef = collection(firestore, 'stores');
-      const q = query(storesRef, where('userId', '==', userAuthState.user.uid));
+      const userDocRef = doc(firestore, 'users', userAuthState.user.uid);
 
-      // Use a snapshot listener to get real-time updates for the store
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-          if (!snapshot.empty) {
-              const storeDoc = snapshot.docs[0];
-              setStoreState({
-                  store: { id: storeDoc.id, ...storeDoc.data() } as WithId<Store>,
-                  isStoreLoading: false,
-                  storeError: null,
-              });
+      // This listener watches the user document for a storeId
+      const unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
+          let storeUnsubscribe: (() => void) | null = null;
+          
+          if (userDoc.exists()) {
+              const userData = userDoc.data() as UserDocument;
+              const storeId = userData.storeId;
+
+              if (storeId) {
+                  const storeDocRef = doc(firestore, 'stores', storeId);
+                  // If storeId exists, create a new listener for the store document
+                  storeUnsubscribe = onSnapshot(storeDocRef, (storeDoc) => {
+                      if (storeDoc.exists()) {
+                           setStoreState({
+                              store: { id: storeDoc.id, ...storeDoc.data() } as WithId<Store>,
+                              isStoreLoading: false,
+                              storeError: null,
+                          });
+                      } else {
+                           setStoreState({ store: null, isStoreLoading: false, storeError: new Error('Store not found.') });
+                      }
+                  }, (error) => {
+                      console.error("FirebaseProvider: Error fetching user store:", error);
+                      setStoreState({ store: null, isStoreLoading: false, storeError: error });
+                  });
+              } else {
+                  // User has no storeId, so they are not a seller
+                  setStoreState({ store: null, isStoreLoading: false, storeError: null });
+              }
           } else {
+              // User document doesn't exist yet
               setStoreState({ store: null, isStoreLoading: false, storeError: null });
           }
+
+          // Return a cleanup function that unsubscribes from the store listener if it was created
+          return () => {
+              if (storeUnsubscribe) {
+                  storeUnsubscribe();
+              }
+          }
       }, (error) => {
-          console.error("FirebaseProvider: Error fetching user store:", error);
-           setStoreState({ store: null, isStoreLoading: false, storeError: error });
+          console.error("FirebaseProvider: Error fetching user document:", error);
+          setStoreState({ store: null, isStoreLoading: false, storeError: error });
       });
 
-      return () => unsubscribe();
+      return () => unsubscribeUser();
 
   }, [firestore, userAuthState.user]);
 
