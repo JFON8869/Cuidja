@@ -169,7 +169,6 @@ export default function StoreFormPage() {
       }
 
       router.push('/vender');
-      router.refresh();
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');

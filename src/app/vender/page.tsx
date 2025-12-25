@@ -93,7 +93,10 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
 
   useEffect(() => {
     async function fetchDashboardMetrics() {
-        if (!firestore || !store) return;
+        if (!firestore || !store?.id) {
+            setIsLoadingMetrics(false);
+            return;
+        };
         
         setIsLoadingMetrics(true);
         
