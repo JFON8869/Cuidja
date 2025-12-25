@@ -7,7 +7,7 @@ service firebase.storage {
       // Allow read access to anyone. Logos are public.
       allow read;
       // Allow write access (create, update, delete) only if the user is authenticated
-      // AND the {userId} in the path matches the UID of the requesting user.
+      // AND the {userId} in the path matches the UID of the an user.
       // This ensures a user can only upload a logo for their own store.
       allow write: if request.auth != null && request.auth.uid == userId;
     }
