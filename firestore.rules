@@ -42,8 +42,8 @@ service cloud.firestore {
 
     match /stores/{storeId} {
         allow get, list: if true;
-        // The user creating the store must be the owner of the store, and the data being written must match.
-        allow create: if isCreatingOwn('userId') && request.resource.data.userId == request.auth.uid;
+        // The user creating the store must be the owner of the store.
+        allow create: if isCreatingOwn('userId');
         allow update, delete: if isDocumentOwner(resource, 'userId');
     }
     
