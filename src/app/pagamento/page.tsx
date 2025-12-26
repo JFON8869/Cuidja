@@ -1,8 +1,7 @@
-
 'use client';
 
-import { Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -13,43 +12,159 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
+import { collection, addDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
-import { useFirebase, useMemoFirebase } from '@/firebase';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useCart } from '@/context/CartContext';
+import { Store } from '@/lib/data';
+
+// V3 Change: Define a type for the data we expect from localStorage
+interface CheckoutData {
+    formValues: {
+        name: string;
+        phone: string;
+        address: string;
+        city: string;
+        zip: string;
+        paymentMethod: 'card' | 'pix';
+        isUrgent: boolean;
+    };
+    cart: any[];
+    total: number;
+}
+
 
 function PaymentPage() {
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
   const router = useRouter();
-  const { firestore } = useFirebase();
+  const { firestore, user } = useFirebase();
+  const { clearCart } = useCart();
   
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  const [sellerId, setSellerId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   const qrCodeImage = PlaceHolderImages.find(img => img.id === 'qr-code-pix');
 
-  const orderRef = useMemoFirebase(() => {
-    if (!firestore || !orderId) return null;
-    return doc(firestore, 'orders', orderId);
-  }, [firestore, orderId]);
+  // V3 Change: Load data from localStorage on component mount
+  useEffect(() => {
+    const data = localStorage.getItem('checkoutData');
+    if (data) {
+        try {
+            const parsedData: CheckoutData = JSON.parse(data);
+            setCheckoutData(parsedData);
+        } catch (error) {
+             console.error("Failed to parse checkout data from localStorage", error);
+             toast.error("Erro ao carregar dados da compra.");
+             router.push('/carrinho');
+        }
+    } else {
+        // If there's no data, user probably landed here directly. Redirect.
+        router.push('/carrinho');
+    }
+  }, [router]);
 
-  const { data: order, isLoading, error } = useDoc(orderRef);
+  // Effect to fetch the sellerId from the store document once checkoutData is available
+  useEffect(() => {
+    const fetchSellerId = async () => {
+      if (!firestore || !checkoutData || checkoutData.cart.length === 0) {
+        if(checkoutData) setIsLoading(false); // Stop loading if cart is empty
+        return;
+      };
+      
+      setIsLoading(true);
+      const storeId = checkoutData.cart[0].storeId;
+      const storeRef = doc(firestore, 'stores', storeId);
 
+      try {
+        const storeSnap = await getDoc(storeRef);
+        if (storeSnap.exists()) {
+            const storeData = storeSnap.data() as Store;
+            setSellerId(storeData.userId);
+        } else {
+            toast.error("Vendedor não encontrado. A compra não pode ser completada.");
+            router.push('/carrinho');
+        }
+      } catch (error) {
+        console.error("Error fetching seller ID:", error);
+        toast.error("Erro ao buscar informações do vendedor.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSellerId();
+  }, [firestore, checkoutData, router]);
+
+  // V3 Change: The core logic now resides here.
   const handleConfirmPayment = async () => {
-    if (!orderRef) return;
+    if (!firestore || !user || !checkoutData || !sellerId) {
+      toast.error('Informações da compra incompletas. Tente novamente.');
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    // Create the order document
+    const orderData = {
+        customerId: user.uid,
+        sellerId: sellerId,
+        storeId: checkoutData.cart[0].storeId,
+        orderType: 'PURCHASE' as const,
+        items: checkoutData.cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            selectedAddons: item.selectedAddons || []
+        })),
+        totalAmount: checkoutData.total,
+        status: 'Pendente', // V3 Change: Status starts as 'Pendente'
+        orderDate: new Date().toISOString(),
+        shippingAddress: {
+            name: checkoutData.formValues.name,
+            street: checkoutData.formValues.address,
+            city: checkoutData.formValues.city,
+            zip: checkoutData.formValues.zip,
+            number: '', // The 'address' field contains street and number
+        },
+        phone: checkoutData.formValues.phone,
+        paymentMethod: checkoutData.formValues.paymentMethod,
+        isUrgent: checkoutData.formValues.isUrgent,
+        sellerHasUnread: true,
+        buyerHasUnread: false,
+    };
+
     try {
-      await updateDoc(orderRef, {
-        status: 'Confirmado',
-      });
-      toast.success('Pagamento Confirmado! Seu pedido foi confirmado e o vendedor notificado.');
-      router.push('/pedidos');
+        // Use a batch write to create the order and update its status
+        const batch = writeBatch(firestore);
+        const orderRef = doc(collection(firestore, 'orders'));
+
+        // 1. Create the order with 'Pendente' status
+        batch.set(orderRef, orderData);
+        // 2. Immediately update the status to 'Confirmado'
+        batch.update(orderRef, { status: 'Confirmado' });
+
+        await batch.commit();
+        
+        toast.success('Pagamento Confirmado! Seu pedido foi criado.');
+        
+        // Clean up
+        clearCart();
+        localStorage.removeItem('checkoutData');
+
+        // Redirect to the newly created order's page
+        router.push(`/pedidos/${orderRef.id}`);
+
     } catch (err) {
-      console.error('Failed to confirm payment:', err);
-      toast.error('Erro ao confirmar pagamento.');
+      console.error('Failed to create order:', err);
+      toast.error('Erro ao criar o pedido.');
+      setIsProcessing(false);
     }
   };
 
@@ -59,23 +174,8 @@ function PaymentPage() {
     toast.success('Código PIX copiado!');
   };
 
-  if (isLoading) {
+  if (isLoading || !checkoutData) {
     return <PaymentPageSkeleton />;
-  }
-
-  if (error || !order) {
-    return (
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center p-4 text-center">
-        <AlertTriangle className="mb-4 h-12 w-12 text-destructive" />
-        <h2 className="text-2xl font-bold">Pedido não encontrado</h2>
-        <p className="text-muted-foreground">
-          O pedido que você está tentando pagar não foi encontrado.
-        </p>
-        <Button asChild variant="link">
-          <Link href="/pedidos">Voltar para Meus Pedidos</Link>
-        </Button>
-      </div>
-    );
   }
 
   return (
@@ -96,23 +196,19 @@ function PaymentPage() {
             <CardTitle>Resumo do Pedido</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pedido</span>
-              <span className="font-mono">#{orderId?.substring(0, 7)}</span>
-            </div>
             <div className="flex justify-between text-xl font-bold">
               <span>Total</span>
               <span>
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
-                }).format(order.totalAmount)}
+                }).format(checkoutData.total)}
               </span>
             </div>
           </CardContent>
         </Card>
 
-        {order.paymentMethod === 'pix' ? (
+        {checkoutData.formValues.paymentMethod === 'pix' ? (
           <div className="mt-6 space-y-4 text-center">
             <h2 className="font-headline text-xl">Pague com PIX</h2>
             <p className="text-sm text-muted-foreground">
@@ -148,8 +244,9 @@ function PaymentPage() {
               size="lg"
               className="w-full"
               onClick={handleConfirmPayment}
+              disabled={isProcessing || !sellerId}
             >
-              Já paguei, confirmar pedido
+              {isProcessing ? <Loader2 className="animate-spin" /> : 'Já paguei, confirmar pedido'}
             </Button>
           </div>
         ) : (
@@ -182,9 +279,10 @@ function PaymentPage() {
               size="lg"
               className="w-full"
               onClick={handleConfirmPayment}
+              disabled={isProcessing || !sellerId}
             >
-              <CreditCard className="mr-2" />
-              Pagar com Cartão
+              {isProcessing ? <Loader2 className="animate-spin" /> : <CreditCard className="mr-2" />}
+              Pagar e Finalizar Pedido
             </Button>
           </div>
         )}

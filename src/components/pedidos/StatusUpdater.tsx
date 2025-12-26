@@ -7,7 +7,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 import { PurchaseStatus, ServiceRequestStatus, OrderType } from '@/lib/data';
@@ -28,9 +27,18 @@ export default function StatusUpdater({ order }: StatusUpdaterProps) {
     if (!firestore || !order) return;
     const orderRef = doc(firestore, 'orders', order.id);
     try {
+      // For purchases, the "Confirmado" status is now set on payment.
+      // For services, "Em Conversa" is a manual first step.
+      // This logic ensures the notification is sent at the right time.
+      const shouldNotify = (order.orderType === 'PURCHASE' && newStatus === 'Em Preparo')
+                        || (order.orderType === 'SERVICE_REQUEST' && newStatus === 'Em Conversa')
+                        || newStatus === 'Entregue'
+                        || newStatus === 'Concluído'
+                        || newStatus === 'Cancelado';
+
       await updateDoc(orderRef, {
         status: newStatus,
-        buyerHasUnread: true,
+        buyerHasUnread: shouldNotify,
         lastMessageTimestamp: serverTimestamp(),
       });
       toast.success(`Status do pedido atualizado para "${newStatus}"`);

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,6 @@ import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { Loader2 } from 'lucide-react';
-import { Store } from '@/lib/data';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório.'),
@@ -46,11 +45,9 @@ const checkoutSchema = z.object({
 });
 
 export default function CheckoutPage() {
-  const { cart, total, clearCart } = useCart();
+  const { cart, total, isCartLoading } = useCart();
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
-
-  const [sellerId, setSellerId] = useState<string | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -58,27 +55,6 @@ export default function CheckoutPage() {
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
-
-  const firstProductInCart = cart.length > 0 ? cart[0] : null;
-  const storeId = firstProductInCart?.storeId;
-  
-  // Effect to fetch the sellerId from the store document
-  useEffect(() => {
-    const fetchSellerId = async () => {
-      if (!firestore || !storeId) return;
-      
-      const storeRef = doc(firestore, 'stores', storeId);
-      const storeSnap = await getDoc(storeRef);
-
-      if (storeSnap.exists()) {
-        const storeData = storeSnap.data() as Store;
-        setSellerId(storeData.userId);
-      } else {
-        toast.error("Não foi possível encontrar o vendedor. O pedido não pode ser completado.");
-      }
-    };
-    fetchSellerId();
-  }, [firestore, storeId]);
 
   const urgentCategories = useMemo(() => ['Gás e Água', 'Farmácias'], []);
   const isUrgentCategory = useMemo(() => {
@@ -142,52 +118,23 @@ export default function CheckoutPage() {
   
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (!firestore || !user || !storeId || !sellerId) {
-      toast.error('Ocorreu um erro. Verifique seu login, os itens do carrinho e os dados do vendedor.');
+    if (!user || cart.length === 0) {
+      toast.error('Ocorreu um erro. Verifique seu login e os itens do carrinho.');
       return;
     }
     
+    // V3 Change: Save checkout data to localStorage and redirect to payment page
     try {
-        const ordersCollection = collection(firestore, 'orders');
-        
-        const orderData = {
-            customerId: user.uid,
-            sellerId: sellerId, // Include the sellerId
-            storeId: storeId,
-            orderType: 'PURCHASE', // V2 Data Model
-            items: cart.map(item => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity,
-                selectedAddons: item.selectedAddons || []
-            })),
-            totalAmount: total,
-            status: 'Confirmado', // V2: Status starts as Confirmed
-            orderDate: new Date().toISOString(),
-            shippingAddress: {
-                name: values.name,
-                street: values.address,
-                city: values.city,
-                zip: values.zip,
-                number: '', // The 'address' field now contains street and number
-            },
-            phone: values.phone,
-            paymentMethod: values.paymentMethod,
-            isUrgent: values.isUrgent,
-            sellerHasUnread: true,
-            buyerHasUnread: false,
-            messages: []
+        const checkoutData = {
+            formValues: values,
+            cart: cart,
+            total: total
         };
-        
-        const docRef = await addDoc(ordersCollection, orderData);
-        toast.success('Seu pedido foi criado. Redirecionando para o pagamento.');
-        clearCart();
-        router.push(`/pagamento?orderId=${docRef.id}`);
-
+        localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
+        router.push(`/pagamento`);
     } catch(error) {
-        console.error("Error placing order: ", error);
-        toast.error('Não foi possível finalizar seu pedido. Tente novamente.');
+        console.error("Error saving checkout data to localStorage: ", error);
+        toast.error('Não foi possível prosseguir para o pagamento. Tente novamente.');
     }
   }
 
@@ -196,7 +143,9 @@ export default function CheckoutPage() {
     return (item.price * item.quantity) + addonsTotal;
   }
   
-  if (isUserLoading || isUserDataLoading) {
+  const isLoadingPage = isUserLoading || isUserDataLoading || isCartLoading;
+
+  if (isLoadingPage) {
     return (
         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -204,7 +153,7 @@ export default function CheckoutPage() {
     )
   }
 
-  if (cart.length === 0 && !isUserLoading) {
+  if (cart.length === 0 && !isLoadingPage) {
     return (
         <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col items-center justify-center bg-transparent shadow-2xl">
             <h1 className="text-2xl font-bold mb-4">Seu carrinho está vazio</h1>
@@ -420,7 +369,7 @@ export default function CheckoutPage() {
           size="lg"
           className="w-full"
           onClick={form.handleSubmit(onSubmit)}
-          disabled={form.formState.isSubmitting || !sellerId}
+          disabled={form.formState.isSubmitting}
         >
           {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ir para Pagamento'}
         </Button>
