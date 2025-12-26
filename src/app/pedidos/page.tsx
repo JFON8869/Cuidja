@@ -64,17 +64,27 @@ export default function MyOrdersPage() {
       try {
         const ordersRef = collection(firestore, 'orders');
         
-        // This single query fetches all orders relevant to the user, either as a customer or a seller.
-        // NOTE: This requires a composite index on (customerId, orderDate) and (sellerId, orderDate).
-        // If errors occur, it's likely due to missing indexes.
-        const q = query(ordersRef, or(
-            where('customerId', '==', user.uid),
-            where('sellerId', '==', user.uid)
-        ));
-        
-        const querySnapshot = await getDocs(q);
-        const allOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+        // Create two separate queries
+        const asCustomerQuery = query(ordersRef, where('customerId', '==', user.uid));
+        const asSellerQuery = query(ordersRef, where('sellerId', '==', user.uid));
 
+        // Fetch both sets of orders
+        const [customerOrdersSnap, sellerOrdersSnap] = await Promise.all([
+          getDocs(asCustomerQuery),
+          getDocs(asSellerQuery),
+        ]);
+        
+        const customerOrders = customerOrdersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+        const sellerOrders = sellerOrdersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+
+        // Combine and deduplicate orders (in case a user buys from their own store)
+        const allOrdersMap = new Map<string, Order>();
+        [...customerOrders, ...sellerOrders].forEach(order => {
+          allOrdersMap.set(order.id, order);
+        });
+
+        const allOrders = Array.from(allOrdersMap.values());
+        
         // Sort combined orders by date on the client-side
         allOrders.sort((a, b) => {
           const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate || 0);

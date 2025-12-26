@@ -52,26 +52,41 @@ export default function NotificationsPage() {
     try {
         const ordersRef = collection(firestore, 'orders');
         
-        // This is a more robust query that fetches notifications for both buyers and sellers.
-        // It combines conditions using 'or' to get all relevant unread notifications for the current user.
-        const notificationsQuery = query(
+        // Fetch notifications where the user is the customer
+        const asCustomerQuery = query(
             ordersRef,
-            or(
-                where('customerId', '==', user.uid),
-                where('sellerId', '==', user.uid)
-            ),
-            orderBy('orderDate', 'desc')
+            where('customerId', '==', user.uid),
+            where('buyerHasUnread', '==', true)
+        );
+        
+        // Fetch notifications where the user is the seller
+        const asSellerQuery = query(
+            ordersRef,
+            where('sellerId', '==', user.uid),
+            where('sellerHasUnread', '==', true)
         );
 
-        const querySnapshot = await getDocs(notificationsQuery);
+        const [customerResults, sellerResults] = await Promise.all([
+            getDocs(asCustomerQuery),
+            getDocs(asSellerQuery)
+        ]);
+
+        const customerNotifications = customerResults.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+        const sellerNotifications = sellerResults.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
         
-        const allNotifications = querySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Notification))
-            .filter(notification => {
-                const isUnreadForBuyer = notification.customerId === user.uid && notification.buyerHasUnread;
-                const isUnreadForSeller = notification.sellerId === user.uid && notification.sellerHasUnread;
-                return isUnreadForBuyer || isUnreadForSeller;
-            });
+        // Combine, remove potential duplicates, and sort
+        const allNotificationsMap = new Map<string, Notification>();
+        [...customerNotifications, ...sellerNotifications].forEach(n => {
+            allNotificationsMap.set(n.id, n);
+        });
+
+        const allNotifications = Array.from(allNotificationsMap.values());
+        
+        allNotifications.sort((a, b) => {
+            const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate || 0);
+            const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate || 0);
+            return dateB.getTime() - dateA.getTime();
+        });
         
         setNotifications(allNotifications);
 
