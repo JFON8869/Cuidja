@@ -60,33 +60,42 @@ export default function MyOrdersPage() {
     const fetchOrdersAndStores = async () => {
       setIsLoading(true);
       try {
-        const sellerStoresQuery = query(collection(firestore, 'stores'), where('userId', '==', user.uid));
-        const sellerStoresSnap = await getDocs(sellerStoresQuery);
-        const sellerStoreIds = sellerStoresSnap.docs.map(doc => doc.id);
+        // Query 1: Get orders where the user is the customer
+        const customerQuery = query(
+          collection(firestore, 'orders'),
+          where('customerId', '==', user.uid),
+          orderBy('orderDate', 'desc')
+        );
 
-        const ordersRef = collection(firestore, 'orders');
-        let ordersQuery;
+        // Query 2: Get orders where the user is the seller
+        const sellerQuery = query(
+          collection(firestore, 'orders'),
+          where('sellerId', '==', user.uid),
+          orderBy('orderDate', 'desc')
+        );
+        
+        const [customerSnapshot, sellerSnapshot] = await Promise.all([
+          getDocs(customerQuery),
+          getDocs(sellerQuery)
+        ]);
+        
+        const customerOrders = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+        const sellerOrders = sellerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-        if (sellerStoreIds.length > 0) {
-            ordersQuery = query(ordersRef, 
-                or(
-                    where('customerId', '==', user.uid),
-                    where('storeId', 'in', sellerStoreIds)
-                ),
-                orderBy('orderDate', 'desc')
-            );
-        } else {
-            ordersQuery = query(ordersRef, where('customerId', '==', user.uid), orderBy('orderDate', 'desc'));
-        }
+        // Combine and remove duplicates (in case user buys from their own store)
+        const allOrders = [...customerOrders, ...sellerOrders];
+        const uniqueOrders = Array.from(new Map(allOrders.map(o => [o.id, o])).values());
 
-        const ordersSnapshot = await getDocs(ordersQuery);
-        const fetchedOrders = ordersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Order[];
-        setOrders(fetchedOrders);
+        // Sort combined orders by date on the client-side
+        uniqueOrders.sort((a, b) => {
+          const dateA = a.orderDate?.toDate() || new Date(0);
+          const dateB = b.orderDate?.toDate() || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
 
-        const storeIds = [...new Set(fetchedOrders.map((order) => order.storeId))];
+        setOrders(uniqueOrders);
+
+        const storeIds = [...new Set(uniqueOrders.map((order) => order.storeId))];
         if (storeIds.length > 0) {
           const fetchedStores: Record<string, { name: string }> = {};
           // Firestore 'in' query supports a maximum of 30 elements in the array.
