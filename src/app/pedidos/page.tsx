@@ -37,7 +37,7 @@ interface OrderItem {
 interface Order {
   id: string;
   orderType: 'PURCHASE' | 'SERVICE_REQUEST';
-  orderDate?: { toDate: () => Date };
+  orderDate?: any; // Can be a Timestamp object or a string
   status: string;
   totalAmount?: number;
   items?: OrderItem[];
@@ -61,26 +61,32 @@ export default function MyOrdersPage() {
       setIsLoading(true);
       try {
         const ordersRef = collection(firestore, 'orders');
-        // This query is intentionally broad and will be filtered on the client
-        // to avoid complex composite indexes.
-        const q = query(
-          ordersRef,
-          or(where('customerId', '==', user.uid), where('sellerId', '==', user.uid))
-        );
+        
+        // Fetch orders where user is the customer
+        const customerQuery = query(ordersRef, where('customerId', '==', user.uid));
+        const customerSnapshot = await getDocs(customerQuery);
+        const customerOrders = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-        const querySnapshot = await getDocs(q);
-        const allOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+        // Fetch orders where user is the seller
+        const sellerQuery = query(ordersRef, where('sellerId', '==', user.uid));
+        const sellerSnapshot = await getDocs(sellerQuery);
+        const sellerOrders = sellerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+
+        const allOrders = [...customerOrders, ...sellerOrders];
+
+        // Deduplicate orders in case a user buys from their own store
+        const uniqueOrders = Array.from(new Map(allOrders.map(order => [order.id, order])).values());
 
         // Sort combined orders by date on the client-side
-        allOrders.sort((a, b) => {
-          const dateA = a.orderDate?.toDate() || new Date(0);
-          const dateB = b.orderDate?.toDate() || new Date(0);
+        uniqueOrders.sort((a, b) => {
+          const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate || 0);
+          const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate || 0);
           return dateB.getTime() - dateA.getTime();
         });
 
-        setOrders(allOrders);
+        setOrders(uniqueOrders);
 
-        const storeIds = [...new Set(allOrders.map((order) => order.storeId))];
+        const storeIds = [...new Set(uniqueOrders.map((order) => order.storeId))];
         if (storeIds.length > 0) {
           const fetchedStores: Record<string, { name: string }> = {};
           // Firestore 'in' query supports a maximum of 30 elements in the array.
@@ -132,7 +138,9 @@ export default function MyOrdersPage() {
       <div className="space-y-4">
         {orderList.map((order) => {
           const isPurchase = order.orderType === 'PURCHASE';
-          const date = order.orderDate?.toDate();
+          const dateObj = order.orderDate?.toDate ? order.orderDate.toDate() : new Date(order.orderDate);
+          const date = isNaN(dateObj.getTime()) ? null : dateObj;
+          
           const title = isPurchase ? (order.items?.[0]?.name || 'Pedido') : order.serviceName;
           const storeName = stores[order.storeId]?.name || 'Loja não encontrada';
 

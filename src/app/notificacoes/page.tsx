@@ -15,7 +15,7 @@ import BottomNav from '@/components/layout/BottomNav';
 
 interface BaseOrder extends WithId<any> {
   id: string;
-  orderDate: string; 
+  orderDate: any; 
   status: string;
   sellerHasUnread?: boolean;
   buyerHasUnread?: boolean;
@@ -126,6 +126,15 @@ export default function NotificationsPage() {
     }
   };
 
+  const getFormattedDate = (orderDate: any) => {
+    if (!orderDate) return '';
+    // Handle both Firestore Timestamp and string date formats
+    const date = orderDate.toDate ? orderDate.toDate() : new Date(orderDate);
+    if (isNaN(date.getTime())) return '';
+    return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+  };
+
+
   return (
     <div className="relative bg-transparent max-w-sm mx-auto flex flex-col min-h-[100dvh] pb-16 shadow-2xl">
       <header className="flex items-center p-4 border-b">
@@ -143,7 +152,7 @@ export default function NotificationsPage() {
                 <div className="divide-y">
                     {notifications.map(notification => {
                         const href = `/pedidos/${notification.id}`;
-                        const date = notification.orderDate;
+                        const date = getFormattedDate(notification.orderDate);
 
                         return (
                         <Link href={href} key={notification.id} className="flex items-start gap-4 p-4 hover:bg-muted/50 transition-colors">
@@ -155,7 +164,7 @@ export default function NotificationsPage() {
                                   {getNotificationText(notification)}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR }) : ''}
+                                    {date}
                                 </p>
                             </div>
                         </Link>

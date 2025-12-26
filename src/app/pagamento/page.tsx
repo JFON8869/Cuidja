@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
-import { collection, addDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
@@ -125,7 +125,7 @@ function PaymentPage() {
         })),
         totalAmount: checkoutData.total,
         status: 'Pendente', // V3 Change: Status starts as 'Pendente'
-        orderDate: new Date().toISOString(),
+        orderDate: serverTimestamp(), // Use server timestamp for consistency
         shippingAddress: {
             name: checkoutData.formValues.name,
             street: checkoutData.formValues.address,
