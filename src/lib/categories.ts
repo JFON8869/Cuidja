@@ -1,23 +1,25 @@
 import type { ImagePlaceholder } from './placeholder-images';
 import { PlaceHolderImages } from './placeholder-images';
 import type { LucideIcon } from 'lucide-react';
+import React from 'react';
 import {
-  Utensils,
-  Beer,
-  ShoppingCart,
-  Palette,
-  Droplets,
-  Dog,
-  HeartPulse,
-  Wrench,
-} from 'lucide-react';
+  RestaurantIcon,
+  DrinksIcon,
+  MarketIcon,
+  CraftsIcon,
+  GasWaterIcon,
+  PetsIcon,
+  PharmacyIcon,
+  ServicesIcon,
+} from '@/components/icons/categories';
 import { ItemType } from './data';
+
 
 export interface Category {
   id: string;
   name:string;
   slug: string;
-  icon: LucideIcon;
+  icon: React.ComponentType<{ className?: string }>;
   type: ItemType;
 }
 
@@ -41,16 +43,16 @@ const findImage = (id: string): ImagePlaceholder => {
 };
 
 export const productCategories: Omit<Category, 'type'>[] = [
-  { id: '1', name: 'Restaurantes', slug: 'restaurantes', icon: Utensils },
-  { id: '2', name: 'Bebidas', slug: 'bebidas', icon: Beer },
-  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', icon: ShoppingCart },
-  { id: '4', name: 'Artesanatos', slug: 'artesanatos', icon: Palette },
-  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', icon: Droplets },
-  { id: '6', name: 'Pets', slug: 'pets', icon: Dog },
-  { id: '7', name: 'Farmácias', slug: 'farmacias', icon: HeartPulse },
+  { id: '1', name: 'Restaurantes', slug: 'restaurantes', icon: RestaurantIcon },
+  { id: '2', name: 'Bebidas', slug: 'bebidas', icon: DrinksIcon },
+  { id: '3', name: 'Faça-Feira', slug: 'faca-feira', icon: MarketIcon },
+  { id: '4', name: 'Artesanatos', slug: 'artesanatos', icon: CraftsIcon },
+  { id: '5', name: 'Gás e Água', slug: 'gas-e-agua', icon: GasWaterIcon },
+  { id: '6', name: 'Pets', slug: 'pets', icon: PetsIcon },
+  { id: '7', name: 'Farmácias', slug: 'farmacias', icon: PharmacyIcon },
 ];
 
-export const serviceCategory: Category = { id: '8', name: 'Serviços', slug: 'servicos', icon: Wrench, type: 'SERVICE' };
+export const serviceCategory: Category = { id: '8', name: 'Serviços', slug: 'servicos', icon: ServicesIcon, type: 'SERVICE' };
 
 // A combined list for rendering on the homepage
 export const allCategories: Category[] = [
