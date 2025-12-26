@@ -6,6 +6,7 @@ export const ServicesIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 100 100"
     className={cn('h-10 w-10', className)}
     xmlns="http://www.w3.org/2000/svg"
+    preserveAspectRatio="xMidYMid meet"
   >
     <g transform="rotate(-30 50 50)">
       {/* Wrench */}

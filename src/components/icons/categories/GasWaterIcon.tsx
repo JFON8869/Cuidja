@@ -6,6 +6,7 @@ export const GasWaterIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 100 100"
     className={cn('h-10 w-10', className)}
     xmlns="http://www.w3.org/2000/svg"
+    preserveAspectRatio="xMidYMid meet"
   >
     <g>
       <rect x="25" y="30" width="50" height="60" rx="10" fill="#E76F51" />

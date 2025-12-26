@@ -6,6 +6,7 @@ export const DrinksIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 100 100"
     className={cn('h-10 w-10', className)}
     xmlns="http://www.w3.org/2000/svg"
+    preserveAspectRatio="xMidYMid meet"
   >
     <g transform="rotate(10 50 50)">
       <rect x="35" y="15" width="30" height="10" rx="5" fill="#8A6E59" />

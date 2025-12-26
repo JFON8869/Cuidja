@@ -6,6 +6,7 @@ export const PharmacyIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 100 100"
     className={cn('h-10 w-10', className)}
     xmlns="http://www.w3.org/2000/svg"
+    preserveAspectRatio="xMidYMid meet"
   >
     <g>
       <circle cx="50" cy="50" r="40" fill="#A8D5BA" />
