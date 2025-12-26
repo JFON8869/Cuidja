@@ -35,6 +35,8 @@ export function ChatInput({ orderId, isSeller }: ChatInputProps) {
       // Update the order doc to notify the other party and set last message timestamp
       const updateData = {
           lastMessageTimestamp: serverTimestamp(),
+          // If I am the seller, mark buyer's chat as unread.
+          // If I am the buyer, mark seller's chat as unread.
           [isSeller ? 'buyerHasUnread' : 'sellerHasUnread']: true,
       }
       await updateDoc(orderRef, updateData);

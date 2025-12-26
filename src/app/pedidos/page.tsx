@@ -43,6 +43,8 @@ interface Order {
   items?: OrderItem[];
   serviceName?: string;
   storeId: string;
+  sellerId: string;
+  customerId: string;
 }
 
 export default function MyOrdersPage() {
@@ -62,35 +64,30 @@ export default function MyOrdersPage() {
       try {
         const ordersRef = collection(firestore, 'orders');
         
-        // Fetch orders where user is the customer
-        const customerQuery = query(ordersRef, where('customerId', '==', user.uid));
-        const customerSnapshot = await getDocs(customerQuery);
-        const customerOrders = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-
-        // Fetch orders where user is the seller
-        const sellerQuery = query(ordersRef, where('sellerId', '==', user.uid));
-        const sellerSnapshot = await getDocs(sellerQuery);
-        const sellerOrders = sellerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-
-        const allOrders = [...customerOrders, ...sellerOrders];
-
-        // Deduplicate orders in case a user buys from their own store
-        const uniqueOrders = Array.from(new Map(allOrders.map(order => [order.id, order])).values());
+        // This single query fetches all orders relevant to the user, either as a customer or a seller.
+        // NOTE: This requires a composite index on (customerId, orderDate) and (sellerId, orderDate).
+        // If errors occur, it's likely due to missing indexes.
+        const q = query(ordersRef, or(
+            where('customerId', '==', user.uid),
+            where('sellerId', '==', user.uid)
+        ));
+        
+        const querySnapshot = await getDocs(q);
+        const allOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
         // Sort combined orders by date on the client-side
-        uniqueOrders.sort((a, b) => {
+        allOrders.sort((a, b) => {
           const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate || 0);
           const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate || 0);
           return dateB.getTime() - dateA.getTime();
         });
 
-        setOrders(uniqueOrders);
+        setOrders(allOrders);
 
-        const storeIds = [...new Set(uniqueOrders.map((order) => order.storeId))];
+        // Fetch store details for all unique store IDs present in the orders
+        const storeIds = [...new Set(allOrders.map((order) => order.storeId))];
         if (storeIds.length > 0) {
           const fetchedStores: Record<string, { name: string }> = {};
-          // Firestore 'in' query supports a maximum of 30 elements in the array.
-          // We chunk the storeIds to handle more than 30 stores.
           const storeChunks = [];
           for (let i = 0; i < storeIds.length; i += 30) {
             storeChunks.push(storeIds.slice(i, i + 30));
@@ -116,10 +113,19 @@ export default function MyOrdersPage() {
   }, [user, firestore, isUserLoading]);
   
   const { purchaseOrders, serviceRequests } = useMemo(() => {
-    const purchaseOrders = orders.filter(o => o.orderType === 'PURCHASE');
-    const serviceRequests = orders.filter(o => o.orderType === 'SERVICE_REQUEST');
-    return { purchaseOrders, serviceRequests };
-  }, [orders]);
+    // Determine which orders are 'my sales' vs 'my purchases'
+    const mySales = orders.filter(o => o.sellerId === user?.uid);
+    const myPurchases = orders.filter(o => o.customerId === user?.uid);
+    
+    // Separate them by type for the tabs
+    const purchaseOrders = myPurchases.filter(o => o.orderType === 'PURCHASE');
+    const serviceRequests = myPurchases.filter(o => o.orderType === 'SERVICE_REQUEST');
+    
+    // We can add a 'Sales' tab here if needed in the future
+    // For now, the main view is for the user as a customer. The seller flow directs them here.
+
+    return { purchaseOrders, serviceRequests, mySales, myPurchases };
+  }, [orders, user]);
 
   const renderOrderList = (orderList: Order[]) => {
     if (orderList.length === 0) {

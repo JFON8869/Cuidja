@@ -129,7 +129,7 @@ export default function NotificationsPage() {
   const getFormattedDate = (orderDate: any) => {
     if (!orderDate) return '';
     // Handle both Firestore Timestamp and string date formats
-    const date = orderDate.toDate ? orderDate.toDate() : new Date(orderDate);
+    const date = orderDate?.toDate ? orderDate.toDate() : new Date(orderDate);
     if (isNaN(date.getTime())) return '';
     return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
   };
