@@ -12,7 +12,7 @@ import { getApp } from 'firebase/app';
  * Uploads a file to Firebase Storage and returns its public URL.
  *
  * @param file The file to upload.
- * @param path The path in Firebase Storage where the file should be saved (e.g., 'logos/user123').
+ * @param path The path in Firebase Storage where the file should be saved (e.g., 'logos/user123/image.png').
  * @returns A promise that resolves with the public download URL of the uploaded file.
  */
 export const uploadFile = async (

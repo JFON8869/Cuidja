@@ -115,7 +115,7 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
             
             const totalRevenue = completedPurchases.reduce((acc, order) => acc + order.totalAmount, 0);
             const totalOrders = orders.length;
-            const averageTicket = totalOrders > 0 && completedPurchases.length > 0 ? totalRevenue / completedPurchases.length : 0;
+            const averageTicket = completedPurchases.length > 0 ? totalRevenue / completedPurchases.length : 0;
             
             setMetrics({
                 totalRevenue,

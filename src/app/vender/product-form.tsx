@@ -214,7 +214,6 @@ export function ProductForm({ productId }: ProductFormProps) {
 
         toast.success(isEditing ? 'Produto atualizado com sucesso!' : 'Produto publicado com sucesso!');
         router.push('/vender/produtos');
-        router.refresh();
 
     } catch (error) {
         console.error('Error saving product:', error);

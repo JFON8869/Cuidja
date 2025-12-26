@@ -9,7 +9,6 @@ const findImage = (id: string, hint: string): ImagePlaceholder => {
         id: id,
         imageUrl: `https://picsum.photos/seed/${id}/400/400`,
         imageHint: hint,
-        description: `Placeholder for ${id}`
     };
 };
 

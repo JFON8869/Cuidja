@@ -27,6 +27,8 @@ import {
   setDoc,
   serverTimestamp,
   addDoc,
+  updateDoc,
+  arrayUnion,
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
@@ -127,7 +129,7 @@ export default function ProfilePage() {
       // Update store categories
       const storeRef = doc(firestore, "stores", store.id);
       batch.update(storeRef, {
-        categories: Array.from(categoriesToAdd)
+        categories: arrayUnion(...Array.from(categoriesToAdd))
       });
 
       await batch.commit();
