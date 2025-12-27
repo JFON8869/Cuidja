@@ -2,6 +2,10 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    // Adicionado para permitir requisições do ambiente de desenvolvimento do Studio
+    allowedDevOrigins: ["*.cloudworkstations.dev"],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -39,5 +43,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
-    
