@@ -162,7 +162,7 @@ export default function StoreFormPage() {
   }, [logoValue]);
 
   const onSubmit = async (values: StoreFormValues) => {
-    if (!user || !firestore) {
+    if (!user?.uid || !firestore) {
       toast.error('Você precisa estar logado para salvar.');
       return;
     }
@@ -170,7 +170,7 @@ export default function StoreFormPage() {
     setIsSubmitting(true);
 
     try {
-      const { logoUrl: logoFile, ...dataToSave } = values;
+      const { logoUrl: logoFile } = values;
       let finalLogoUrl = existingStore?.logoUrl || '';
 
       if (logoFile instanceof File) {
@@ -178,43 +178,45 @@ export default function StoreFormPage() {
         logger.upload.start({ fileName: logoFile.name, path: filePath });
         finalLogoUrl = await uploadFile(logoFile, filePath);
       } else if (logoValue === null) {
-        // User explicitly removed the image
         finalLogoUrl = '';
       }
 
-      const finalStoreData = {
-        ...dataToSave,
-        logoUrl: finalLogoUrl,
-        userId: user.uid,
+      // Explicitly build the data object to ensure all fields are included.
+      const dataToSave = {
+          name: values.name,
+          address: values.address,
+          operatingHours: values.operatingHours,
+          logoUrl: finalLogoUrl,
+          userId: user.uid,
       };
 
       if (existingStore) {
         const storeRef = doc(firestore, 'stores', existingStore.id);
-        await updateDoc(storeRef, finalStoreData);
+        await updateDoc(storeRef, dataToSave);
         toast.success('Loja atualizada com sucesso!');
-        router.refresh();
       } else {
         const batch = writeBatch(firestore);
-        const storeCollection = collection(firestore, 'stores');
-        const newStoreRef = doc(storeCollection);
-
-        // This is the corrected part: Create a complete payload for the new store.
+        
+        // 1. Create the new store document
+        const newStoreRef = doc(collection(firestore, 'stores'));
         const newStorePayload = {
-          ...finalStoreData,
-          categories: [],
-          createdAt: serverTimestamp(),
+            ...dataToSave,
+            categories: [],
+            createdAt: serverTimestamp(),
         };
-
         batch.set(newStoreRef, newStorePayload);
-
+        
+        // 2. Update the user's document with the new store ID
         const userDocRef = doc(firestore, 'users', user.uid);
         batch.update(userDocRef, { storeId: newStoreRef.id });
-
+        
         await batch.commit();
-
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
-        router.refresh(); // Use refresh to force re-evaluation of the parent route's state
       }
+      
+      // Refresh server-side props and re-evaluate the parent route state
+      router.refresh();
+
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
