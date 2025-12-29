@@ -187,6 +187,8 @@ export default function StoreFormPage() {
         const storeRef = doc(firestore, 'stores', existingStore.id);
         await updateDoc(storeRef, finalStoreData);
         toast.success('Loja atualizada com sucesso!');
+        router.push('/vender');
+        router.refresh();
       } else {
         const batch = writeBatch(firestore);
         const storeCollection = collection(firestore, 'stores');
@@ -204,10 +206,9 @@ export default function StoreFormPage() {
         await batch.commit();
         
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
+        router.refresh(); // Use refresh to force re-evaluation of the parent route's state
       }
-
-      router.push('/vender');
-      router.refresh();
+      
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
