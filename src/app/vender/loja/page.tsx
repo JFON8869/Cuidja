@@ -100,6 +100,7 @@ export default function StoreFormPage() {
   const { user, firestore, isUserLoading, store: existingStore, isStoreLoading } = useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeSchema),
@@ -113,16 +114,18 @@ export default function StoreFormPage() {
 
   const logoValue = form.watch('logoUrl');
 
+  // Effect to handle user authentication and store existence checks
   useEffect(() => {
     if (isUserLoading || isStoreLoading) return;
     if (!user) {
       router.push('/login?redirect=/vender');
-      return;
     }
+  }, [user, isUserLoading, isStoreLoading, router]);
 
+  // Effect to populate the form when editing an existing store
+  useEffect(() => {
     if (existingStore) {
         form.reset({
-          ...existingStore,
           name: existingStore.name || '',
           address: existingStore.address || '',
           logoUrl: existingStore.logoUrl || null,
@@ -130,7 +133,28 @@ export default function StoreFormPage() {
             existingStore.operatingHours || getDefaultOperatingHours(),
         });
     }
-  }, [user, isUserLoading, existingStore, router, form, isStoreLoading]);
+  }, [existingStore, form]);
+
+  // Effect to manage the preview URL, preventing memory leaks
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    if (logoValue instanceof File) {
+      objectUrl = URL.createObjectURL(logoValue);
+      setPreviewUrl(objectUrl);
+    } else if (typeof logoValue === 'string') {
+      setPreviewUrl(logoValue);
+    } else {
+      setPreviewUrl(null);
+    }
+
+    // Cleanup function to revoke the object URL
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [logoValue]);
+
 
   const onSubmit = async (values: StoreFormValues) => {
     if (!user || !firestore) {
@@ -144,17 +168,15 @@ export default function StoreFormPage() {
       const { logoUrl: logoFile, ...dataToSave } = values;
       let finalLogoUrl = existingStore?.logoUrl || '';
 
-      // Handle image upload only if a new file is provided
       if (logoFile instanceof File) {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
         logger.upload.start({ fileName: logoFile.name, path: filePath });
         finalLogoUrl = await uploadFile(logoFile, filePath);
-      } else if (logoFile === null) {
-        // This means the user explicitly removed the image
+      } else if (logoValue === null) {
+        // User explicitly removed the image
         finalLogoUrl = '';
       }
 
-      // Always use the latest data from the form (`dataToSave`)
       const finalStoreData = {
         ...dataToSave,
         logoUrl: finalLogoUrl,
@@ -166,13 +188,12 @@ export default function StoreFormPage() {
         await updateDoc(storeRef, finalStoreData);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // This is the creation logic for a new store
         const batch = writeBatch(firestore);
         const storeCollection = collection(firestore, 'stores');
         const newStoreRef = doc(storeCollection); 
 
         batch.set(newStoreRef, {
-            ...finalStoreData, // Use the combined data here
+            ...finalStoreData,
             categories: [],
             createdAt: serverTimestamp(),
         });
@@ -186,6 +207,7 @@ export default function StoreFormPage() {
       }
 
       router.push('/vender');
+      router.refresh();
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
@@ -209,20 +231,7 @@ export default function StoreFormPage() {
     }
   };
 
-  const getPreviewUrl = () => {
-    if (logoValue instanceof File) {
-      return URL.createObjectURL(logoValue);
-    }
-    if (typeof logoValue === 'string') {
-      return logoValue;
-    }
-    return null;
-  };
-
-  const previewUrl = getPreviewUrl();
-
-
-  if (isUserLoading || isStoreLoading) {
+  if (isUserLoading || (isStoreLoading && !existingStore)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -265,7 +274,7 @@ export default function StoreFormPage() {
                  <FormField
                   control={form.control}
                   name="logoUrl"
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem>
                       <FormLabel>Logo da Loja</FormLabel>
                       <FormControl>
