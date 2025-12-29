@@ -172,7 +172,7 @@ export default function StoreFormPage() {
         const newStoreRef = doc(storeCollection); 
 
         batch.set(newStoreRef, {
-            ...finalStoreData,
+            ...finalStoreData, // Use the combined data here
             categories: [],
             createdAt: serverTimestamp(),
         });
