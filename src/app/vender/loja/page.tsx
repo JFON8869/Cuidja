@@ -144,14 +144,17 @@ export default function StoreFormPage() {
       const { logoUrl: logoFile, ...dataToSave } = values;
       let finalLogoUrl = existingStore?.logoUrl || '';
 
+      // Handle image upload only if a new file is provided
       if (logoFile instanceof File) {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
         logger.upload.start({ fileName: logoFile.name, path: filePath });
         finalLogoUrl = await uploadFile(logoFile, filePath);
       } else if (logoFile === null) {
+        // This means the user explicitly removed the image
         finalLogoUrl = '';
       }
 
+      // Always use the latest data from the form (`dataToSave`)
       const finalStoreData = {
         ...dataToSave,
         logoUrl: finalLogoUrl,
@@ -163,11 +166,10 @@ export default function StoreFormPage() {
         await updateDoc(storeRef, finalStoreData);
         toast.success('Loja atualizada com sucesso!');
       } else {
-        // Use a batch to create the store and update the user doc atomically
+        // This is the creation logic for a new store
         const batch = writeBatch(firestore);
-
         const storeCollection = collection(firestore, 'stores');
-        const newStoreRef = doc(storeCollection); // Create a ref with a new ID
+        const newStoreRef = doc(storeCollection); 
 
         batch.set(newStoreRef, {
             ...finalStoreData,
