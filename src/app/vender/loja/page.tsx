@@ -168,11 +168,11 @@ export default function StoreFormPage() {
     }
 
     setIsSubmitting(true);
+    let finalLogoUrl = existingStore?.logoUrl || '';
 
+    // --- Upload Logic ---
     try {
-      const { logoUrl: logoFile } = values;
-      let finalLogoUrl = existingStore?.logoUrl || '';
-
+      const logoFile = values.logoUrl;
       if (logoFile instanceof File) {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
         logger.upload.start({ fileName: logoFile.name, path: filePath });
@@ -180,48 +180,49 @@ export default function StoreFormPage() {
       } else if (logoValue === null) {
         finalLogoUrl = '';
       }
-
-      // Explicitly build the data object to ensure all fields are included.
-      const dataToSave = {
-          name: values.name,
-          address: values.address,
-          operatingHours: values.operatingHours,
-          logoUrl: finalLogoUrl,
-          userId: user.uid,
-      };
-
-      if (existingStore) {
-        const storeRef = doc(firestore, 'stores', existingStore.id);
-        await updateDoc(storeRef, dataToSave);
-        toast.success('Loja atualizada com sucesso!');
-      } else {
-        const batch = writeBatch(firestore);
-        
-        // 1. Create the new store document
-        const newStoreRef = doc(collection(firestore, 'stores'));
-        const newStorePayload = {
-            ...dataToSave,
-            categories: [],
-            createdAt: serverTimestamp(),
-        };
-        batch.set(newStoreRef, newStorePayload);
-        
-        // 2. Update the user's document with the new store ID
-        const userDocRef = doc(firestore, 'users', user.uid);
-        batch.update(userDocRef, { storeId: newStoreRef.id });
-        
-        await batch.commit();
-        toast.success('Sua loja foi criada! Agora você pode começar a vender.');
-      }
-      
-      // Refresh server-side props and re-evaluate the parent route state
-      router.refresh();
-
-    } catch (error) {
-      console.error('Error saving store:', error);
-      toast.error('Erro ao salvar os dados da loja.');
-    } finally {
+    } catch (uploadError) {
+      console.error('Error during file upload:', uploadError);
+      toast.error('Falha no upload da imagem. Tente novamente.');
       setIsSubmitting(false);
+      return;
+    }
+    
+    // --- Database Logic ---
+    try {
+        const dataToSave = {
+            name: values.name,
+            address: values.address,
+            operatingHours: values.operatingHours,
+            logoUrl: finalLogoUrl,
+            userId: user.uid,
+        };
+
+        if (existingStore) {
+            const storeRef = doc(firestore, 'stores', existingStore.id);
+            await updateDoc(storeRef, dataToSave);
+            toast.success('Loja atualizada com sucesso!');
+        } else {
+            const batch = writeBatch(firestore);
+            const newStoreRef = doc(collection(firestore, 'stores'));
+            const newStorePayload = {
+                ...dataToSave,
+                categories: [],
+                createdAt: serverTimestamp(),
+            };
+            batch.set(newStoreRef, newStorePayload);
+            const userDocRef = doc(firestore, 'users', user.uid);
+            batch.update(userDocRef, { storeId: newStoreRef.id });
+            await batch.commit();
+            toast.success('Sua loja foi criada! Agora você pode começar a vender.');
+        }
+        
+        router.refresh();
+
+    } catch (dbError) {
+        console.error('Error saving store data to Firestore:', dbError);
+        toast.error('Erro ao salvar os dados da loja.');
+    } finally {
+        setIsSubmitting(false);
     }
   };
 

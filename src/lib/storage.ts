@@ -40,15 +40,15 @@ export const uploadFile = (
         // Handle unsuccessful uploads
         logger.upload.error({ fileName: file.name, error });
         console.error('Error uploading file to Firebase Storage:', error);
-        // Reject the promise with a more specific error
-        reject(new Error('Failed to upload file. Check storage rules and network connection.'));
+        // Reject the promise to be caught by the calling function's try/catch block
+        reject(error);
       },
       () => {
         // Handle successful uploads on complete
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
           logger.upload.success({ fileName: file.name, url: downloadURL });
           resolve(downloadURL);
-        });
+        }).catch(reject); // Also reject if getDownloadURL fails
       }
     );
   });
