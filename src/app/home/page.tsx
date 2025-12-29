@@ -111,7 +111,7 @@ export default function Home() {
                     key={category.id}
                     className="flex flex-col items-center justify-center gap-2 rounded-xl bg-category-card p-2 text-center aspect-square shadow-sm transition-all hover:shadow-md"
                   >
-                    <Icon className="h-10 w-10" />
+                    <Icon className="h-10 w-10 text-accent" />
                     <span className="text-xs font-medium leading-tight">
                       {category.name}
                     </span>
