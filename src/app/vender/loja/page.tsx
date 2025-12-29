@@ -169,31 +169,21 @@ export default function StoreFormPage() {
     setIsSubmitting(true);
     let finalLogoUrl = existingStore?.logoUrl || '';
   
-    // --- SIMULATED Upload Logic ---
     const logoFile = values.logoUrl;
     if (logoFile instanceof File) {
       try {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
-        logger.upload.start({ fileName: logoFile.name, path: filePath });
-        
-        // SIMULATION: Wait for a bit and then resolve with a placeholder URL
-        await new Promise(resolve => setTimeout(resolve, 1500)); 
-        finalLogoUrl = `https://picsum.photos/seed/${logoFile.name}/200`;
-        
-        logger.upload.success({ fileName: logoFile.name, url: finalLogoUrl });
-        toast.success('Simulação de upload bem-sucedida!');
-
-      } catch (uploadError: any) {
-        console.error('Error during SIMULATED file upload:', uploadError);
-        toast.error('Falha na simulação do upload da imagem.');
+        finalLogoUrl = await uploadFile(logoFile, filePath);
+      } catch (uploadError) {
+        console.error('Error during file upload:', uploadError);
+        toast.error('Falha no upload da imagem. Tente novamente.');
         setIsSubmitting(false);
         return; 
       }
     } else if (logoValue === null) {
-      finalLogoUrl = ''; // Clear logo if it was removed
+      finalLogoUrl = ''; 
     }
   
-    // --- Database Logic ---
     try {
       const dataToSave = {
         name: values.name,
@@ -206,7 +196,7 @@ export default function StoreFormPage() {
       if (existingStore) {
         const storeRef = doc(firestore, 'stores', existingStore.id);
         await updateDoc(storeRef, dataToSave);
-        toast.success('Loja atualizada com sucesso (com imagem simulada)!');
+        toast.success('Loja atualizada com sucesso!');
       } else {
         const batch = writeBatch(firestore);
         const newStoreRef = doc(collection(firestore, 'stores'));
@@ -219,7 +209,7 @@ export default function StoreFormPage() {
         const userDocRef = doc(firestore, 'users', user.uid);
         batch.update(userDocRef, { storeId: newStoreRef.id });
         await batch.commit();
-        toast.success('Sua loja foi criada (com imagem simulada)!');
+        toast.success('Sua loja foi criada!');
       }
   
       router.push('/vender');
