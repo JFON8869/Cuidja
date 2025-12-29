@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -216,6 +215,7 @@ export default function StoreFormPage() {
             toast.success('Sua loja foi criada! Agora você pode começar a vender.');
         }
         
+        router.push('/vender');
         router.refresh();
 
     } catch (dbError) {
@@ -402,7 +402,7 @@ export default function StoreFormPage() {
           </form>
         </Form>
       </main>
-      <BottomNav />
+      {existingStore && <BottomNav />}
     </div>
   );
 }

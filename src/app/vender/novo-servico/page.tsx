@@ -1,6 +1,6 @@
 'use client';
 
-import { ServiceForm } from '@/app/vender/service-form';
+import { ServiceForm } from '@/components/vender/service-form';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 

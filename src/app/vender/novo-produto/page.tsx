@@ -1,6 +1,6 @@
 'use client';
 
-import { ProductForm } from '@/app/vender/product-form';
+import { ProductForm } from '@/components/vender/product-form';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
