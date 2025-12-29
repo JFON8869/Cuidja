@@ -4,7 +4,7 @@ import React from 'react';
 export const GasWaterIcon = ({ className }: { className?: string }) => (
   <svg
     viewBox="0 0 24 24"
-    fill="currentColor"
+    fill="#FFA500"
     className={cn('h-10 w-10', className)}
     xmlns="http://www.w3.org/2000/svg"
   >
