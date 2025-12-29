@@ -15,14 +15,6 @@ export const logger = {
     error: (details: { fileName: string; error: any }) => {
       console.error(`❌ [UPLOAD] Erro: ${details.fileName}`, details);
     },
-    compressStart: (fileName: string) => {
-      console.log(`🗜️ [UPLOAD] Comprimindo imagem: ${fileName}`);
-    },
-    compressSuccess: (details: { fileName: string; originalSize: number; compressedSize: number }) => {
-        const originalKB = (details.originalSize / 1024).toFixed(2);
-        const compressedKB = (details.compressedSize / 1024).toFixed(2);
-        console.log(`✅ [UPLOAD] Imagem comprimida: ${details.fileName}`, { original: `${originalKB} KB`, compressed: `${compressedKB} KB`});
-    },
     progress: (details: { fileName:string, progress: number}) => {
         console.log(`📊 [UPLOAD] Progresso: ${details.fileName} - ${details.progress.toFixed(1)}%`);
     }
