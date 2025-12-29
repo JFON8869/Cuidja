@@ -16,6 +16,7 @@ import {
   Shield,
   Cloud,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import {
   collection,
@@ -69,6 +70,7 @@ export default function ProfilePage() {
   const { auth, user, isUserLoading, firestore, store } = useFirebase();
   const router = useRouter();
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -83,7 +85,7 @@ export default function ProfilePage() {
       router.push('/welcome');
     }
   };
-  
+
   const seedDatabase = async () => {
     if (!firestore || !user || !store) {
       toast.error(
@@ -96,7 +98,11 @@ export default function ProfilePage() {
     try {
       const productsRef = collection(firestore, 'products');
       // Check for a specific mock product to see if seeding has already run
-      const q = query(productsRef, where('sellerId', '==', user.uid), where('name', '==', 'Hambúrguer Artesanal Clássico'));
+      const q = query(
+        productsRef,
+        where('sellerId', '==', user.uid),
+        where('name', '==', 'Hambúrguer Artesanal Clássico')
+      );
       const existingSeedProducts = await getDocs(q);
 
       if (!existingSeedProducts.empty) {
@@ -123,14 +129,14 @@ export default function ProfilePage() {
         batch.set(newDocRef, dataToSave);
 
         if (dataToSave.category) {
-            categoriesToAdd.add(dataToSave.category);
+          categoriesToAdd.add(dataToSave.category);
         }
       });
-      
+
       // Update store categories
-      const storeRef = doc(firestore, "stores", store.id);
+      const storeRef = doc(firestore, 'stores', store.id);
       batch.update(storeRef, {
-        categories: arrayUnion(...Array.from(categoriesToAdd))
+        categories: arrayUnion(...Array.from(categoriesToAdd)),
       });
 
       await batch.commit();
@@ -145,7 +151,45 @@ export default function ProfilePage() {
       setIsSeeding(false);
     }
   };
+  
+  const clearMockData = async () => {
+    if (!firestore || !user || !store) {
+      toast.error('Você precisa estar logado e ter uma loja para limpar os dados.');
+      return;
+    }
+    setIsClearing(true);
+    
+    try {
+      const productsRef = collection(firestore, 'products');
+      const q = query(productsRef, where('storeId', '==', store.id));
+      const querySnapshot = await getDocs(q);
 
+      if (querySnapshot.empty) {
+        toast.success("Não há dados de teste para limpar.");
+        setIsClearing(false);
+        return;
+      }
+      
+      const batch = writeBatch(firestore);
+      
+      querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      const storeRef = doc(firestore, 'stores', store.id);
+      batch.update(storeRef, { categories: [] });
+
+      await batch.commit();
+
+      toast.success("Todos os dados de teste foram removidos com sucesso.");
+
+    } catch (error) {
+      console.error('Error clearing mock data:', error);
+      toast.error('Ocorreu um erro ao limpar os dados de teste.');
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   if (isUserLoading || !user) {
     return (
@@ -254,7 +298,8 @@ export default function ProfilePage() {
 
         <div className="p-4 mt-4 space-y-2">
           {store && (
-             <Button
+            <div className='flex items-center gap-2'>
+              <Button
                 variant="secondary"
                 onClick={seedDatabase}
                 className="w-full"
@@ -263,9 +308,36 @@ export default function ProfilePage() {
                 {isSeeding ? (
                   <Loader2 className="animate-spin" />
                 ) : (
-                  'Popular Banco de Dados (Teste)'
+                  'Popular Banco de Dados'
                 )}
               </Button>
+               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant='destructive' size='icon' disabled={isClearing}>
+                    {isClearing ? <Loader2 className="animate-spin" /> : <Trash2/>}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Limpar todos os produtos?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Todos os produtos e serviços da sua loja serão
+                        excluídos permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={clearMockData}
+                        className="bg-destructive hover:bg-destructive/90"
+                        disabled={isClearing}
+                      >
+                         {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Sim, limpar dados"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
           <Button variant="outline" onClick={handleSignOut} className="w-full">
             <LogOut className="mr-2 h-4 w-4" />
