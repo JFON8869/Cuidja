@@ -6,11 +6,16 @@ service firebase.storage {
     // Isso é necessário para que as imagens dos produtos e lojas possam ser exibidas publicamente no app.
     allow read: if true;
 
-    // Permite a escrita (create, update, delete) em qualquer caminho
-    // apenas se o usuário estiver autenticado.
-    // A segurança e organização dos arquivos (separar por userId) é
-    // responsabilidade do código do aplicativo, que já está fazendo isso corretamente.
-    // Esta regra garante que apenas usuários logados possam enviar arquivos.
-    allow write: if request.auth != null;
+    // Regra específica e segura para LOGOS.
+    // Permite que um usuário autenticado escreva apenas na SUA PRÓPRIA pasta de logos.
+    match /logos/{userId}/{allPaths=**} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Regra específica e segura para IMAGENS DE PRODUTOS.
+    // Permite que um usuário autenticado escreva apenas na SUA PRÓPRIA pasta de produtos.
+    match /products/{userId}/{allPaths=**} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }
