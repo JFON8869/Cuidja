@@ -3,36 +3,33 @@ import React from 'react';
 
 export const RestaurantIcon = ({ className }: { className?: string }) => (
   <svg
+    width="24"
+    height="24"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={cn('h-10 w-10', className)}
   >
     <path
-      d="M3 20H21"
+      d="M2 19H22"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.8"
       strokeLinecap="round"
     />
     <path
-      d="M5 17C5 17 5 9 12 9C19 9 19 17 19 17"
+      d="M4 16C4 16 4 7 12 7C20 7 20 16 20 16"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+    <circle cx="12" cy="5" r="1.5" stroke="currentColor" strokeWidth="1.8" />
     <path
-      d="M12 9V7C12 6.44772 11.5523 6 11 6H13C12.4477 6 12 6.44772 12 7"
+      d="M8 12C8 12 9 11 11 11"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.2"
       strokeLinecap="round"
-    />
-    <path
-      d="M9 12C8 12.5 7.5 13.5 7.5 13.5"
-      stroke="currentColor"
-      strokeWidth="1"
-      strokeLinecap="round"
-      opacity="0.6"
+      opacity="0.5"
     />
   </svg>
 );
