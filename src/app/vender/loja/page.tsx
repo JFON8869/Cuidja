@@ -51,35 +51,38 @@ const dayHoursSchema = z.object({
   close: z.string(),
 });
 
-const storeSchema = z.object({
-  name: z.string().min(3, 'O nome da loja é obrigatório.'),
-  address: z.string().min(10, 'O endereço é obrigatório.'),
-  logoUrl: z.any().optional(),
-  operatingHours: z
-    .object({
-      sun: dayHoursSchema,
-      mon: dayHoursSchema,
-      tue: dayHoursSchema,
-      wed: dayHoursSchema,
-      thu: dayHoursSchema,
-      fri: dayHoursSchema,
-      sat: dayHoursSchema,
-    })
-    .optional(),
-}).superRefine((data, ctx) => {
+const storeSchema = z
+  .object({
+    name: z.string().min(3, 'O nome da loja é obrigatório.'),
+    address: z.string().min(10, 'O endereço é obrigatório.'),
+    logoUrl: z.any().optional(),
+    operatingHours: z
+      .object({
+        sun: dayHoursSchema,
+        mon: dayHoursSchema,
+        tue: dayHoursSchema,
+        wed: dayHoursSchema,
+        thu: dayHoursSchema,
+        fri: dayHoursSchema,
+        sat: dayHoursSchema,
+      })
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
     if (data.operatingHours) {
-        for (const dayKey in data.operatingHours) {
-            const day = data.operatingHours[dayKey as keyof typeof data.operatingHours];
-            if (day.isOpen && (!day.open || !day.close)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: [`operatingHours.${dayKey}.open`],
-                    message: "Horários são obrigatórios para dias abertos.",
-                });
-            }
+      for (const dayKey in data.operatingHours) {
+        const day =
+          data.operatingHours[dayKey as keyof typeof data.operatingHours];
+        if (day.isOpen && (!day.open || !day.close)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [`operatingHours.${dayKey}.open`],
+            message: 'Horários são obrigatórios para dias abertos.',
+          });
         }
+      }
     }
-});
+  });
 
 type StoreFormValues = z.infer<typeof storeSchema>;
 
@@ -94,7 +97,13 @@ const getDefaultOperatingHours = () => {
 };
 
 export default function StoreFormPage() {
-  const { user, firestore, isUserLoading, store: existingStore, isStoreLoading } = useFirebase();
+  const {
+    user,
+    firestore,
+    isUserLoading,
+    store: existingStore,
+    isStoreLoading,
+  } = useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -122,13 +131,13 @@ export default function StoreFormPage() {
   // Effect to populate the form when editing an existing store
   useEffect(() => {
     if (existingStore) {
-        form.reset({
-          name: existingStore.name || '',
-          address: existingStore.address || '',
-          logoUrl: existingStore.logoUrl || null,
-          operatingHours:
-            existingStore.operatingHours || getDefaultOperatingHours(),
-        });
+      form.reset({
+        name: existingStore.name || '',
+        address: existingStore.address || '',
+        logoUrl: existingStore.logoUrl || null,
+        operatingHours:
+          existingStore.operatingHours || getDefaultOperatingHours(),
+      });
     }
   }, [existingStore, form]);
 
@@ -151,7 +160,6 @@ export default function StoreFormPage() {
       }
     };
   }, [logoValue]);
-
 
   const onSubmit = async (values: StoreFormValues) => {
     if (!user || !firestore) {
@@ -188,23 +196,25 @@ export default function StoreFormPage() {
       } else {
         const batch = writeBatch(firestore);
         const storeCollection = collection(firestore, 'stores');
-        const newStoreRef = doc(storeCollection); 
+        const newStoreRef = doc(storeCollection);
 
-        batch.set(newStoreRef, {
-            ...finalStoreData,
-            categories: [],
-            createdAt: serverTimestamp(),
-        });
+        // This is the corrected part: Create a complete payload for the new store.
+        const newStorePayload = {
+          ...finalStoreData,
+          categories: [],
+          createdAt: serverTimestamp(),
+        };
+
+        batch.set(newStoreRef, newStorePayload);
 
         const userDocRef = doc(firestore, 'users', user.uid);
         batch.update(userDocRef, { storeId: newStoreRef.id });
-        
+
         await batch.commit();
-        
+
         toast.success('Sua loja foi criada! Agora você pode começar a vender.');
         router.refresh(); // Use refresh to force re-evaluation of the parent route's state
       }
-      
     } catch (error) {
       console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
@@ -212,7 +222,7 @@ export default function StoreFormPage() {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -240,17 +250,17 @@ export default function StoreFormPage() {
     <div className="relative mx-auto flex min-h-[100dvh] max-w-sm flex-col bg-transparent pb-16 shadow-2xl">
       <header className="flex items-center border-b p-4">
         {existingStore && (
-            <Button variant="ghost" size="icon" asChild>
-                <Link href="/vender">
-                    <ArrowLeft />
-                </Link>
-            </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/vender">
+              <ArrowLeft />
+            </Link>
+          </Button>
         )}
         <h1 className="mx-auto font-headline text-xl">
           {existingStore ? 'Editar Loja' : 'Ative sua Conta de Vendedor'}
         </h1>
         {/* Spacer to keep title centered */}
-        <div className="w-10"></div> 
+        <div className="w-10"></div>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4">
@@ -258,9 +268,7 @@ export default function StoreFormPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>
-                  Informações da Loja
-                </CardTitle>
+                <CardTitle>Informações da Loja</CardTitle>
                 <CardDescription>
                   {existingStore
                     ? 'Mantenha as informações da sua loja sempre atualizadas.'
@@ -268,7 +276,7 @@ export default function StoreFormPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                 <FormField
+                <FormField
                   control={form.control}
                   name="logoUrl"
                   render={() => (
@@ -289,11 +297,13 @@ export default function StoreFormPage() {
                                   height={100}
                                   className="h-24 w-24 rounded-md object-cover"
                                 />
-                                 <button
+                                <button
                                   type="button"
                                   onClick={(e) => {
-                                      e.preventDefault();
-                                      form.setValue('logoUrl', null, { shouldDirty: true });
+                                    e.preventDefault();
+                                    form.setValue('logoUrl', null, {
+                                      shouldDirty: true,
+                                    });
                                   }}
                                   className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-80 transition-opacity hover:opacity-100"
                                 >
