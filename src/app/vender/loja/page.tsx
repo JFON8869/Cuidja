@@ -165,64 +165,71 @@ export default function StoreFormPage() {
       toast.error('Você precisa estar logado para salvar.');
       return;
     }
-
+  
     setIsSubmitting(true);
     let finalLogoUrl = existingStore?.logoUrl || '';
-
-    // --- Upload Logic ---
+  
+    // --- SIMULATED Upload Logic ---
     const logoFile = values.logoUrl;
     if (logoFile instanceof File) {
       try {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
         logger.upload.start({ fileName: logoFile.name, path: filePath });
-        finalLogoUrl = await uploadFile(logoFile, filePath);
+        
+        // SIMULATION: Wait for a bit and then resolve with a placeholder URL
+        await new Promise(resolve => setTimeout(resolve, 1500)); 
+        finalLogoUrl = `https://picsum.photos/seed/${logoFile.name}/200`;
+        
+        logger.upload.success({ fileName: logoFile.name, url: finalLogoUrl });
+        toast.success('Simulação de upload bem-sucedida!');
+
       } catch (uploadError: any) {
-        console.error('Error during file upload:', uploadError);
-        toast.error('Falha no upload da imagem. Tente novamente.');
+        console.error('Error during SIMULATED file upload:', uploadError);
+        toast.error('Falha na simulação do upload da imagem.');
         setIsSubmitting(false);
-        return; // Stop execution if upload fails
+        return; 
       }
     } else if (logoValue === null) {
       finalLogoUrl = ''; // Clear logo if it was removed
     }
-    
+  
     // --- Database Logic ---
     try {
-        const dataToSave = {
-            name: values.name,
-            address: values.address,
-            operatingHours: values.operatingHours,
-            logoUrl: finalLogoUrl,
-            userId: user.uid,
+      const dataToSave = {
+        name: values.name,
+        address: values.address,
+        operatingHours: values.operatingHours,
+        logoUrl: finalLogoUrl,
+        userId: user.uid,
+      };
+  
+      if (existingStore) {
+        const storeRef = doc(firestore, 'stores', existingStore.id);
+        await updateDoc(storeRef, dataToSave);
+        toast.success('Loja atualizada com sucesso (com imagem simulada)!');
+      } else {
+        const batch = writeBatch(firestore);
+        const newStoreRef = doc(collection(firestore, 'stores'));
+        const newStorePayload = {
+          ...dataToSave,
+          categories: [],
+          createdAt: serverTimestamp(),
         };
-
-        if (existingStore) {
-            const storeRef = doc(firestore, 'stores', existingStore.id);
-            await updateDoc(storeRef, dataToSave);
-            toast.success('Loja atualizada com sucesso!');
-        } else {
-            const batch = writeBatch(firestore);
-            const newStoreRef = doc(collection(firestore, 'stores'));
-            const newStorePayload = {
-                ...dataToSave,
-                categories: [],
-                createdAt: serverTimestamp(),
-            };
-            batch.set(newStoreRef, newStorePayload);
-            const userDocRef = doc(firestore, 'users', user.uid);
-            batch.update(userDocRef, { storeId: newStoreRef.id });
-            await batch.commit();
-            toast.success('Sua loja foi criada! Agora você pode começar a vender.');
-        }
-        
-        router.push('/vender');
-        router.refresh();
-
+        batch.set(newStoreRef, newStorePayload);
+        const userDocRef = doc(firestore, 'users', user.uid);
+        batch.update(userDocRef, { storeId: newStoreRef.id });
+        await batch.commit();
+        toast.success('Sua loja foi criada (com imagem simulada)!');
+      }
+  
+      router.push('/vender');
+      router.refresh();
+  
     } catch (dbError) {
-        console.error('Error saving store data to Firestore:', dbError);
-        toast.error('Erro ao salvar os dados da loja.');
+      console.error('Error saving store data to Firestore:', dbError);
+      toast.error('Erro ao salvar os dados da loja.');
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
