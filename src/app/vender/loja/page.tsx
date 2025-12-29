@@ -179,7 +179,7 @@ export default function StoreFormPage() {
       } else if (logoValue === null) {
         finalLogoUrl = '';
       }
-    } catch (uploadError) {
+    } catch (uploadError: any) {
       console.error('Error during file upload:', uploadError);
       toast.error('Falha no upload da imagem. Tente novamente.');
       setIsSubmitting(false);

@@ -73,7 +73,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ productId }: ProductFormProps) {
-  const { user, firestore, auth, isUserLoading, store, isStoreLoading } =
+  const { user, firestore, isUserLoading, store, isStoreLoading } =
     useFirebase();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -214,15 +214,9 @@ export function ProductForm({ productId }: ProductFormProps) {
   };
 
   async function onSubmit(values: ProductFormValues) {
-    if (!firestore || !auth?.currentUser || !store) {
+    if (!firestore || !user?.uid || !store) {
       toast.error('É necessário estar autenticado e ter uma loja para criar um anúncio.');
       return;
-    }
-
-    const uid = auth.currentUser.uid;
-    if (!uid) {
-        toast.error('Não foi possível verificar sua identidade. Faça login novamente.');
-        return;
     }
 
     setIsSubmitting(true);
@@ -232,7 +226,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         
         for (const image of values.images || []) {
             if (image instanceof File) {
-                const filePath = `products/${uid}/${Date.now()}_${image.name}`;
+                const filePath = `products/${user.uid}/${Date.now()}_${image.name}`;
                 logger.upload.start({ fileName: image.name, path: filePath });
                 const url = await uploadFile(image, filePath);
                 uploadedImageUrls.push({ imageUrl: url, imageHint: 'product photo' });
@@ -248,7 +242,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             description: values.description || '',
             price: Number(values.price),
             storeId: store.id,
-            sellerId: uid,
+            sellerId: user.uid,
             type: 'PRODUCT' as const,
             addons: isEditing ? (form.getValues() as any).addons || [] : [],
         };
