@@ -51,10 +51,10 @@ service cloud.firestore {
     
     match /products/{productId} {
       allow get: if true;
-      allow list: if false; // Deny global list, queries must use indexes.
+      // Allow public listing of products for catalog browsing.
+      allow list: if true; 
       allow create: if isCreatingOwnResource();
-      allow update: if isResourceSeller(resource);
-      allow delete: if isResourceSeller(resource);
+      allow update, delete: if isResourceSeller(resource);
     }
 
     match /orders/{orderId} {
