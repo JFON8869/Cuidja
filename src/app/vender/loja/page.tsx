@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -42,6 +43,7 @@ import { Separator } from '@/components/ui/separator';
 import { OperatingHoursForm } from '@/components/vender/OperatingHoursForm';
 import { uploadFile } from '@/lib/storage';
 import BottomNav from '@/components/layout/BottomNav';
+import { logger } from '@/lib/logger';
 
 const dayHoursSchema = z.object({
   isOpen: z.boolean(),
@@ -144,6 +146,7 @@ export default function StoreFormPage() {
 
       if (logoFile instanceof File) {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
+        logger.upload.start({ fileName: logoFile.name, path: filePath });
         finalLogoUrl = await uploadFile(logoFile, filePath);
       } else if (logoFile === null) {
         finalLogoUrl = '';
