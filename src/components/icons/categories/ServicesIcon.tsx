@@ -3,43 +3,13 @@ import React from 'react';
 
 export const ServicesIcon = ({ className }: { className?: string }) => (
   <svg
-    viewBox="0 0 100 100"
+    viewBox="0 0 24 24"
+    fill="currentColor"
     className={cn('h-10 w-10', className)}
     xmlns="http://www.w3.org/2000/svg"
-    preserveAspectRatio="xMidYMid meet"
   >
-    <g transform="rotate(-30 50 50)">
-      {/* Wrench */}
-      <path
-        d="M 20 30 C 10 20 10 10 20 10 C 30 10 30 20 20 30 Z"
-        fill="#E76F51"
-      />
-      <rect x="18" y="30" width="50" height="8" rx="4" fill="#E76F51" />
-      <path
-        d="M 68 30 C 78 20 78 10 68 10 C 58 10 58 20 68 30 Z"
-        fill="none"
-        stroke="#E76F51"
-        strokeWidth="6"
-      />
-
-      {/* Screwdriver */}
-      <rect
-        x="30"
-        y="60"
-        width="60"
-        height="12"
-        rx="6"
-        fill="#2A9D8F"
-        transform="rotate(20 50 65)"
-      />
-      <rect
-        x="15"
-        y="58"
-        width="15"
-        height="16"
-        fill="#264653"
-        transform="rotate(20 50 65)"
-      />
-    </g>
+    <path
+      d="M17.5,12A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 20.5,12A1.5,1.5 0 0,1 19,13.5A1.5,1.5 0 0,1 17.5,12M19,21.5C20.38,21.5 21.5,20.38 21.5,19C21.5,17.62 20.38,16.5 19,16.5A2.5,2.5 0 0,0 16.5,19C16.5,20.38 17.62,21.5 19,21.5M19,8.5C20.38,8.5 21.5,7.38 21.5,6C21.5,4.62 20.38,3.5 19,3.5A2.5,2.5 0 0,0 16.5,6C16.5,7.38 17.62,8.5 19,8.5M5,12A1.5,1.5 0 0,1 6.5,10.5A1.5,1.5 0 0,1 8,12A1.5,1.5 0 0,1 6.5,13.5A1.5,1І.5 0 0,1 5,12M6.5,21.5C7.88,21.5 9,20.38 9,19C9,17.62 7.88,16.5 6.5,16.5A2.5,2.5 0 0,0 4,19C4,20.38 5.12,21.5 6.5,21.5M6.5,8.5C7.88,8.5 9,7.38 9,6C9,4.62 7.88,3.5 6.5,3.5A2.5,2.5 0 0,0 4,6C4,7.38 5.12,8.5 6.5,8.5Z"
+    />
   </svg>
 );

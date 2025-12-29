@@ -3,28 +3,13 @@ import React from 'react';
 
 export const GasWaterIcon = ({ className }: { className?: string }) => (
   <svg
-    viewBox="0 0 100 100"
+    viewBox="0 0 24 24"
+    fill="currentColor"
     className={cn('h-10 w-10', className)}
     xmlns="http://www.w3.org/2000/svg"
-    preserveAspectRatio="xMidYMid meet"
   >
-    <g>
-      <rect x="25" y="30" width="50" height="60" rx="10" fill="#E76F51" />
-      <rect x="35" y="20" width="30" height="10" rx="5" fill="#264653" />
-      <path
-        d="M 65 50 C 65 40 75 40 75 50 C 75 60 65 60 65 50"
-        fill="#F4A261"
-      />
-      <path
-        d="M 65 70 C 65 60 75 60 75 70 C 75 80 65 80 65 70"
-        fill="#F4A261"
-      />
-      <path
-        d="M 20 15 C 20 5 40 5 40 15 C 40 25 30 25 30 35 S 20 25 20 15 Z"
-        fill="#5E96C3"
-        stroke="#FFFFFF"
-        strokeWidth="2"
-      />
-    </g>
+    <path
+      d="M18,14H16V11H14V14H12V11H10V14H8V10C8,8.9 8.9,8 10,8H16C17.1,8 18,8.9 18,10V14M6,22H18C19.1,22 20,21.1 20,20V10C20,7.79 18.21,6 16,6H10C7.79,6 6,7.79 6,10V22M4,16H2V10C2,6.69 4.69,4 8,4H16C17.04,4 18.05,4.21 18.97,4.6L17.5,6.07C17.03,6.03 16.53,6 16,6H8C5.79,6 4,7.79 4,10V16Z"
+    />
   </svg>
 );

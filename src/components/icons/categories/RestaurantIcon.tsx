@@ -3,53 +3,13 @@ import React from 'react';
 
 export const RestaurantIcon = ({ className }: { className?: string }) => (
   <svg
-    width="512"
-    height="512"
-    viewBox="0 0 512 512"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
     className={cn('h-10 w-10', className)}
-    preserveAspectRatio="xMidYMid meet"
+    xmlns="http://www.w3.org/2000/svg"
   >
-    <circle cx="256" cy="256" r="240" fill="#FF5722" />
-    <circle cx="256" cy="270" r="140" fill="white" />
-    <circle
-      cx="256"
-      cy="270"
-      r="110"
-      fill="#F5F5F5"
-      stroke="#E0E0E0"
-      strokeWidth="2"
-    />
     <path
-      d="M180 200V280C180 300 195 315 210 315V420"
-      stroke="#333"
-      strokeWidth="12"
-      strokeLinecap="round"
-    />
-    <line
-      x1="195"
-      y1="200"
-      x2="195"
-      y2="260"
-      stroke="#333"
-      strokeWidth="12"
-      strokeLinecap="round"
-    />
-    <line
-      x1="210"
-      y1="200"
-      x2="210"
-      y2="260"
-      stroke="#333"
-      strokeWidth="12"
-      strokeLinecap="round"
-    />
-    <path
-      d="M330 200C330 200 300 200 300 280V315H315V420"
-      fill="#333"
-      stroke="#333"
-      strokeWidth="8"
+      d="M16,5V11H21V5M21,3A2,2 0 0,1 23,5V11A2,2 0 0,1 21,13H16V21H14V3H21M11,8V10H9V8M11,5V7H9V5M7,8V10H5V8M7,5V7H5V5M3,8V10H1V8M3,5V7H1V5M11,3H9V1H11V3M7,3H5V1H7V3M3,3H1V1H3V3Z"
     />
   </svg>
 );
