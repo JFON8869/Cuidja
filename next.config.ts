@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   experimental: {
     // A propriedade `allowedDevOrigins` foi movida para fora deste objeto.
   },
+  webpack(config, { isServer, dev }) {
+    if (dev && !isServer) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      }
+    }
+    return config
+  },
   // Adicionado para permitir requisições do ambiente de desenvolvimento do Studio
   allowedDevOrigins: ["*.cloudworkstations.dev"],
   typescript: {
@@ -29,7 +38,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https' ,
         hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
