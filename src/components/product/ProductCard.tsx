@@ -7,13 +7,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { type Product, ImagePlaceholder } from "@/lib/data";
-import { Store } from "lucide-react";
+import { Store, Package, Wrench } from "lucide-react";
 import Link from "next/link";
 import { WithId } from "@/firebase/firestore/use-collection";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface ProductCardProps {
   product: WithId<Product>;
@@ -22,9 +21,6 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { firestore } = useFirebase();
   const [storeName, setStoreName] = useState<string | null>(null);
-  const genericServiceImage = PlaceHolderImages.find(p => p.id === 'generic-service');
-  const genericProductImage = PlaceHolderImages.find(p => p.id === 'vegetables');
-
 
   useEffect(() => {
     async function fetchStoreName() {
@@ -50,8 +46,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : `/produtos/${product.id}`;
 
   const image: ImagePlaceholder | undefined = product.images?.[0];
-  const defaultImage = isService ? genericServiceImage : genericProductImage;
-  const imageUrl = image?.imageUrl || defaultImage?.imageUrl || 'https://picsum.photos/seed/placeholder/400/400';
+  const imageUrl = image?.imageUrl;
   const imageHint = image?.imageHint || (isService ? 'professional service' : 'product photo');
 
 
@@ -59,14 +54,20 @@ export function ProductCard({ product }: ProductCardProps) {
     <Link href={href} className="group">
       <Card className="overflow-hidden h-full flex flex-col">
         <CardHeader className="p-0">
-          <div className="aspect-square relative w-full">
-            <Image
-              src={imageUrl}
-              alt={product.name}
-              fill
-              className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-              data-ai-hint={imageHint}
-            />
+          <div className="aspect-square relative w-full bg-muted">
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt={product.name}
+                fill
+                className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                data-ai-hint={imageHint}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                {isService ? <Wrench className="w-1/2 h-1/2 opacity-50" /> : <Package className="w-1/2 h-1/2 opacity-50" />}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-3 flex-1">

@@ -187,14 +187,22 @@ export function ProductForm({ productId }: ProductFormProps) {
     if (e.target.files) {
         const files = Array.from(e.target.files);
         const currentImages = form.getValues('images') || [];
-        const totalImages = currentImages.length + files.length;
         
-        if (totalImages > 3) {
-            toast.error("Você pode selecionar no máximo 3 imagens.");
+        if (currentImages.length + files.length > 3) {
+            toast.error("Você pode enviar no máximo 3 imagens.");
             return;
         }
 
-        const newImages = [...currentImages, ...files];
+        const newImages = [...currentImages];
+        for(const file of files) {
+          const validationResult = imageFileSchema.safeParse(file);
+          if (validationResult.success) {
+            newImages.push(file);
+          } else {
+            toast.error(validationResult.error.errors[0].message);
+          }
+        }
+
         form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
     }
   };

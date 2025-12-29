@@ -142,13 +142,14 @@ export const mockProducts: Omit<Product, 'id' | 'storeId' | 'sellerId' | 'create
     },
 ];
 
-export const mockServices: Omit<Product, 'id' | 'storeId' | 'sellerId' | 'createdAt' | 'addons' | 'availability' | 'category' >[] = [
+export const mockServices: Omit<Product, 'id' | 'storeId' | 'sellerId' | 'createdAt' | 'addons' | 'category' >[] = [
     {
         name: "Aula Particular de Violão (Iniciante)",
         price: 80.00,
         description: "Aula com 1 hora de duração focada em fundamentos, acordes básicos e ritmo. Aprenda a tocar suas primeiras músicas.",
         images: [findImage('guitar-teacher')],
         type: "SERVICE",
+        availability: "on_demand",
         attendanceType: 'ambos'
     },
     {
@@ -157,6 +158,7 @@ export const mockServices: Omit<Product, 'id' | 'storeId' | 'sellerId' | 'create
         description: "Manutenção de jardins, poda, plantio e consultoria para criar o jardim dos seus sonhos. Preço por visita/hora a combinar.",
         images: [findImage('gardening-service')],
         type: "SERVICE",
+        availability: "on_demand",
         attendanceType: 'presencial'
     },
     {
@@ -165,6 +167,7 @@ export const mockServices: Omit<Product, 'id' | 'storeId' | 'sellerId' | 'create
         description: "Realizo pequenos reparos domésticos como instalação de prateleiras, chuveiros, reparos elétricos e hidráulicos. Orçamento sem compromisso.",
         images: [findImage('tools-for-hire')],
         type: "SERVICE",
+        availability: "on_demand",
         attendanceType: 'presencial'
     }
 ];

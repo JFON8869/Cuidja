@@ -95,11 +95,12 @@ export default function ProfilePage() {
 
     try {
       const productsRef = collection(firestore, 'products');
-      const q = query(productsRef, where('sellerId', '==', user.uid));
-      const existingProducts = await getDocs(q);
+      // Check for a specific mock product to see if seeding has already run
+      const q = query(productsRef, where('sellerId', '==', user.uid), where('name', '==', 'Hambúrguer Artesanal Clássico'));
+      const existingSeedProducts = await getDocs(q);
 
-      if (!existingProducts.empty) {
-        toast.success('O banco de dados já parece ter dados de teste.');
+      if (!existingSeedProducts.empty) {
+        toast.success('O banco de dados já foi populado com dados de teste.');
         setIsSeeding(false);
         return;
       }
