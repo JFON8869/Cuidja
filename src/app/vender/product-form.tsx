@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ImageIcon, X } from 'lucide-react';
+import Image from 'next/image';
 import {
   collection,
   serverTimestamp,
@@ -29,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
-import { Product } from '@/lib/data';
+import { Product, ImagePlaceholder } from '@/lib/data';
 import { productCategories } from '@/lib/categories';
 import {
   Form,
@@ -44,13 +45,23 @@ import { Separator } from '@/components/ui/separator';
 import { suggestCategory } from '@/ai/flows/suggest-category-flow';
 import BottomNav from '@/components/layout/BottomNav';
 import { Switch } from '@/components/ui/switch';
+import { uploadFile } from '@/lib/storage';
+import { logger } from '@/lib/logger';
 
+const imageFileSchema = z.instanceof(File).refine(file => file.size < 2 * 1024 * 1024, {
+  message: 'A imagem deve ser menor que 2MB.',
+}).refine(file => file.type.startsWith('image/'), {
+  message: 'Formato de arquivo inválido.',
+});
+
+const imageSchema = z.union([imageFileSchema, z.object({ imageUrl: z.string(), imageHint: z.string() })]);
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'O preço deve ser 0 ou maior.'),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
+  images: z.array(imageSchema).max(3, 'Você pode enviar no máximo 3 imagens.').optional(),
   availability: z.enum(['available', 'unavailable']),
 });
 
@@ -77,9 +88,12 @@ export function ProductForm({ productId }: ProductFormProps) {
       name: '',
       description: '',
       price: 0,
+      images: [],
       availability: 'available',
     },
   });
+
+  const imagesValue = form.watch('images') || [];
 
   useEffect(() => {
     if (isUserLoading || isStoreLoading) return;
@@ -101,15 +115,12 @@ export function ProductForm({ productId }: ProductFormProps) {
           if (docSnap.exists()) {
             const productData = docSnap.data() as Product;
             
-            // CRITICAL: Verify ownership before allowing editing.
             if (productData.sellerId !== user.uid) {
                 toast.error("Você não tem permissão para editar este produto.");
                 router.push('/vender/produtos');
                 return;
             }
             
-            // The 'availability' field in the DB can be 'on_demand', but our form only supports 'available' or 'unavailable'.
-            // We map 'on_demand' to 'available' for the form's logic.
             const availability = productData.availability === 'unavailable' ? 'unavailable' : 'available';
 
             form.reset({
@@ -118,6 +129,7 @@ export function ProductForm({ productId }: ProductFormProps) {
               description: productData.description || '',
               price: productData.price || 0,
               category: productData.category || '',
+              images: productData.images || [],
               availability,
             });
           } else {
@@ -171,6 +183,28 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+        const files = Array.from(e.target.files);
+        const currentImages = form.getValues('images') || [];
+        const totalImages = currentImages.length + files.length;
+        
+        if (totalImages > 3) {
+            toast.error("Você pode selecionar no máximo 3 imagens.");
+            return;
+        }
+
+        const newImages = [...currentImages, ...files];
+        form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const currentImages = form.getValues('images') || [];
+    const newImages = currentImages.filter((_, i) => i !== index);
+    form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
+  };
+
   async function onSubmit(values: ProductFormValues) {
     if (!firestore || !auth?.currentUser || !store) {
       toast.error('É necessário estar autenticado e ter uma loja para criar um anúncio.');
@@ -186,14 +220,29 @@ export function ProductForm({ productId }: ProductFormProps) {
     setIsSubmitting(true);
 
     try {
+        const uploadedImageUrls: ImagePlaceholder[] = [];
+        
+        for (const image of values.images || []) {
+            if (image instanceof File) {
+                const filePath = `products/${uid}/${Date.now()}_${image.name}`;
+                logger.upload.start({ fileName: image.name, path: filePath });
+                const url = await uploadFile(image, filePath);
+                uploadedImageUrls.push({ imageUrl: url, imageHint: 'product photo' });
+            } else {
+                // It's an existing image object, just keep it.
+                uploadedImageUrls.push(image);
+            }
+        }
+      
         const dataToSave = {
             ...values,
+            images: uploadedImageUrls,
             description: values.description || '',
             price: Number(values.price),
             storeId: store.id,
             sellerId: uid,
             type: 'PRODUCT' as const,
-            addons: [], //TODO: Implement addon management
+            addons: isEditing ? (form.getValues() as any).addons || [] : [],
         };
         
         if (isEditing && productId) {
@@ -206,7 +255,6 @@ export function ProductForm({ productId }: ProductFormProps) {
             });
         }
 
-        // Atomically add the product's category to the store's list of categories
         const storeRef = doc(firestore, 'stores', store.id);
         await updateDoc(storeRef, {
             categories: arrayUnion(values.category)
@@ -276,6 +324,60 @@ export function ProductForm({ productId }: ProductFormProps) {
                       placeholder="Detalhes que ajudam o cliente a escolher seu produto."
                       {...field}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Imagens (até 3)</FormLabel>
+                  <FormControl>
+                    <div>
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        {imagesValue.map((img, index) => (
+                          <div key={index} className="relative aspect-square">
+                            <Image
+                              src={img instanceof File ? URL.createObjectURL(img) : img.imageUrl}
+                              alt={`Prévia da imagem ${index + 1}`}
+                              fill
+                              className="rounded-md object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-80 transition-opacity hover:opacity-100"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {imagesValue.length < 3 && (
+                          <label
+                            htmlFor="image-upload"
+                            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-4 hover:bg-gray-50 aspect-square"
+                          >
+                            <ImageIcon className="h-8 w-8 text-gray-400" />
+                            <p className="mt-1 text-xs text-center text-gray-500">
+                              Adicionar
+                            </p>
+                          </label>
+                        )}
+                      </div>
+                      <Input
+                        id="image-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="image/png, image/jpeg"
+                        multiple
+                        onChange={handleImageChange}
+                        disabled={imagesValue.length >= 3}
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ImageIcon, X } from 'lucide-react';
+import Image from 'next/image';
 import {
   collection,
   addDoc,
@@ -29,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
-import { Product } from '@/lib/data';
+import { Product, ImagePlaceholder } from '@/lib/data';
 import {
   Form,
   FormControl,
@@ -40,11 +41,22 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import BottomNav from '@/components/layout/BottomNav';
+import { uploadFile } from '@/lib/storage';
+import { logger } from '@/lib/logger';
+
+const imageFileSchema = z.instanceof(File).refine(file => file.size < 2 * 1024 * 1024, {
+  message: 'A imagem deve ser menor que 2MB.',
+}).refine(file => file.type.startsWith('image/'), {
+  message: 'Formato de arquivo inválido.',
+});
+
+const imageSchema = z.union([imageFileSchema, z.object({ imageUrl: z.string(), imageHint: z.string() })]);
 
 const serviceSchema = z.object({
   name: z.string().min(3, 'O nome do serviço é obrigatório.'),
   description: z.string().min(10, 'A descrição é obrigatória.').optional(),
   price: z.coerce.number().min(0, 'O preço deve ser 0 (a combinar) ou maior.'),
+  images: z.array(imageSchema).max(3, 'Você pode enviar no máximo 3 imagens.').optional(),
   attendanceType: z.enum(['presencial', 'online', 'ambos'], {
     required_error: 'Selecione o tipo de atendimento.',
   }),
@@ -71,8 +83,11 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
       name: '',
       description: '',
       price: 0,
+      images: [],
     },
   });
+
+  const imagesValue = form.watch('images') || [];
 
   useEffect(() => {
     if (isUserLoading || isStoreLoading) return;
@@ -96,6 +111,7 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
             name: serviceData.name || '',
             description: serviceData.description || '',
             price: serviceData.price || 0,
+            images: serviceData.images || [],
             attendanceType: serviceData.attendanceType || undefined,
           });
         } else {
@@ -107,6 +123,29 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
       fetchService();
     }
   }, [firestore, serviceId, form, router, isEditing]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+        const files = Array.from(e.target.files);
+        const currentImages = form.getValues('images') || [];
+        const totalImages = currentImages.length + files.length;
+        
+        if (totalImages > 3) {
+            toast.error("Você pode selecionar no máximo 3 imagens.");
+            return;
+        }
+
+        const newImages = [...currentImages, ...files];
+        form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const currentImages = form.getValues('images') || [];
+    const newImages = currentImages.filter((_, i) => i !== index);
+    form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
+  };
+
 
   async function onSubmit(values: ServiceFormValues) {
     if (!firestore || !auth?.currentUser || !store) {
@@ -123,8 +162,22 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
     setIsSubmitting(true);
     
     try {
+      const uploadedImageUrls: ImagePlaceholder[] = [];
+        
+      for (const image of values.images || []) {
+          if (image instanceof File) {
+              const filePath = `products/${uid}/${Date.now()}_${image.name}`;
+              logger.upload.start({ fileName: image.name, path: filePath });
+              const url = await uploadFile(image, filePath);
+              uploadedImageUrls.push({ imageUrl: url, imageHint: 'service photo' });
+          } else {
+              uploadedImageUrls.push(image);
+          }
+      }
+
       const dataToSave = {
         ...values,
+        images: uploadedImageUrls,
         description: values.description || '',
         price: Number(values.price),
         storeId: store.id,
@@ -144,7 +197,6 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
         });
       }
 
-      // Atomically add the "Serviços" category to the store's list of categories
       const storeRef = doc(firestore, 'stores', store.id);
       await updateDoc(storeRef, {
           categories: arrayUnion('Serviços')
@@ -213,6 +265,60 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
                       {...field}
                       rows={5}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Imagens (até 3)</FormLabel>
+                  <FormControl>
+                    <div>
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        {imagesValue.map((img, index) => (
+                          <div key={index} className="relative aspect-square">
+                            <Image
+                              src={img instanceof File ? URL.createObjectURL(img) : img.imageUrl}
+                              alt={`Prévia da imagem ${index + 1}`}
+                              fill
+                              className="rounded-md object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-80 transition-opacity hover:opacity-100"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {imagesValue.length < 3 && (
+                          <label
+                            htmlFor="image-upload"
+                            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-4 hover:bg-gray-50 aspect-square"
+                          >
+                            <ImageIcon className="h-8 w-8 text-gray-400" />
+                            <p className="mt-1 text-xs text-center text-gray-500">
+                              Adicionar
+                            </p>
+                          </label>
+                        )}
+                      </div>
+                      <Input
+                        id="image-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="image/png, image/jpeg"
+                        multiple
+                        onChange={handleImageChange}
+                        disabled={imagesValue.length >= 3}
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
