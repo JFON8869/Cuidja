@@ -11,7 +11,7 @@ service firebase.storage {
       
       // Apenas o usuário autenticado pode escrever (criar, atualizar, deletar) 
       // na sua própria pasta de usuário.
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Regra explícita para imagens de produtos
@@ -21,7 +21,7 @@ service firebase.storage {
       allow read: if true;
 
       // Apenas o dono do produto pode escrever.
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
