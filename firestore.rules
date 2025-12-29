@@ -44,6 +44,8 @@ service cloud.firestore {
         allow get, list: if true;
         // The user creating the store must be the owner of the store.
         allow create: if isCreatingOwn('userId');
+        // The user can only update or delete a store if they are the owner.
+        // This rule uses `resource` which refers to the document *before* the operation.
         allow update, delete: if isDocumentOwner(resource, 'userId');
     }
     
