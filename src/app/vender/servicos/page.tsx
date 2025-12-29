@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -53,46 +53,45 @@ export default function SellerServicesPage() {
   const [services, setServices] = useState<WithId<Product>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isUserLoading || isStoreLoading) {
-      return;
-    }
-    if (!user || !store) {
+  const fetchServices = useCallback(async () => {
+    if ( !user || !store || !firestore) {
       setIsLoading(false);
       return;
     }
 
-    const fetchServices = async () => {
-      setIsLoading(true);
-      try {
-        const servicesQuery = query(
-          collection(firestore, 'products'),
-          where('storeId', '==', store.id),
-          where('type', '==', 'SERVICE')
-        );
+    setIsLoading(true);
+    try {
+      const servicesQuery = query(
+        collection(firestore, 'products'),
+        where('storeId', '==', store.id),
+        where('type', '==', 'SERVICE')
+      );
 
-        const servicesSnapshot = await getDocs(servicesQuery);
-        let fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WithId<Product>));
-        
-        // Sort on the client-side
-        fetchedServices.sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-            return dateB.getTime() - dateA.getTime();
-        });
+      const servicesSnapshot = await getDocs(servicesQuery);
+      let fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WithId<Product>));
+      
+      // Sort on the client-side
+      fetchedServices.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+          return dateB.getTime() - dateA.getTime();
+      });
 
-        setServices(fetchedServices);
+      setServices(fetchedServices);
 
-      } catch (error) {
-        console.error("Error fetching seller services:", error);
-        toast.error("Não foi possível carregar seus serviços.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    } catch (error) {
+      console.error("Error fetching seller services:", error);
+      toast.error("Não foi possível carregar seus serviços.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, store, firestore]);
 
-    fetchServices();
-  }, [user, firestore, isUserLoading, store, isStoreLoading]);
+  useEffect(() => {
+    if (!isUserLoading && !isStoreLoading) {
+      fetchServices();
+    }
+  }, [isUserLoading, isStoreLoading, fetchServices]);
 
   const handleAvailabilityChange = async (service: WithId<Product>, isChecked: boolean) => {
     if (!firestore) return;

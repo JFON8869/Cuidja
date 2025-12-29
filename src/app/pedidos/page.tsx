@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { collection, query, where, getDocs, orderBy, or } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -53,88 +53,84 @@ export default function MyOrdersPage() {
   const [stores, setStores] = useState<Record<string, { name: string }>>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isUserLoading || !user || !firestore) {
+  const fetchOrdersAndStores = useCallback(async () => {
+    if (!user || !firestore) {
       if (!isUserLoading) setIsLoading(false);
       return;
     }
 
-    const fetchOrdersAndStores = async () => {
-      setIsLoading(true);
-      try {
-        const ordersRef = collection(firestore, 'orders');
-        
-        // Create two separate queries
-        const asCustomerQuery = query(ordersRef, where('customerId', '==', user.uid));
-        const asSellerQuery = query(ordersRef, where('sellerId', '==', user.uid));
+    setIsLoading(true);
+    try {
+      const ordersRef = collection(firestore, 'orders');
+      
+      // Create two separate queries
+      const asCustomerQuery = query(ordersRef, where('customerId', '==', user.uid));
+      const asSellerQuery = query(ordersRef, where('sellerId', '==', user.uid));
 
-        // Fetch both sets of orders
-        const [customerOrdersSnap, sellerOrdersSnap] = await Promise.all([
-          getDocs(asCustomerQuery),
-          getDocs(asSellerQuery),
-        ]);
-        
-        const customerOrders = customerOrdersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-        const sellerOrders = sellerOrdersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      // Fetch both sets of orders
+      const [customerOrdersSnap, sellerOrdersSnap] = await Promise.all([
+        getDocs(asCustomerQuery),
+        getDocs(asSellerQuery),
+      ]);
+      
+      const customerOrders = customerOrdersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      const sellerOrders = sellerOrdersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-        // Combine and deduplicate orders (in case a user buys from their own store)
-        const allOrdersMap = new Map<string, Order>();
-        [...customerOrders, ...sellerOrders].forEach(order => {
-          allOrdersMap.set(order.id, order);
-        });
+      // Combine and deduplicate orders (in case a user buys from their own store)
+      const allOrdersMap = new Map<string, Order>();
+      [...customerOrders, ...sellerOrders].forEach(order => {
+        allOrdersMap.set(order.id, order);
+      });
 
-        const allOrders = Array.from(allOrdersMap.values());
-        
-        // Sort combined orders by date on the client-side
-        allOrders.sort((a, b) => {
-          const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate || 0);
-          const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate || 0);
-          return dateB.getTime() - dateA.getTime();
-        });
+      const allOrders = Array.from(allOrdersMap.values());
+      
+      // Sort combined orders by date on the client-side
+      allOrders.sort((a, b) => {
+        const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate || 0);
+        const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
 
-        setOrders(allOrders);
+      setOrders(allOrders);
 
-        // Fetch store details for all unique store IDs present in the orders
-        const storeIds = [...new Set(allOrders.map((order) => order.storeId))];
-        if (storeIds.length > 0) {
-          const fetchedStores: Record<string, { name: string }> = {};
-          const storeChunks = [];
-          for (let i = 0; i < storeIds.length; i += 30) {
-            storeChunks.push(storeIds.slice(i, i + 30));
-          }
-          for (const chunk of storeChunks) {
-             const storesQuery = query(collection(firestore, 'stores'), where('__name__', 'in', chunk));
-             const storesSnapshot = await getDocs(storesQuery);
-             storesSnapshot.forEach((doc) => {
-                fetchedStores[doc.id] = { name: doc.data().name };
-             });
-          }
-          setStores(fetchedStores);
+      // Fetch store details for all unique store IDs present in the orders
+      const storeIds = [...new Set(allOrders.map((order) => order.storeId))];
+      if (storeIds.length > 0) {
+        const fetchedStores: Record<string, { name: string }> = {};
+        const storeChunks = [];
+        for (let i = 0; i < storeIds.length; i += 30) {
+          storeChunks.push(storeIds.slice(i, i + 30));
         }
-
-      } catch (error) {
-        console.error('Failed to fetch orders:', error);
-      } finally {
-        setIsLoading(false);
+        for (const chunk of storeChunks) {
+           const storesQuery = query(collection(firestore, 'stores'), where('__name__', 'in', chunk));
+           const storesSnapshot = await getDocs(storesQuery);
+           storesSnapshot.forEach((doc) => {
+              fetchedStores[doc.id] = { name: doc.data().name };
+           });
+        }
+        setStores(fetchedStores);
       }
-    };
 
-    fetchOrdersAndStores();
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user, firestore, isUserLoading]);
+
+  useEffect(() => {
+    fetchOrdersAndStores();
+  }, [fetchOrdersAndStores]);
   
   const { purchaseOrders, serviceRequests } = useMemo(() => {
     // Determine which orders are 'my sales' vs 'my purchases'
-    const mySales = orders.filter(o => o.sellerId === user?.uid);
     const myPurchases = orders.filter(o => o.customerId === user?.uid);
     
     // Separate them by type for the tabs
     const purchaseOrders = myPurchases.filter(o => o.orderType === 'PURCHASE');
     const serviceRequests = myPurchases.filter(o => o.orderType === 'SERVICE_REQUEST');
     
-    // We can add a 'Sales' tab here if needed in the future
-    // For now, the main view is for the user as a customer. The seller flow directs them here.
-
-    return { purchaseOrders, serviceRequests, mySales, myPurchases };
+    return { purchaseOrders, serviceRequests };
   }, [orders, user]);
 
   const renderOrderList = (orderList: Order[]) => {

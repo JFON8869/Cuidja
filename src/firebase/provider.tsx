@@ -214,11 +214,21 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 
 type MemoFirebase <T> = T & {__memo?: boolean};
 
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
+export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   const memoized = useMemo(factory, deps);
   
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
+  if (memoized && typeof memoized === 'object' && !Array.isArray(memoized)) {
+    try {
+      Object.defineProperty(memoized, '__memo', {
+        value: true,
+        writable: false,
+        configurable: false,
+        enumerable: false,
+      });
+    } catch (e) {
+      // Cannot define property on provided object, so just return it.
+    }
+  }
   
   return memoized;
 }

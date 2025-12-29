@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -54,48 +54,46 @@ export default function SellerProductsPage() {
   const [products, setProducts] = useState<WithId<Product>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isUserLoading || isStoreLoading) {
-      return;
-    }
-
-    if (!user || !store) {
+  const fetchProducts = useCallback(async () => {
+    if (!user || !store || !firestore) {
       setIsLoading(false);
       return;
     }
 
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        const productsQuery = query(
-          collection(firestore, 'products'),
-          where('storeId', '==', store.id),
-          where('type', '==', 'PRODUCT')
-        );
+    setIsLoading(true);
+    try {
+      const productsQuery = query(
+        collection(firestore, 'products'),
+        where('storeId', '==', store.id),
+        where('type', '==', 'PRODUCT')
+      );
 
-        const productsSnapshot = await getDocs(productsQuery);
-        let fetchedProducts = productsSnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as WithId<Product>)
-        );
+      const productsSnapshot = await getDocs(productsQuery);
+      let fetchedProducts = productsSnapshot.docs.map(
+        (doc) => ({ id: doc.id, ...doc.data() } as WithId<Product>)
+      );
 
-        // Sort on the client-side
-        fetchedProducts.sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-            return dateB.getTime() - dateA.getTime();
-        });
+      // Sort on the client-side
+      fetchedProducts.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+          return dateB.getTime() - dateA.getTime();
+      });
 
-        setProducts(fetchedProducts);
-      } catch (error) {
-        console.error('Error fetching seller products:', error);
-        toast.error('Não foi possível carregar seus produtos.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      setProducts(fetchedProducts);
+    } catch (error) {
+      console.error('Error fetching seller products:', error);
+      toast.error('Não foi possível carregar seus produtos.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, store, firestore]);
 
-    fetchProducts();
-  }, [user, firestore, isUserLoading, store, isStoreLoading]);
+  useEffect(() => {
+    if (!isUserLoading && !isStoreLoading) {
+        fetchProducts();
+    }
+  }, [isUserLoading, isStoreLoading, fetchProducts]);
   
   const handleAvailabilityChange = async (product: WithId<Product>, isChecked: boolean) => {
     if (!firestore) return;

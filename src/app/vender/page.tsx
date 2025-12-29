@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Store as StoreIcon,
   PlusCircle,
@@ -91,46 +91,47 @@ function SellerDashboard({ store }: { store: WithId<Store> }) {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
 
-  useEffect(() => {
-    async function fetchDashboardMetrics() {
-        if (!firestore || !store?.id) {
-            setIsLoadingMetrics(false);
-            return;
-        };
+  const fetchDashboardMetrics = useCallback(async () => {
+    if (!firestore || !store?.id) {
+        setIsLoadingMetrics(false);
+        return;
+    };
+    
+    setIsLoadingMetrics(true);
+    
+    try {
+        const ordersQuery = query(
+            collection(firestore, 'orders'),
+            where('storeId', '==', store.id)
+        );
         
-        setIsLoadingMetrics(true);
+        const querySnapshot = await getDocs(ordersQuery);
+        const orders = querySnapshot.docs.map(doc => doc.data() as OrderData);
+
+        const completedPurchases = orders.filter(
+            order => order.orderType === 'PURCHASE' && (order.status === 'Entregue' || order.status === 'Concluído')
+        );
         
-        try {
-            const ordersQuery = query(
-                collection(firestore, 'orders'),
-                where('storeId', '==', store.id)
-            );
-            
-            const querySnapshot = await getDocs(ordersQuery);
-            const orders = querySnapshot.docs.map(doc => doc.data() as OrderData);
+        const totalRevenue = completedPurchases.reduce((acc, order) => acc + order.totalAmount, 0);
+        const totalOrders = orders.length;
+        const averageTicket = completedPurchases.length > 0 ? totalRevenue / completedPurchases.length : 0;
+        
+        setMetrics({
+            totalRevenue,
+            totalOrders,
+            averageTicket
+        });
 
-            const completedPurchases = orders.filter(
-                order => order.orderType === 'PURCHASE' && (order.status === 'Entregue' || order.status === 'Concluído')
-            );
-            
-            const totalRevenue = completedPurchases.reduce((acc, order) => acc + order.totalAmount, 0);
-            const totalOrders = orders.length;
-            const averageTicket = completedPurchases.length > 0 ? totalRevenue / completedPurchases.length : 0;
-            
-            setMetrics({
-                totalRevenue,
-                totalOrders,
-                averageTicket
-            });
-
-        } catch (error) {
-            console.error("Error fetching dashboard metrics: ", error);
-        } finally {
-            setIsLoadingMetrics(false);
-        }
+    } catch (error) {
+        console.error("Error fetching dashboard metrics: ", error);
+    } finally {
+        setIsLoadingMetrics(false);
     }
-    fetchDashboardMetrics();
   }, [firestore, store]);
+
+  useEffect(() => {
+    fetchDashboardMetrics();
+  }, [fetchDashboardMetrics]);
 
 
   const menuItems = [
