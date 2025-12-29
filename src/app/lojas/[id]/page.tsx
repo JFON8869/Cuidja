@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useSearchParams } from 'next/navigation';
@@ -160,6 +161,7 @@ export default function StorePage() {
           }
           alt={`Banner da loja ${store.name}`}
           fill
+          sizes="100vw"
           className="object-cover"
           data-ai-hint="store banner"
         />

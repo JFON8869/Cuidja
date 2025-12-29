@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -130,6 +131,7 @@ function ProductPage() {
             src={imageUrl}
             alt={product.name}
             fill
+            sizes="100vw"
             className="object-cover"
             data-ai-hint={imageHint}
           />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -141,6 +142,7 @@ export default function Home() {
                             src={banner.image.imageUrl}
                             alt={banner.title}
                             fill
+                            sizes="100vw"
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                             data-ai-hint={banner.image.imageHint}
                           />
