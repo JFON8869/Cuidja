@@ -2,15 +2,15 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Regra para logos de loja
-    match /logos/{userId}/{allPaths=**} {
-      allow read;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
     
-    // Nova regra para imagens de produtos e serviços
-    match /products/{userId}/{allPaths=**} {
-      allow read;
+    // Regra genérica para logos de loja e imagens de produtos
+    match /{folder}/{userId}/{allPaths=**} {
+      
+      // Qualquer pessoa pode ler as imagens (necessário para exibi-las no app).
+      allow read: if true;
+      
+      // Apenas o usuário autenticado pode escrever (criar, atualizar, deletar) 
+      // na sua própria pasta de usuário.
       allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
