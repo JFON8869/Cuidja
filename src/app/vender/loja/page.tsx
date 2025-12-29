@@ -170,20 +170,20 @@ export default function StoreFormPage() {
     let finalLogoUrl = existingStore?.logoUrl || '';
 
     // --- Upload Logic ---
-    try {
-      const logoFile = values.logoUrl;
-      if (logoFile instanceof File) {
+    const logoFile = values.logoUrl;
+    if (logoFile instanceof File) {
+      try {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
         logger.upload.start({ fileName: logoFile.name, path: filePath });
         finalLogoUrl = await uploadFile(logoFile, filePath);
-      } else if (logoValue === null) {
-        finalLogoUrl = '';
+      } catch (uploadError: any) {
+        console.error('Error during file upload:', uploadError);
+        toast.error('Falha no upload da imagem. Tente novamente.');
+        setIsSubmitting(false);
+        return; // Stop execution if upload fails
       }
-    } catch (uploadError: any) {
-      console.error('Error during file upload:', uploadError);
-      toast.error('Falha no upload da imagem. Tente novamente.');
-      setIsSubmitting(false);
-      return;
+    } else if (logoValue === null) {
+      finalLogoUrl = ''; // Clear logo if it was removed
     }
     
     // --- Database Logic ---
