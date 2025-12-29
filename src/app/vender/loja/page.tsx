@@ -66,23 +66,20 @@ const storeSchema = z.object({
       sat: dayHoursSchema,
     })
     .optional(),
-}).refine(
-  (data) => {
+}).superRefine((data, ctx) => {
     if (data.operatingHours) {
-      for (const day of Object.values(data.operatingHours)) {
-        if (day.isOpen && (!day.open || !day.close)) {
-          return false; // Invalid if open but times are missing
+        for (const dayKey in data.operatingHours) {
+            const day = data.operatingHours[dayKey as keyof typeof data.operatingHours];
+            if (day.isOpen && (!day.open || !day.close)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: [`operatingHours.${dayKey}.open`],
+                    message: "Horários são obrigatórios para dias abertos.",
+                });
+            }
         }
-      }
     }
-    return true;
-  },
-  {
-    message:
-      'Horários de abertura e fechamento são obrigatórios para dias marcados como abertos.',
-    path: ['operatingHours'],
-  }
-);
+});
 
 type StoreFormValues = z.infer<typeof storeSchema>;
 
@@ -187,7 +184,6 @@ export default function StoreFormPage() {
         const storeRef = doc(firestore, 'stores', existingStore.id);
         await updateDoc(storeRef, finalStoreData);
         toast.success('Loja atualizada com sucesso!');
-        router.push('/vender');
         router.refresh();
       } else {
         const batch = writeBatch(firestore);
