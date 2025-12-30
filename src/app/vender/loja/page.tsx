@@ -160,39 +160,32 @@ export default function StoreFormPage() {
     };
   }, [logoValue]);
 
-  const onSubmit = async (values: StoreFormValues) => {
+ const onSubmit = async (values: StoreFormValues) => {
     if (!user?.uid || !firestore) {
       toast.error('Você precisa estar logado para salvar.');
       return;
     }
-  
+
     setIsSubmitting(true);
     let finalLogoUrl = existingStore?.logoUrl || '';
-  
-    const logoFile = values.logoUrl;
-    if (logoFile instanceof File) {
-      try {
-        const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
-        finalLogoUrl = await uploadFile(logoFile, filePath);
-      } catch (uploadError) {
-        console.error('Error during file upload:', uploadError);
-        toast.error('Falha no upload da imagem. Tente novamente.');
-        setIsSubmitting(false);
-        return; 
-      }
-    } else if (logoValue === null) {
-      finalLogoUrl = ''; 
-    }
-  
+
     try {
+      const logoFile = values.logoUrl;
+      if (logoFile instanceof File) {
+        const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
+        logger.upload.start({ fileName: logoFile.name, path: filePath });
+        finalLogoUrl = await uploadFile(logoFile, filePath);
+        logger.upload.success({ fileName: logoFile.name, url: finalLogoUrl });
+      } else if (logoValue === null) {
+        finalLogoUrl = '';
+      }
+
       const dataToSave = {
-        name: values.name,
-        address: values.address,
-        operatingHours: values.operatingHours,
+        ...values,
         logoUrl: finalLogoUrl,
         userId: user.uid,
       };
-  
+
       if (existingStore) {
         const storeRef = doc(firestore, 'stores', existingStore.id);
         await updateDoc(storeRef, dataToSave);
@@ -211,17 +204,17 @@ export default function StoreFormPage() {
         await batch.commit();
         toast.success('Sua loja foi criada!');
       }
-  
+
       router.push('/vender');
       router.refresh();
-  
-    } catch (dbError) {
-      console.error('Error saving store data to Firestore:', dbError);
+    } catch (error) {
+      console.error('Error saving store:', error);
       toast.error('Erro ao salvar os dados da loja.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

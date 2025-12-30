@@ -231,7 +231,6 @@ export function ProductForm({ productId }: ProductFormProps) {
                 const url = await uploadFile(image, filePath);
                 uploadedImageUrls.push({ imageUrl: url, imageHint: 'product photo' });
             } else {
-                // It's an existing image object, just keep it.
                 uploadedImageUrls.push(image);
             }
         }
