@@ -167,15 +167,22 @@ export default function StoreFormPage() {
     }
 
     setIsSubmitting(true);
-    let finalLogoUrl = existingStore?.logoUrl || '';
-
+    
     try {
+      let finalLogoUrl = existingStore?.logoUrl || '';
       const logoFile = values.logoUrl;
+
       if (logoFile instanceof File) {
         const filePath = `logos/${user.uid}/${Date.now()}_${logoFile.name}`;
         logger.upload.start({ fileName: logoFile.name, path: filePath });
-        finalLogoUrl = await uploadFile(logoFile, filePath);
-        logger.upload.success({ fileName: logoFile.name, url: finalLogoUrl });
+        try {
+            finalLogoUrl = await uploadFile(logoFile, filePath);
+            logger.upload.success({ fileName: logoFile.name, url: finalLogoUrl });
+        } catch (uploadError) {
+             logger.upload.error({fileName: logoFile.name, error: uploadError});
+             toast.error("Falha no upload da imagem. Tente novamente.");
+             return; // Stop execution if upload fails
+        }
       } else if (logoValue === null) {
         finalLogoUrl = '';
       }
