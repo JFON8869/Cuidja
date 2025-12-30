@@ -135,7 +135,15 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
             return;
         }
 
-        const newImages = [...currentImages, ...files];
+        const newImages = [...currentImages];
+        for(const file of files) {
+          const validationResult = imageFileSchema.safeParse(file);
+          if (validationResult.success) {
+            newImages.push(file);
+          } else {
+            toast.error(validationResult.error.errors[0].message);
+          }
+        }
         form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
     }
   };
@@ -158,14 +166,16 @@ export function ServiceForm({ serviceId }: ServiceFormProps) {
     try {
       const uploadedImageUrls: ImagePlaceholder[] = [];
         
-      for (const image of values.images || []) {
-          if (image instanceof File) {
-              const filePath = `products/${user.uid}/${Date.now()}_${image.name}`;
-              logger.upload.start({ fileName: image.name, path: filePath });
-              const url = await uploadFile(image, filePath);
-              uploadedImageUrls.push({ imageUrl: url, imageHint: 'service photo' });
-          } else {
-              uploadedImageUrls.push(image);
+      if (values.images) {
+          for (const image of values.images) {
+              if (image instanceof File) {
+                  const filePath = `products/${user.uid}/${Date.now()}_${image.name}`;
+                  logger.upload.start({ fileName: image.name, path: filePath });
+                  const url = await uploadFile(image, filePath);
+                  uploadedImageUrls.push({ imageUrl: url, imageHint: 'service photo' });
+              } else {
+                  uploadedImageUrls.push(image);
+              }
           }
       }
 

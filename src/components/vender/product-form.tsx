@@ -224,14 +224,16 @@ export function ProductForm({ productId }: ProductFormProps) {
     try {
         const uploadedImageUrls: ImagePlaceholder[] = [];
         
-        for (const image of values.images || []) {
-            if (image instanceof File) {
-                const filePath = `products/${user.uid}/${Date.now()}_${image.name}`;
-                logger.upload.start({ fileName: image.name, path: filePath });
-                const url = await uploadFile(image, filePath);
-                uploadedImageUrls.push({ imageUrl: url, imageHint: 'product photo' });
-            } else {
-                uploadedImageUrls.push(image);
+        if (values.images) {
+            for (const image of values.images) {
+                if (image instanceof File) {
+                    const filePath = `products/${user.uid}/${Date.now()}_${image.name}`;
+                    logger.upload.start({ fileName: image.name, path: filePath });
+                    const url = await uploadFile(image, filePath);
+                    uploadedImageUrls.push({ imageUrl: url, imageHint: 'product photo' });
+                } else {
+                    uploadedImageUrls.push(image);
+                }
             }
         }
       

@@ -119,7 +119,6 @@ export default function StoreFormPage() {
 
   const logoValue = form.watch('logoUrl');
 
-  // Effect to handle user authentication and store existence checks
   useEffect(() => {
     if (isUserLoading || isStoreLoading) return;
     if (!user) {
@@ -127,7 +126,6 @@ export default function StoreFormPage() {
     }
   }, [user, isUserLoading, isStoreLoading, router]);
 
-  // Effect to populate the form when editing an existing store
   useEffect(() => {
     if (existingStore) {
       form.reset({
@@ -140,7 +138,6 @@ export default function StoreFormPage() {
     }
   }, [existingStore, form]);
 
-  // Effect to manage the preview URL, preventing memory leaks
   useEffect(() => {
     let objectUrl: string | null = null;
     if (logoValue instanceof File) {
@@ -152,7 +149,6 @@ export default function StoreFormPage() {
       setPreviewUrl(null);
     }
 
-    // Cleanup function to revoke the object URL
     return () => {
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
@@ -181,7 +177,8 @@ export default function StoreFormPage() {
         } catch (uploadError) {
              logger.upload.error({fileName: logoFile.name, error: uploadError});
              toast.error("Falha no upload da imagem. Tente novamente.");
-             return; // Stop execution if upload fails
+             setIsSubmitting(false); // Stop execution if upload fails
+             return; 
         }
       } else if (logoValue === null) {
         finalLogoUrl = '';
