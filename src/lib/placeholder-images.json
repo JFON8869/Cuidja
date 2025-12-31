@@ -21,19 +21,19 @@
     {
       "id": "honey",
       "description": "A jar of local honey",
-      "imageUrl": "https://images.unsplash.com/photo-1471943311424-646960669fbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxob25leSUyMGphcnxlbnwwfHx8fDE3NjYzNDY0OTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1471943311424-646960669fbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxob25leSUyMGphcnxlbnwwfHx8fDE3NjYzNDY0OTl8MA&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "honey jar"
     },
     {
       "id": "pottery",
       "description": "Handmade pottery",
-      "imageUrl": "https://images.unsplash.com/photo-1629380321696-99d97eaa492a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxoYW5kbWFkZSUyMHBvdHRlcnl8ZW58MHx8fHwxNzY2MzcyNTkyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1629380321696-99d97eaa492a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxoYW5kbWFkZSUyMHBvdHRlcnl8ZW58MHx8fHwxNzY2MzcyNTkyfDA&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "handmade pottery"
     },
     {
       "id": "textiles",
       "description": "Woven textiles and fabrics",
-      "imageUrl": "https://images.unsplash.com/photo-1761517099349-3536c67a198b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b3ZlbiUyMHRleHRpbGVzfGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1761517099349-3536c67a198b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b3ZlbiUyMHRleHRpbGVzfGVufDB8fHx8MTc2NjQxMTI4OXww&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "woven textiles"
     },
     {
@@ -51,13 +51,13 @@
     {
       "id": "jam",
       "description": "Homemade fruit jam in a jar",
-      "imageUrl": "https://images.unsplash.com/photo-1636417872083-bdbda422c2d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcnVpdCUyMGphbXxlbnwwfHx8fDE3NjY0MTEyODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1636417872083-bdbda422c2d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcnVpdCUyMGphbXxlbnwwfHx8fDE3NjY0MTEyODl8MA&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "fruit jam"
     },
     {
       "id": "tomatoes",
       "description": "Fresh ripe tomatoes",
-      "imageUrl": "https://images.unsplash.com/photo-1700064165267-8fa68ef07167?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmcmVzaCUyMHRvbWF0b2VzfGVufDB8fHx8MTc2NjM4NTM4NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1700064165267-8fa68ef07167?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmcmVzaCUyMHRvbWF0b2VzfGVufDB8fHx8MTc2NjM4NTM4NHww&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "fresh tomatoes"
     },
     {
@@ -93,7 +93,7 @@
     {
       "id": "banner-crafts",
       "description": "A banner displaying various handmade crafts.",
-      "imageUrl": "https://images.unsplash.com/photo-1562340155-a721a3a5e189?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kbWFkZSUyMGNyYWZ0c3xlbnwwfHx8fDE3NzMzMjYzNTV8MA&ixlib-rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1562340155-a721a3a5e189?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kbWFkZSUyMGNyYWZ0c3xlbnwwfHx8fDE3NzMzMjYzNTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "handmade crafts"
     },
     {
