@@ -1,4 +1,4 @@
-t 🚀 CUIDJA PLATFORM
+ 🚀 CUIDJA PLATFORM
 📋 VISÃO GERAL
 O Cuidja é uma plataforma de marketplace para serviços locais, focada em conectar
 produtores rurais, artesãos e prestadores de serviços com consumidores locais. A
